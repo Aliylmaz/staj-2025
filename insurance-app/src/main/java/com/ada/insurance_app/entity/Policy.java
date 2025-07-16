@@ -45,43 +45,32 @@ public class Policy {
     @Column(nullable = false)
     private BigDecimal premium;
 
-    @Column
-    private String vehicleMake;
 
-    @Column
-    private String vehicleModel;
+    @OneToOne
+    @JoinColumn(name = "vehicle_id", nullable = false)
+    private Vehicle vehicle;
 
-    @Column
-    private Integer vehicleYear;
-
-    @Column
-    private String vehiclePlateNumber;
-
-    @Column
-    private String vehicleIdentificationNumber;
-
-    // Many-to-Many relationship with Coverage
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-        name = "policy_coverages",
-        joinColumns = @JoinColumn(name = "policy_id"),
-        inverseJoinColumns = @JoinColumn(name = "coverage_id")
+            name = "policy_coverages",
+            joinColumns = @JoinColumn(name = "policy_id"),
+            inverseJoinColumns = @JoinColumn(name = "coverage_id")
     )
     private Set<Coverage> coverages = new HashSet<>();
 
-    // One-to-Many relationship with Claim
+
     @OneToMany(mappedBy = "policy", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Claim> claims = new HashSet<>();
 
-    // One-to-Many relationship with Document
+
     @OneToMany(mappedBy = "policy", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Document> documents = new HashSet<>();
 
-    // One-to-One relationship with Offer
+
     @OneToOne(mappedBy = "policy", cascade = CascadeType.ALL, orphanRemoval = true)
     private Offer offer;
 
-    // One-to-One relationship with Payment
+
     @OneToOne(mappedBy = "policy", cascade = CascadeType.ALL, orphanRemoval = true)
     private Payment payment;
 
@@ -92,37 +81,32 @@ public class Policy {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    // Helper method to add a coverage
+    // Helper methods (coverages, claims, documents)
     public void addCoverage(Coverage coverage) {
         coverages.add(coverage);
         coverage.getPolicies().add(this);
     }
 
-    // Helper method to remove a coverage
     public void removeCoverage(Coverage coverage) {
         coverages.remove(coverage);
         coverage.getPolicies().remove(this);
     }
 
-    // Helper method to add a claim
     public void addClaim(Claim claim) {
         claims.add(claim);
         claim.setPolicy(this);
     }
 
-    // Helper method to remove a claim
     public void removeClaim(Claim claim) {
         claims.remove(claim);
         claim.setPolicy(null);
     }
 
-    // Helper method to add a document
     public void addDocument(Document document) {
         documents.add(document);
         document.setPolicy(this);
     }
 
-    // Helper method to remove a document
     public void removeDocument(Document document) {
         documents.remove(document);
         document.setPolicy(null);
