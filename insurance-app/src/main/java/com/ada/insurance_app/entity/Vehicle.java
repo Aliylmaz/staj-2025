@@ -1,9 +1,9 @@
 package com.ada.insurance_app.entity;
 
 
-import com.ada.insurance_app.enums.FuelType;
-import com.ada.insurance_app.enums.GearType;
-import com.ada.insurance_app.enums.UsageType;
+import com.ada.insurance_app.core.enums.FuelType;
+import com.ada.insurance_app.core.enums.GearType;
+import com.ada.insurance_app.core.enums.UsageType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

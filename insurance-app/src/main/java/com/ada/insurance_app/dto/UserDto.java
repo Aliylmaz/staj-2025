@@ -1,6 +1,6 @@
 package com.ada.insurance_app.dto;
 
-import com.ada.insurance_app.enums.Role;
+import com.ada.insurance_app.core.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

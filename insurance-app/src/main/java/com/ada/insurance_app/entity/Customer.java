@@ -1,6 +1,6 @@
 package com.ada.insurance_app.entity;
 
-import com.ada.insurance_app.enums.CustomerType;
+import com.ada.insurance_app.core.enums.CustomerType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

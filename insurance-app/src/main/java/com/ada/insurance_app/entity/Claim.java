@@ -1,6 +1,6 @@
 package com.ada.insurance_app.entity;
 
-import com.ada.insurance_app.enums.ClaimStatus;
+import com.ada.insurance_app.core.enums.ClaimStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

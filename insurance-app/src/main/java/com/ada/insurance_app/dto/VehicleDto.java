@@ -1,8 +1,8 @@
 package com.ada.insurance_app.dto;
 
-import com.ada.insurance_app.enums.FuelType;
-import com.ada.insurance_app.enums.GearType;
-import com.ada.insurance_app.enums.UsageType;
+import com.ada.insurance_app.core.enums.FuelType;
+import com.ada.insurance_app.core.enums.GearType;
+import com.ada.insurance_app.core.enums.UsageType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

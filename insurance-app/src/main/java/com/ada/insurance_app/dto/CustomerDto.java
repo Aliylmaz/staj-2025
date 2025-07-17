@@ -1,6 +1,6 @@
 package com.ada.insurance_app.dto;
 
-import com.ada.insurance_app.enums.CustomerType;
+import com.ada.insurance_app.core.enums.CustomerType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
