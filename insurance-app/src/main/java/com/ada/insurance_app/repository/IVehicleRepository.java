@@ -4,8 +4,32 @@ import com.ada.insurance_app.entity.Vehicle;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface IVehicleRepository extends JpaRepository<Vehicle, UUID> {
+
+
+    Optional<Vehicle> findByPlateNumber(String plateNumber);
+
+
+    Optional<Vehicle> findByVin(String vin);
+
+
+    Optional<Vehicle> findByEngineNumber(String engineNumber);
+
+
+    List<Vehicle> findByCustomerId(UUID customerId);
+
+
+    List<Vehicle> findByMakeContainingIgnoreCase(String make);
+
+    List<Vehicle> findByModelContainingIgnoreCase(String model);
+
+
+    boolean existsByPlateNumber(String plateNumber);
+
+    boolean existsByVin(String vin);
 }
