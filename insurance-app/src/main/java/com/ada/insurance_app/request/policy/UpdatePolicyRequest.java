@@ -15,10 +15,6 @@ public class UpdatePolicyRequest {
     private Long policyId;
 
     private LocalDate startDate;
-
     private LocalDate endDate;
-
-    private BigDecimal premium;
-
-    private Set<Long> coverageIds; // Optional: update coverages
+    private Set<UUID> coverageIds;
 }

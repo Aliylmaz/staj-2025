@@ -28,7 +28,7 @@ public class AddUserRequest {
     private String password;
 
     @NotEmpty(message = "At least one role must be assigned")
-    private Set<Role> roles; // Role enum kullanıldığı için burada direkt enum olarak tanımlanır
+    private Set<Role> roles;
 
     private String phoneNumber;
 }

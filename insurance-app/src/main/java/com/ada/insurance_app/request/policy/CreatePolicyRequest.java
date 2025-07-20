@@ -25,9 +25,5 @@ public class CreatePolicyRequest {
     @NotNull(message = "Policy end date is required")
     private LocalDate endDate;
 
-    @NotNull(message = "Premium amount is required")
-    @Positive(message = "Premium must be greater than zero")
-    private BigDecimal premium;
-
-    private Set<Long> coverageIds; // Optional – user can choose from predefined coverage
+    private Set<UUID> coverageIds; // Optional
 }

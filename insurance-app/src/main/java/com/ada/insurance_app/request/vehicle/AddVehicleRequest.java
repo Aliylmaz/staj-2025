@@ -3,44 +3,44 @@ package com.ada.insurance_app.request.vehicle;
 import com.ada.insurance_app.core.enums.FuelType;
 import com.ada.insurance_app.core.enums.GearType;
 import com.ada.insurance_app.core.enums.UsageType;
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Data
 public class AddVehicleRequest {
 
-    @NotBlank(message = "Make is required")
+    @NotBlank
     private String make;
 
-    @NotBlank(message = "Model is required")
+    @NotBlank
     private String model;
 
-    @NotNull(message = "Year is required")
+    @NotNull
     private Integer year;
 
-    @NotBlank(message = "Plate number is required")
+    @NotBlank
     private String plateNumber;
 
-    @NotBlank(message = "VIN (chassis number) is required")
+    @NotBlank
     private String vin;
 
-    @NotBlank(message = "Engine number is required")
+    @NotBlank
     private String engineNumber;
 
-    @NotNull(message = "Fuel type is required")
     private FuelType fuelType;
 
-    @NotNull(message = "Gear type is required")
     private GearType gearType;
 
-    @NotNull(message = "Usage type is required")
     private UsageType usageType;
 
     private Integer kilometers;
 
     private LocalDate registrationDate;
+
+    @NotNull
+    private UUID customerId;
 }
