@@ -23,6 +23,7 @@ public class VehicleDto {
     private String plateNumber;
     private String vin;
     private String engineNumber;
+    private UUID customerId;
     private FuelType fuelType;
     private GearType gearType;
     private UsageType usageType;

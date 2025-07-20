@@ -68,10 +68,6 @@ public class Policy {
 
 
     @OneToOne(mappedBy = "policy", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Offer offer;
-
-
-    @OneToOne(mappedBy = "policy", cascade = CascadeType.ALL, orphanRemoval = true)
     private Payment payment;
 
     @CreationTimestamp

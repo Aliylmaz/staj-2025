@@ -36,6 +36,10 @@ public class Offer {
     @Column(nullable = false)
     private OfferStatus status;  // PENDING, ACCEPTED, REJECTED
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id", nullable = false)
+    private Customer customer;
+
     @Column(length = 1000)
     private String note;
 

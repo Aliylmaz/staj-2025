@@ -44,6 +44,10 @@ public class Vehicle {
     @Column(nullable = false, unique = true)
     private String engineNumber;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id", nullable = false)
+    private Customer customer;
+
     @Enumerated(EnumType.STRING)
     private FuelType fuelType;
 

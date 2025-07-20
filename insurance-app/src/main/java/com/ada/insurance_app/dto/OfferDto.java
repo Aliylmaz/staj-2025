@@ -15,5 +15,6 @@ public class OfferDto {
     private String offerNumber;
     private BigDecimal totalPremium;
     private OfferStatus status;
+    private CustomerDto customer;
     private String note;
 }

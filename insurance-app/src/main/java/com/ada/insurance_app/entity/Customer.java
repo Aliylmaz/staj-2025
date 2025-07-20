@@ -68,6 +68,10 @@ public class Customer {
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Policy> policies = new ArrayList<>();
 
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
+    private List<Vehicle> vehicles = new ArrayList<>();
+
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
