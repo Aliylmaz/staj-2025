@@ -42,10 +42,10 @@ public class User {
     @Column
     private String phoneNumber;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+
+    @CollectionTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.STRING)
-    private Set<Role> roles = new HashSet<>();
+    private Role role;
 
     @Column(nullable = false)
     private boolean active = true;
@@ -57,18 +57,4 @@ public class User {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    // Helper method to add a role
-    public void addRole(Role role) {
-        this.roles.add(role);
-    }
-
-    // Helper method to remove a role
-    public void removeRole(Role role) {
-        this.roles.remove(role);
-    }
-
-    // Helper method to check if user has a specific role
-    public boolean hasRole(Role role) {
-        return this.roles.contains(role);
-    }
 }
