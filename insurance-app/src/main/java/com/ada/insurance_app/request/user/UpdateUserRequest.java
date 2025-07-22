@@ -27,5 +27,5 @@ public class UpdateUserRequest {
 
     private String phoneNumber;
 
-    private Set<Role> roles; // Opsiyonel rol güncelleme imkanı
+    private Role role;
 }
