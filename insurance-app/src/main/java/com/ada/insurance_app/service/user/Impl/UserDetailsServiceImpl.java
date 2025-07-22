@@ -14,9 +14,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private final IUserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        var user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Kullanıcı bulunamadı: " + username));
-        return new CustomUserDetails(user);
+    public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
+        return userRepository.findByEmail(identifier)
+                .or(() -> userRepository.findByUsername(identifier))
+                .map(CustomUserDetails::new)
+                .orElseThrow(() -> new UsernameNotFoundException("Kullanıcı bulunamadı: " + identifier));
     }
+
 }
