@@ -1,15 +1,16 @@
 package com.ada.insurance_app.core.handler;
 
 import com.ada.insurance_app.core.common.dto.GeneralResponse;
-import com.ada.insurance_app.core.exception.InvalidPasswordException;
-import com.ada.insurance_app.core.exception.UserNotFoundException;
+import com.ada.insurance_app.core.exception.*;
 import com.ada.insurance_app.response.UserResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import java.lang.IllegalArgumentException;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -27,6 +28,30 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> handleUserNotFoundException(UserNotFoundException ex) {
         return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+    @ExceptionHandler(ExpiredPasswordResetTokenException.class)
+    public ResponseEntity<Object> handleExpiredPasswordResetTokenException(ExpiredPasswordResetTokenException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+    @ExceptionHandler(InvalidPasswordResetTokenException.class)
+    public ResponseEntity<Object> handleInvalidPasswordResetTokenException(InvalidPasswordResetTokenException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+    @ExceptionHandler(PasswordMismatchException.class)
+    public ResponseEntity<Object> handlePasswordMismatchException(PasswordMismatchException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+    @ExceptionHandler(UnauthorizedAccessException.class)
+    public ResponseEntity<Object> handleUnauthorizedAccessException(UnauthorizedAccessException ex) {
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+
+
+
 
 
 

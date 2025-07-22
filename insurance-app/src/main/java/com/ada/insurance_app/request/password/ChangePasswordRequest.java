@@ -10,5 +10,5 @@ public class ChangePasswordRequest {
     private String currentPassword;
 
     @NotBlank(message = "New password must not be blank")
-    private String newPassword;
+        private String newPassword;
 }

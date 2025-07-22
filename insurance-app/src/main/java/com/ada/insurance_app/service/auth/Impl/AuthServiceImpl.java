@@ -6,8 +6,8 @@ import com.ada.insurance_app.core.security.JwtTokenProvider;
 import com.ada.insurance_app.core.security.SecurityUtils;
 import com.ada.insurance_app.dto.UserDto;
 import com.ada.insurance_app.entity.User;
+import com.ada.insurance_app.entity.RefreshToken;
 import com.ada.insurance_app.mapper.UserInfoMapper;
-import com.ada.insurance_app.repository.IAuthRepository;
 import com.ada.insurance_app.repository.IUserRepository;
 import com.ada.insurance_app.request.auth.LoginRequest;
 import com.ada.insurance_app.request.auth.RefreshTokenRequest;
@@ -18,7 +18,11 @@ import com.ada.insurance_app.request.user.AddUserRequest;
 import com.ada.insurance_app.response.AuthResponse;
 import com.ada.insurance_app.response.PasswordResponse;
 import com.ada.insurance_app.service.auth.IAuthService;
+import com.ada.insurance_app.service.auth.token.RefreshTokenService;
+import com.ada.insurance_app.service.auth.token.PasswordResetTokenService;
+import com.ada.insurance_app.service.email.EmailService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,9 +32,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Set;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements IAuthService {
@@ -38,127 +42,135 @@ public class AuthServiceImpl implements IAuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final IUserRepository userRepository;
-    private final IAuthRepository authRepository;
+    private final RefreshTokenService refreshTokenService;
+    private final PasswordResetTokenService passwordResetTokenService;
     private final PasswordEncoder passwordEncoder;
     private final UserInfoMapper userInfoMapper;
-
-    @Value("${security.jwt.refreshExpirationMs}")
-    private long refreshTokenExpirationMs;
+    private final EmailService emailService;
 
     @Value("${security.jwt.expirationMs}")
     private long accessTokenExpirationMs;
 
-    @Value("${security.password.resetExpirationMs:3600000}") // Default 1 hour
-    private long passwordResetExpirationMs;
+    @Value("${security.password.reset.rateLimit.minutes:5}")
+    private int passwordResetRateLimitMinutes;
 
     @Override
+    @Transactional
     public AuthResponse login(LoginRequest request) {
-        // Authenticate the user
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
-        
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        
-        // Get user details
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + request.getEmail()));
-        
-        // Generate tokens
-        String accessToken = jwtTokenProvider.generateToken(authentication);
-        String refreshToken = UUID.randomUUID().toString();
-        
-        // Save refresh token
-        authRepository.saveRefreshToken(user.getId(), refreshToken, refreshTokenExpirationMs);
-        
-        // Build and return response
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .expiresIn(accessTokenExpirationMs / 1000) // Convert to seconds
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .build();
+        try {
+            // Authenticate the user
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // Get user details
+            User user = userRepository.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new UserNotFoundException("User not found with email: " + request.getEmail()));
+
+            // Generate tokens
+            String accessToken = jwtTokenProvider.generateToken(authentication);
+            String refreshTokenValue = UUID.randomUUID().toString();
+
+
+
+            // Create refresh token entity
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, refreshTokenValue);
+
+            log.info("User logged in successfully: {}", user.getEmail());
+
+            // Build and return response
+            return AuthResponse.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken.getToken())
+                    .expiresIn(accessTokenExpirationMs / 1000) // Convert to seconds
+                    .username(user.getUsername())
+                    .email(user.getEmail())
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Login failed for email: {}", request.getEmail(), e);
+            throw e;
+        }
     }
 
-  @Transactional
-  @Override
-  public UserDto register(AddUserRequest request) {
-      if (userRepository.existsByEmail(request.getEmail())) {
-          throw new IllegalArgumentException("Email already in use");
-      }
+    @Transactional
+    @Override
+    public UserDto register(AddUserRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email already in use");
+        }
 
-      if (userRepository.existsByUsername(request.getUsername())) {
-          throw new IllegalArgumentException("Username already in use");
-      }
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new IllegalArgumentException("Username already in use");
+        }
 
-      User user = new User();
-      user.setUsername(request.getUsername());
-      user.setEmail(request.getEmail());
-      user.setPassword(passwordEncoder.encode(request.getPassword()));
-      user.setFirstName(request.getFirstName());
-      user.setLastName(request.getLastName());
-      user.setPhoneNumber(request.getPhoneNumber());
-      user.setRole(Role.CUSTOMER); // Sabit rol
-      user.setActive(true);
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setRole(Role.CUSTOMER);
+        user.setActive(true);
 
-      user = userRepository.save(user);
+        user = userRepository.save(user);
 
-      return userInfoMapper.fromUserInfo(user);
-  }
+        log.info("New user registered: {}", user.getEmail());
 
+        return userInfoMapper.fromUserInfo(user);
+    }
 
     @Override
+    @Transactional
     public AuthResponse refreshToken(RefreshTokenRequest request) {
-        String refreshToken = request.getRefreshToken();
-        
-        // Validate refresh token
-        if (!authRepository.isRefreshTokenValid(refreshToken)) {
-            throw new IllegalArgumentException("Invalid refresh token");
-        }
-        
-        // Get user ID from refresh token
-        UUID userId = authRepository.getUserIdByRefreshToken(refreshToken)
+        String refreshTokenValue = request.getRefreshToken();
+
+        // Find and validate refresh token
+        RefreshToken refreshToken = refreshTokenService.findByToken(refreshTokenValue)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
-        
-        // Get user details
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-        
+
+        User user = refreshToken.getUser();
+
         // Create authentication object
         Authentication authentication = new UsernamePasswordAuthenticationToken(
-                user.getUsername(), null, null);
-        
+                user.getUsername(), null, user.getAuthorities());
+
         // Generate new access token
         String accessToken = jwtTokenProvider.generateToken(authentication);
-        
+
         // Generate new refresh token
-        String newRefreshToken = UUID.randomUUID().toString();
-        
-        // Delete old refresh token and save new one
-        authRepository.deleteRefreshToken(refreshToken);
-        authRepository.saveRefreshToken(user.getId(), newRefreshToken, refreshTokenExpirationMs);
-        
+        String newRefreshTokenValue = UUID.randomUUID().toString();
+
+        // Revoke old refresh token and create new one
+        refreshTokenService.revokeToken(refreshTokenValue);
+        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user, newRefreshTokenValue);
+
+        log.info("Token refreshed successfully for user: {}", user.getEmail());
+
         // Build and return response
         return AuthResponse.builder()
                 .accessToken(accessToken)
-                .refreshToken(newRefreshToken)
-                .expiresIn(accessTokenExpirationMs / 1000) // Convert to seconds
+                .refreshToken(newRefreshToken.getToken())
+                .expiresIn(accessTokenExpirationMs / 1000)
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .build();
     }
 
     @Override
+    @Transactional
     public void logout(String token) {
-        // Delete refresh token
-        authRepository.deleteRefreshToken(token);
+        refreshTokenService.revokeToken(token);
+        log.info("User logged out, refresh token revoked");
     }
 
-   @Override
+    @Override
     @Transactional
     public PasswordResponse changePassword(ChangePasswordRequest request) {
         // Get current user
@@ -182,74 +194,92 @@ public class AuthServiceImpl implements IAuthService {
                     .build();
         }
 
-        // Update password and invalidate tokens
+        // Update password and invalidate all refresh tokens
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
-        authRepository.deleteAllRefreshTokensByUserId(user.getId());
+
+        refreshTokenService.revokeAllTokensByUser(user);
+
+        log.info("Password changed successfully for user: {}", user.getEmail());
 
         return PasswordResponse.builder()
                 .success(true)
-                .message("Password updated successfully")
-                .build();
-    }
-
-    @Override
-    public PasswordResponse forgotPassword(ForgotPasswordRequest request) {
-        // Check if user exists
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElse(null);
-        
-        if (user == null) {
-            // Don't reveal that the email doesn't exist for security reasons
-            return PasswordResponse.builder()
-                    .success(true)
-                    .message("If your email is registered, you will receive a password reset link")
-                    .build();
-        }
-        
-        // Generate reset token
-        String resetToken = UUID.randomUUID().toString();
-        
-        // Save reset token
-        authRepository.savePasswordResetToken(user.getEmail(), resetToken, passwordResetExpirationMs);
-        
-        // In a real application, send an email with the reset token
-        // For now, just return the token in the response
-        return PasswordResponse.builder()
-                .success(true)
-                .message("Password reset link sent to your email. Token: " + resetToken)
+                .message("Password updated successfully. Please login again.")
                 .build();
     }
 
     @Override
     @Transactional
+    public PasswordResponse forgotPassword(ForgotPasswordRequest request) {
+        // Check if user exists
+        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+
+        if (user == null) {
+            return PasswordResponse.builder()
+                    .success(true)
+                    .message("If your email is registered, you will receive a password reset link")
+                    .build();
+        }
+
+        if (passwordResetTokenService.isRecentTokenRequest(user, passwordResetRateLimitMinutes)) {
+            return PasswordResponse.builder()
+                    .success(false)
+                    .message("Please wait before requesting another password reset")
+                    .build();
+        }
+
+        String resetToken = UUID.randomUUID().toString();
+        passwordResetTokenService.createPasswordResetToken(user, resetToken);
+
+        log.info("Password reset token generated for user: {}", user.getEmail());
+
+
+        emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
+
+        return PasswordResponse.builder()
+                .success(true)
+                .message("Password reset link sent to your email")
+                .build();
+    }
+
+
+    @Override
+    @Transactional
     public PasswordResponse resetPassword(ResetPasswordRequest request) {
-        // Validate reset token
-        if (!authRepository.isPasswordResetTokenValid(request.getToken())) {
+        String token = request.getToken().trim();
+
+        // Get user by token first
+        User user = passwordResetTokenService.getUserByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid reset token"));
+
+        // Then mark token as used
+        if (!passwordResetTokenService.useToken(token)) {
             return PasswordResponse.builder()
                     .success(false)
                     .message("Invalid or expired reset token")
                     .build();
         }
-        
-        // Get email from reset token
-        String email = authRepository.getEmailByResetToken(request.getToken())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid reset token"));
-        
-        // Get user
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-        
-        // Update password
+
+        // Validate new password
+        if (request.getNewPassword().length() < 8) {
+            return PasswordResponse.builder()
+                    .success(false)
+                    .message("Password must be at least 8 characters")
+                    .build();
+        }
+
+        // Save new password and revoke all refresh tokens
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
-        
-        // Delete reset token
-        authRepository.deletePasswordResetToken(request.getToken());
-        
+
+        refreshTokenService.revokeAllTokensByUser(user);
+
+        log.info("Password reset successfully for user: {}", user.getEmail());
+
         return PasswordResponse.builder()
                 .success(true)
-                .message("Password reset successfully")
+                .message("Password reset successfully. Please login with your new password.")
                 .build();
     }
+
 }

@@ -58,24 +58,39 @@ public class AuthController implements IAuthController {
     @Override
     @PostMapping("/password/change")
     public ResponseEntity<PasswordResponse> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
-        String username = SecurityUtils.getCurrentUsername();
-        if (username == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        try {
+            String username = SecurityUtils.getCurrentUsername();
+            if (username == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new PasswordResponse(false, "User not logged in"));
+            }
+            return ResponseEntity.ok(authService.changePassword(request));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new PasswordResponse(false, "Password change operation failed: " + e.getMessage()));
         }
-
-        return ResponseEntity.ok(authService.changePassword(request));
-
     }
 
     @Override
     @PostMapping("/password/forgot")
-    public ResponseEntity<PasswordResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        return ResponseEntity.ok(authService.forgotPassword(request));
+        public ResponseEntity<PasswordResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        try {
+            return ResponseEntity.ok(authService.forgotPassword(request));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new PasswordResponse(false, "Forgot password operation failed: " + e.getMessage()));
+        }
     }
 
     @Override
     @PostMapping("/password/reset")
     public ResponseEntity<PasswordResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        return ResponseEntity.ok(authService.resetPassword(request));
+        try {
+            return ResponseEntity.ok(authService.resetPassword(request));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new PasswordResponse(false, "Reset password operation failed: " + e.getMessage()));
+        }
     }
 }
