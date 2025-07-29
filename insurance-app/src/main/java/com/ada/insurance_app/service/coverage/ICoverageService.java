@@ -1,14 +1,22 @@
 package com.ada.insurance_app.service.coverage;
 
-import com.ada.insurance_app.entity.Coverage;
+import com.ada.insurance_app.dto.CoverageDto;
+import com.ada.insurance_app.request.coverage.CreateCoverageRequest;
+import com.ada.insurance_app.request.coverage.UpdateCoverageRequest;
+
 import java.util.List;
-import java.util.UUID;
 
 public interface ICoverageService {
-    Coverage create(Coverage coverage);
-    Coverage update(Long id, Coverage coverage);
+
+    CoverageDto create(CreateCoverageRequest request);
+
+    CoverageDto update(Long id, UpdateCoverageRequest request);
+
     void delete(Long id);
-    Coverage getById(Long id);
-    List<Coverage> getAll();
-    List<Coverage> getCoveragesByPolicy(Long policyId);
+
+    CoverageDto getById(Long id);
+
+    List<CoverageDto> getAll();
+
+    List<CoverageDto> getCoveragesByPolicy(Long policyId);
 }
