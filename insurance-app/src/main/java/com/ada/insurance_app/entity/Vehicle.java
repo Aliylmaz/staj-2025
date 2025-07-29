@@ -57,6 +57,8 @@ public class Vehicle {
     @Enumerated(EnumType.STRING)
     private UsageType usageType;
 
+    private String color; // Renk
+
     private Integer kilometers; // Opsiyonel
 
     private LocalDate registrationDate; // Trafiğe çıkış tarihi

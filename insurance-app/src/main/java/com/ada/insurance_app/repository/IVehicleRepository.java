@@ -1,7 +1,9 @@
 package com.ada.insurance_app.repository;
 
 import com.ada.insurance_app.entity.Vehicle;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -32,4 +34,10 @@ public interface IVehicleRepository extends JpaRepository<Vehicle, UUID> {
     boolean existsByPlateNumber(String plateNumber);
 
     boolean existsByVin(String vin);
+
+    long countByCustomerId(UUID customerId);
+
+
+    @Query("SELECT CASE WHEN COUNT(v) > 0 THEN true ELSE false END FROM Vehicle v WHERE v.engineNumber = :engineNumber")
+    boolean existsByEngineNumber(String engineNumber);
 }

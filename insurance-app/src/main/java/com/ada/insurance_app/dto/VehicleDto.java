@@ -28,5 +28,6 @@ public class VehicleDto {
     private GearType gearType;
     private UsageType usageType;
     private Integer kilometers;
+    private String color;
     private LocalDate registrationDate;
 }
