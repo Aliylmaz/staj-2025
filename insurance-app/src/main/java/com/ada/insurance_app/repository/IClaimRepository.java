@@ -23,8 +23,7 @@ public interface IClaimRepository extends JpaRepository<Claim, UUID> {
 
     List<Claim> findByPolicyId(Long policyId);
 
-    @Query("SELECT c FROM Claim c WHERE c.policy.customer.id = :customerId")
-    List<Claim> findByCustomerId(@Param("customerId") UUID customerId);
+
 
     @Query("SELECT c FROM Claim c WHERE c.incidentDate BETWEEN :startDate AND :endDate")
     List<Claim> findByIncidentDateBetween(
@@ -39,7 +38,7 @@ public interface IClaimRepository extends JpaRepository<Claim, UUID> {
     );
 
     @Query("SELECT SUM(c.approvedAmount) FROM Claim c WHERE c.status = 'APPROVED' AND c.policy.id = :policyId")
-    BigDecimal getTotalApprovedAmountByPolicy(@Param("policyId") UUID policyId);
+    BigDecimal getTotalApprovedAmountByPolicy(@Param("policyId") Long policyId);
 
     @Query("SELECT c FROM Claim c WHERE " +
            "c.claimNumber LIKE %:keyword% OR " +
@@ -49,9 +48,18 @@ public interface IClaimRepository extends JpaRepository<Claim, UUID> {
 
     @Query("SELECT COUNT(c) FROM Claim c WHERE c.policy.id = :policyId AND c.status = :status")
     long countClaimsByPolicyAndStatus(
-        @Param("policyId") UUID policyId,
+        @Param("policyId") Long policyId,
         @Param("status") ClaimStatus status
     );
 
     List<Claim> findByNotificationsEnabledAndStatus(boolean notificationsEnabled, ClaimStatus status);
+
+    long countByStatus(ClaimStatus status);
+    @Query("SELECT c FROM Claim c WHERE c.policy.customer.id = :customerId")
+    List<Claim> findByCustomerId(UUID customerId);
+    @Query("SELECT c FROM Claim c ORDER BY c.createdAt DESC")
+    List<Claim> findTop5ByOrderByCreatedAtDesc();
+
+    Optional<Claim> findByIdAndPolicy_Customer_Id(UUID claimId, UUID customerId);
+
 }

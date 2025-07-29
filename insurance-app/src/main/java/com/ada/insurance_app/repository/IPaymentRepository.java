@@ -23,7 +23,7 @@ public interface IPaymentRepository extends JpaRepository<Payment, UUID> {
     Optional<Payment> findByTransactionReference(String transactionReference);
 
     @Query("SELECT p FROM Payment p WHERE p.policy.id = :policyId ORDER BY p.createdAt DESC")
-    List<Payment> findPolicyPaymentHistory(@Param("policyId") UUID policyId);
+    List<Payment> findPolicyPaymentHistory(@Param("policyId") Long policyId);
 
     @Query("SELECT p FROM Payment p WHERE p.paymentDate BETWEEN :startDate AND :endDate")
     List<Payment> findPaymentsBetweenDates(
@@ -32,16 +32,20 @@ public interface IPaymentRepository extends JpaRepository<Payment, UUID> {
     );
 
     @Query("SELECT SUM(p.amount) FROM Payment p WHERE p.status = 'SUCCESS' AND p.policy.id = :policyId")
-    BigDecimal getTotalSuccessfulPaymentsByPolicy(@Param("policyId") UUID policyId);
+    BigDecimal getTotalSuccessfulPaymentsByPolicy(@Param("policyId") Long policyId);
 
     @Query("SELECT p FROM Payment p WHERE p.status = 'PENDING' AND p.createdAt < :timeout")
     List<Payment> findTimedOutPayments(@Param("timeout") LocalDateTime timeout);
 
     @Query("SELECT COUNT(p) > 0 FROM Payment p WHERE p.policy.id = :policyId AND p.status = 'SUCCESS'")
-    boolean hasSuccessfulPayment(@Param("policyId") UUID policyId);
+    boolean hasSuccessfulPayment(@Param("policyId") Long policyId);
 
     @Query("SELECT p FROM Payment p WHERE " +
            "p.transactionReference LIKE %:keyword% OR " +
            "p.policy.policyNumber LIKE %:keyword%")
     List<Payment> searchPayments(@Param("keyword") String keyword);
+
+    long countByStatus(PaymentStatus status);
+    @Query("SELECT p FROM Payment p ORDER BY p.createdAt DESC")
+    List<Payment> findTop5ByOrderByCreatedAtDesc();
 }

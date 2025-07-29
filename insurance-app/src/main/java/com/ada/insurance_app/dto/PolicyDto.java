@@ -1,5 +1,6 @@
 package com.ada.insurance_app.dto;
 
+import com.ada.insurance_app.core.enums.InsuranceType;
 import com.ada.insurance_app.core.enums.PolicyStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,10 +28,17 @@ public class PolicyDto {
     private UUID customerId;
     private String customerName;
 
-    private UUID vehicleId;
-    private String plateNumber;
+    private VehicleDto vehicleDto;
+
 
     private Set<CoverageDto> coverages;
 
     private PaymentDto payment;
+
+    private InsuranceType insuranceType;
+    private HealthInsuranceDetailDto healthInsuranceDetail;
+    private HomeInsuranceDetailDto homeInsuranceDetail;
+
+    private UUID agentId;
+    private AgentDto agentDto;
 }

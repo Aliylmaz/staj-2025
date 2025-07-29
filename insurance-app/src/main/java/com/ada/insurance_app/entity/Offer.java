@@ -49,4 +49,9 @@ public class Offer {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @Column(nullable = false)
+    private LocalDateTime acceptedAt;
+    @Column(nullable = false)
+    private  LocalDateTime convertedAt;
 }

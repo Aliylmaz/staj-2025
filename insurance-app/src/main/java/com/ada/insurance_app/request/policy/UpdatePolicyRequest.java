@@ -1,5 +1,6 @@
 package com.ada.insurance_app.request.policy;
 
+import com.ada.insurance_app.core.enums.PolicyStatus;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -17,4 +18,6 @@ public class UpdatePolicyRequest {
     private LocalDate startDate;
     private LocalDate endDate;
     private Set<UUID> coverageIds;
+    private PolicyStatus status;
+    private BigDecimal premium;
 }

@@ -49,4 +49,9 @@ public interface IDocumentRepository extends JpaRepository<Document, Long> {
         @Param("customerId") UUID customerId,
         @Param("documentType") DocumentType documentType
     );
+
+    @Query("SELECT d FROM Document d WHERE d.fileName LIKE %:keyword%")
+    List<Document> searchByFileName(@Param("keyword") String keyword);
+
+    Optional<Document> findByIdAndCustomerId(Long documentId, UUID customerId);
 }

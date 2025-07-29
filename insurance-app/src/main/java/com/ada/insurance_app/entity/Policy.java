@@ -1,7 +1,9 @@
 package com.ada.insurance_app.entity;
 
+import com.ada.insurance_app.core.enums.InsuranceType;
 import com.ada.insurance_app.core.enums.PolicyStatus;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -32,6 +34,10 @@ public class Policy {
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "agent_id")
+    private Agent agent;
+
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private PolicyStatus status;
@@ -45,10 +51,24 @@ public class Policy {
     @Column(nullable = false)
     private BigDecimal premium;
 
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private InsuranceType insuranceType;
+    @Column(length = 500)
+    private  String  cancellationReason;
+
 
     @OneToOne
     @JoinColumn(name = "vehicle_id", nullable = false)
     private Vehicle vehicle;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "health_detail_id")
+    private HealthInsuranceDetail healthInsuranceDetail;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "home_detail_id")
+    private HomeInsuranceDetail homeInsuranceDetail;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -107,4 +127,6 @@ public class Policy {
         documents.remove(document);
         document.setPolicy(null);
     }
+
+
 }

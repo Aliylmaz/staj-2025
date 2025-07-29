@@ -1,50 +1,37 @@
 package com.ada.insurance_app.repository;
 
-import com.ada.insurance_app.core.enums.PolicyStatus;
 import com.ada.insurance_app.entity.Policy;
+import com.ada.insurance_app.core.enums.PolicyStatus;
+import com.ada.insurance_app.core.enums.InsuranceType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@Repository
 public interface IPolicyRepository extends JpaRepository<Policy, Long> {
-
     Optional<Policy> findByPolicyNumber(String policyNumber);
-
     List<Policy> findByCustomerId(UUID customerId);
-
-    List<Policy> findByVehicleId(UUID vehicleId);
-
     List<Policy> findByStatus(PolicyStatus status);
-
-    @Query("SELECT p FROM Policy p WHERE p.endDate < :date AND p.status = 'ACTIVE'")
-    List<Policy> findExpiredPolicies(@Param("date") LocalDate date);
-
-    @Query("SELECT p FROM Policy p WHERE p.customer.id = :customerId AND p.status = 'ACTIVE'")
-    List<Policy> findActivePolicesByCustomerId(@Param("customerId") UUID customerId);
-
-    @Query("SELECT COUNT(p) > 0 FROM Policy p WHERE p.vehicle.id = :vehicleId AND p.status = 'ACTIVE'")
-    boolean hasActivePolicy(@Param("vehicleId") UUID vehicleId);
-
+    List<Policy> findByInsuranceType(InsuranceType insuranceType);
+    @Query("SELECT p FROM Policy p WHERE p.customer.id = :customerId AND p.insuranceType = :insuranceType")
+    List<Policy> findByCustomerIdAndInsuranceType(UUID customerId, InsuranceType insuranceType);
+    long countByStatus(PolicyStatus status);
+    long countByInsuranceType(InsuranceType insuranceType);
     @Query("SELECT p FROM Policy p WHERE p.startDate BETWEEN :startDate AND :endDate")
-    List<Policy> findPoliciesBetweenDates(
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
-    );
+    List<Policy> findPoliciesBetweenDates(LocalDate startDate, LocalDate endDate);
+    @Query("SELECT p FROM Policy p ORDER BY p.createdAt DESC")
+    List<Policy> findTop5ByOrderByCreatedAtDesc();
+    List<Policy> findByAgentId(UUID agentId);
 
-    @Query("SELECT p FROM Policy p WHERE p.customer.id = :customerId ORDER BY p.createdAt DESC")
-    List<Policy> findCustomerPolicyHistory(@Param("customerId") UUID customerId);
+    Optional<Policy> findByIdAndCustomerId(Long policyId, UUID customerId);
+    
+    @Query("SELECT p FROM Policy p JOIN p.coverages c WHERE c = :coverage")
+    List<Policy> findByCoveragesContaining(com.ada.insurance_app.entity.Coverage coverage);
 
-    @Query("SELECT p FROM Policy p WHERE p.policyNumber LIKE %:keyword% OR " +
-            "p.customer.user.firstName LIKE %:keyword% OR p.customer.user.lastName LIKE %:keyword%")
-    List<Policy> searchPolicies(@Param("keyword") String keyword);
-
+    @Query("SELECT COALESCE(SUM(p.premium), 0) FROM Policy p")
+    double sumTotalPremium();
 }
 
 

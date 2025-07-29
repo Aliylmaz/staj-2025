@@ -71,6 +71,15 @@ public class Customer {
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
     private List<Vehicle> vehicles = new ArrayList<>();
 
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
+    private List<HomeInsuranceDetail> homeInsuranceDetails = new ArrayList<>();
+
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
+    private List<HealthInsuranceDetail> healthInsuranceDetails = new ArrayList<>();
+
+
+
+
 
     @CreationTimestamp
     @Column(updatable = false)

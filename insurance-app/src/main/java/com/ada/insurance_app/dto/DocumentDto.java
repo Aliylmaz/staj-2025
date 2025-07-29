@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -17,4 +19,7 @@ public class DocumentDto {
     private String filePath;
     private String description;
     private DocumentType documentType;
+    private UUID customerId;
+    private Long policyId;
+    private UUID claimId;
 }

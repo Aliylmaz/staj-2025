@@ -34,4 +34,13 @@ public interface ICoverageRepository extends JpaRepository<Coverage, Long> {
 
     @Query("SELECT COUNT(p) FROM Coverage c JOIN c.policies p WHERE c.id = :coverageId")
     long countPoliciesUsingCoverage(@Param("coverageId") Long coverageId);
+
+    List<Coverage> findByNameContainingIgnoreCase(String name);
+    List<Coverage> findByPolicies_Id(Long policyId);
+    @Query("SELECT c FROM Coverage c ORDER BY c.createdAt DESC")
+    List<Coverage> findTop5ByOrderByCreatedAtDesc();
+    
+    boolean existsByName(String name);
+
+    Optional<Coverage> findById(Long id);
 }

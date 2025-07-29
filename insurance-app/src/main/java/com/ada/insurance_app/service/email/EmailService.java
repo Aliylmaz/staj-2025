@@ -1,6 +1,8 @@
 package com.ada.insurance_app.service.email;
 
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -9,12 +11,18 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class EmailService {
 
+
     private final JavaMailSender javaMailSender;
+    @Value("${app.frontend.base-url}")
+    private String frontendBaseUrl;
+
 
     public void sendPasswordResetEmail(String toEmail, String resetToken) {
+
         String subject = "🔐 Password Reset Request - InsuranceApp";
 
-        String resetUrl = "http://localhost:3000/reset-password?token=" + resetToken;
+        String resetUrl = frontendBaseUrl + "/reset-password?token=" + resetToken;
+
 
         String content = """
         Hello,

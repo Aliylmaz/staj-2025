@@ -22,6 +22,7 @@ public class ClaimDto {
     private BigDecimal approvedAmount;
     private String rejectionReason;
     private boolean notificationsEnabled;
+    private Long policyId;
 
 
 }

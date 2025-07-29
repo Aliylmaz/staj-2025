@@ -20,9 +20,8 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidPasswordException.class)
-        public ResponseEntity<Object> handleInvalidPasswordException(InvalidPasswordException ex) {
+    public ResponseEntity<Object> handleInvalidPasswordException(InvalidPasswordException ex) {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
-
     }
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<Object> handleUserNotFoundException(UserNotFoundException ex) {
@@ -48,6 +47,47 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> handleUnauthorizedAccessException(UnauthorizedAccessException ex) {
         return buildErrorResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
+    @ExceptionHandler(CoverageNotFoundException.class)
+    public ResponseEntity<Object> handleCoverageNotFoundException(CoverageNotFoundException ex) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+    @ExceptionHandler(CustomerNotFoundException.class)
+    public ResponseEntity<Object> handleCustomerNotFoundException(CustomerNotFoundException ex) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+    @ExceptionHandler(DuplicateEntityException.class)
+    public ResponseEntity<Object> handleDuplicateEntityException(DuplicateEntityException ex) {
+        return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+    @ExceptionHandler(InvalidCustomerTypeException.class)
+    public ResponseEntity<Object> handleInvalidCustomerTypeException(InvalidCustomerTypeException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+    @ExceptionHandler(InvalidInsuranceTypeException.class)
+    public ResponseEntity<Object> handleInvalidInsuranceTypeException(InvalidInsuranceTypeException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<Object> handleInvalidRequestException(InvalidRequestException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+    @ExceptionHandler(OfferAlreadyProcessedException.class)
+    public ResponseEntity<Object> handleOfferAlreadyProcessedException(OfferAlreadyProcessedException ex) {
+        return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+    @ExceptionHandler(PolicyNotFoundException.class)
+    public ResponseEntity<Object> handlePolicyNotFoundException(PolicyNotFoundException ex) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+    @ExceptionHandler(UnauthorizedRoleAccessException.class)
+    public ResponseEntity<Object> handleUnauthorizedRoleAccessException(UnauthorizedRoleAccessException ex) {
+        return buildErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Object> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
 
 
 
