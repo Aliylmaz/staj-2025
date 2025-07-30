@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
+import { useRole } from './hooks/useRole';
 
 const Toast = ({ message, onClose }: { message: string; onClose: () => void }) => (
   <div
@@ -31,6 +32,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [showToast, setShowToast] = useState(false);
   const navigate = useNavigate();
+  const { setRole } = useRole();
 
   useEffect(() => {
     const form = document.getElementById('login-form-container');
@@ -50,10 +52,36 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
     try {
-      await axios.post('http://localhost:8080/api/v1/auth/login', {
+      const response = await axios.post('http://localhost:8080/api/v1/auth/login', {
         email,
         password,
       });
+      
+      // Backend'den gelen user bilgisini al
+      const userData = response.data;
+      
+      // Role bilgisini al (backend'den gelen response'a göre)
+      // Eğer response'da role yoksa, JWT token'dan decode etmek gerekebilir
+      let userRole = 'CUSTOMER'; // Default role
+      
+      // Backend'den gelen response'a göre role'ü belirle
+      if (userData.role) {
+        userRole = userData.role;
+      } else if (userData.user && userData.user.role) {
+        userRole = userData.user.role;
+      }
+      
+      // Role'ü büyük harfe çevir
+      userRole = userRole.toUpperCase();
+      
+      // Role'ü state'e kaydet (type assertion ile)
+      setRole(userRole as "ADMIN" | "AGENT" | "CUSTOMER");
+      
+      // Token'ı localStorage'a kaydet
+      if (userData.accessToken) {
+        localStorage.setItem('accessToken', userData.accessToken);
+      }
+      
       setShowToast(true);
       setTimeout(() => {
         setShowToast(false);
@@ -216,7 +244,7 @@ const LoginPage = () => {
             Forgot your password?
           </Link>
           <div style={{ textAlign: 'center', fontSize: 16 }}>
-            <span style={{ color: '#555' }}>Don’t have an account? </span>
+            <span style={{ color: '#555' }}>Don't have an account? </span>
             <Link to="/register" style={{ color: '#2563eb', fontWeight: 500, textDecoration: 'none' }}>
               Register
             </Link>
