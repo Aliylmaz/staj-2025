@@ -2,7 +2,10 @@ package com.ada.insurance_app.controller.user.Impl;
 
 import com.ada.insurance_app.controller.user.ICustomerController;
 import com.ada.insurance_app.core.common.dto.GeneralResponse;
+import com.ada.insurance_app.dto.ClaimDto;
 import com.ada.insurance_app.dto.CustomerDto;
+import com.ada.insurance_app.dto.DocumentDto;
+import com.ada.insurance_app.dto.PolicyDto;
 import com.ada.insurance_app.request.customer.AddCorporateCustomerRequest;
 import com.ada.insurance_app.request.customer.AddIndividualCustomerRequest;
 import com.ada.insurance_app.request.customer.UpdateCorporateCustomerRequest;
@@ -139,4 +142,106 @@ public class CustomerControllerImpl implements ICustomerController {
                  .body(GeneralResponse.error("Failed to delete customer: " + e.getMessage(), HttpStatus.BAD_REQUEST));
      }
  }
- }
+
+    @Override
+    @GetMapping("/policies/{customerId}")
+    public ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyPolicies(UUID customerId) {
+        try {
+            log.info("Getting policies for customer: {}", customerId);
+            List<PolicyDto> policies = customerService.getMyPolicies(customerId);
+            return ResponseEntity.ok(GeneralResponse.success("Policies retrieved successfully", policies));
+        } catch (Exception e) {
+            log.error("Error getting policies: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get policies: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @Override
+    @GetMapping("/documents/{customerId}")
+    public ResponseEntity<GeneralResponse<List<DocumentDto>>> getMyDocuments(UUID customerId) {
+        try {
+            log.info("Getting documents for customer: {}", customerId);
+            List<DocumentDto> documents = customerService.getMyDocuments(customerId);
+            return ResponseEntity.ok(GeneralResponse.success("Documents retrieved successfully", documents));
+        } catch (Exception e) {
+            log.error("Error getting documents: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get documents: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @Override
+    @GetMapping("/claims/{customerId}")
+    public ResponseEntity<GeneralResponse<List<ClaimDto>>> getMyClaims(UUID customerId) {
+        try {
+            log.info("Getting claims for customer: {}", customerId);
+            List<ClaimDto> claims = customerService.getMyClaims(customerId);
+            return ResponseEntity.ok(GeneralResponse.success("Claims retrieved successfully", claims));
+        } catch (Exception e) {
+            log.error("Error getting claims: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get claims: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @Override
+    @GetMapping("/policy/{policyId}/customer/{customerId}")
+    public ResponseEntity<GeneralResponse<PolicyDto>> getPolicyById(Long policyId, UUID customerId) {
+
+        try {
+            log.info("Getting policy by ID: {} for customer: {}", policyId, customerId);
+            PolicyDto policy = customerService.getPolicyById(policyId, customerId);
+            return ResponseEntity.ok(GeneralResponse.success("Policy retrieved successfully", policy));
+        } catch (Exception e) {
+            log.error("Error getting policy by ID: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get policy: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @Override
+    @GetMapping("/document/{documentId}/customer/{customerId}")
+    public ResponseEntity<GeneralResponse<DocumentDto>> getDocumentById(Long documentId, UUID customerId) {
+
+        try {
+            log.info("Getting document by ID: {} for customer: {}", documentId, customerId);
+            DocumentDto document = customerService.getDocumentById(documentId, customerId);
+            return ResponseEntity.ok(GeneralResponse.success("Document retrieved successfully", document));
+        } catch (Exception e) {
+            log.error("Error getting document by ID: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get document: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+
+
+    }
+
+    @Override
+    @GetMapping("/claim/{claimId}/customer/{customerId}")
+    public ResponseEntity<GeneralResponse<ClaimDto>> getClaimById(UUID claimId, UUID customerId) {
+        try {
+            log.info("Getting claim by ID: {} for customer: {}", claimId, customerId);
+            ClaimDto claim = customerService.getClaimById(claimId, customerId);
+            return ResponseEntity.ok(GeneralResponse.success("Claim retrieved successfully", claim));
+        } catch (Exception e) {
+            log.error("Error getting claim by ID: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get claim: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @Override
+    @PostMapping("/policy/create/{customerId}")
+    public ResponseEntity<GeneralResponse<PolicyDto>> createPolicy(PolicyDto policyDto, UUID customerId) {
+        try {
+            log.info("Creating policy for customer: {}", customerId);
+            PolicyDto createdPolicy = customerService.createPolicy(policyDto, customerId);
+            return ResponseEntity.ok(GeneralResponse.success("Policy created successfully", createdPolicy));
+        } catch (Exception e) {
+            log.error("Error creating policy: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to create policy: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+}

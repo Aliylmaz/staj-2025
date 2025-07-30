@@ -1,7 +1,10 @@
 package com.ada.insurance_app.controller.user;
 
 import com.ada.insurance_app.core.common.dto.GeneralResponse;
+import com.ada.insurance_app.dto.ClaimDto;
 import com.ada.insurance_app.dto.CustomerDto;
+import com.ada.insurance_app.dto.DocumentDto;
+import com.ada.insurance_app.dto.PolicyDto;
 import com.ada.insurance_app.request.customer.AddCorporateCustomerRequest;
 import com.ada.insurance_app.request.customer.AddIndividualCustomerRequest;
 import com.ada.insurance_app.request.customer.UpdateCorporateCustomerRequest;
@@ -14,24 +17,37 @@ import java.util.UUID;
 
 public interface ICustomerController {
     
-    @PostMapping("/individual/create")
-    ResponseEntity<GeneralResponse<CustomerDto>> createIndividualCustomer(@RequestBody AddIndividualCustomerRequest request);
+
+    ResponseEntity<GeneralResponse<CustomerDto>> createIndividualCustomer( AddIndividualCustomerRequest request);
     
-    @PostMapping("/corporate/create")
-    ResponseEntity<GeneralResponse<CustomerDto>> createCorporateCustomer(@RequestBody AddCorporateCustomerRequest request);
+
+    ResponseEntity<GeneralResponse<CustomerDto>> createCorporateCustomer( AddCorporateCustomerRequest request);
     
-    @PutMapping("/individual/{customerId}")
-    ResponseEntity<GeneralResponse<CustomerDto>> updateIndividualCustomer(@PathVariable UUID customerId, @RequestBody UpdateIndividualCustomerRequest request);
+
+    ResponseEntity<GeneralResponse<CustomerDto>> updateIndividualCustomer( UUID customerId,  UpdateIndividualCustomerRequest request);
     
-    @PutMapping("/corporate/{customerId}")
-    ResponseEntity<GeneralResponse<CustomerDto>> updateCorporateCustomer(@PathVariable UUID customerId, @RequestBody UpdateCorporateCustomerRequest request);
+
+    ResponseEntity<GeneralResponse<CustomerDto>> updateCorporateCustomer( UUID customerId,  UpdateCorporateCustomerRequest request);
     
-    @GetMapping("/{customerId}")
-    ResponseEntity<GeneralResponse<CustomerDto>> getCustomer(@PathVariable UUID customerId);
+
+    ResponseEntity<GeneralResponse<CustomerDto>> getCustomer( UUID customerId);
     
-    @GetMapping("/all")
+
     ResponseEntity<GeneralResponse<List<CustomerDto>>> getAllCustomers();
-    
-    @DeleteMapping("/{customerId}")
-    ResponseEntity<GeneralResponse<Void>> deleteCustomer(@PathVariable UUID customerId);
+
+    ResponseEntity<GeneralResponse<Void>> deleteCustomer( UUID customerId);
+
+    ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyPolicies(UUID customerId);
+
+    ResponseEntity<GeneralResponse<List<DocumentDto>>> getMyDocuments(UUID customerId);
+
+    ResponseEntity<GeneralResponse<List<ClaimDto>>> getMyClaims(UUID customerId);
+
+    ResponseEntity<GeneralResponse<PolicyDto>> getPolicyById( Long policyId, UUID customerId);
+
+    ResponseEntity<GeneralResponse<DocumentDto>> getDocumentById(Long documentId, UUID customerId);
+
+    ResponseEntity<GeneralResponse<ClaimDto>> getClaimById(UUID claimId, UUID customerId);
+
+    ResponseEntity<GeneralResponse<PolicyDto>> createPolicy(PolicyDto policyDto, UUID customerId);
 }
