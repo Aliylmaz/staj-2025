@@ -1,0 +1,100 @@
+package com.ada.insurance_app.controller.document.Impl;
+
+import com.ada.insurance_app.core.common.dto.GeneralResponse;
+import com.ada.insurance_app.core.enums.DocumentType;
+import com.ada.insurance_app.dto.DocumentDto;
+import com.ada.insurance_app.service.document.IDocumentService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.UUID;
+
+@Slf4j
+@RestController
+@RequestMapping("/api/v1/documents")
+@RequiredArgsConstructor
+public class DocumentControllerImpl {
+
+    private final IDocumentService documentService;
+
+    @PostMapping("/upload")
+    public ResponseEntity<GeneralResponse<DocumentDto>> uploadDocument(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("documentType") DocumentType documentType,
+            @RequestParam(value = "policyId", required = false) Long policyId,
+            @RequestParam(value = "claimId", required = false) UUID claimId,
+            @RequestParam(value = "customerId", required = false) UUID customerId,
+            @RequestParam(value = "description", required = false) String description
+    ) {
+        log.info("Uploading document: {}, policyId: {}, claimId: {}, customerId: {}",
+                file.getOriginalFilename(), policyId, claimId, customerId);
+
+        try {
+            DocumentDto dto = new DocumentDto();
+            dto.setPolicyId(policyId);
+            dto.setClaimId(claimId);
+            dto.setCustomerId(customerId);
+            dto.setDocumentType(documentType);
+            dto.setDescription(description);
+
+            DocumentDto document = documentService.uploadDocument(dto, file);
+            return ResponseEntity.ok(GeneralResponse.success("Document uploaded successfully", document));
+        } catch (Exception e) {
+            log.error("Error uploading document", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to upload document: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<GeneralResponse<List<DocumentDto>>> getCustomerDocuments(
+            @PathVariable UUID customerId) {
+
+        log.info("Getting documents for customer: {}", customerId);
+
+        try {
+            List<DocumentDto> documents = documentService.getDocumentsByCustomer(customerId);
+            return ResponseEntity.ok(GeneralResponse.success("Documents retrieved successfully", documents));
+        } catch (Exception e) {
+            log.error("Error getting customer documents", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get customer documents: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @GetMapping("/{documentId}/download")
+    public ResponseEntity<byte[]> downloadDocument(@PathVariable Long documentId) {
+
+        log.info("Downloading document: {}", documentId);
+
+        try {
+            byte[] fileContent = documentService.downloadDocument(documentId);
+            return ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=\"document.pdf\"")
+                    .body(fileContent);
+        } catch (Exception e) {
+            log.error("Error downloading document", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @DeleteMapping("/{documentId}")
+    public ResponseEntity<GeneralResponse<Void>> deleteDocument(@PathVariable Long documentId) {
+
+        log.info("Deleting document: {}", documentId);
+
+        try {
+            documentService.deleteDocument(documentId);
+            return ResponseEntity.ok(GeneralResponse.success("Document deleted successfully", null));
+        } catch (Exception e) {
+            log.error("Error deleting document", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to delete document: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+}
