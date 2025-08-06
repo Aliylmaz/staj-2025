@@ -1,5 +1,6 @@
 package com.ada.insurance_app.repository;
 
+import com.ada.insurance_app.core.enums.InsuranceType;
 import com.ada.insurance_app.entity.Coverage;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,11 +15,7 @@ import java.util.UUID;
 @Repository
 public interface ICoverageRepository extends JpaRepository<Coverage, Long> {
 
-    Optional<Coverage> findByCode(String code);
 
-    List<Coverage> findByActive(boolean active);
-
-    boolean existsByCode(String code);
 
     @Query("SELECT c FROM Coverage c WHERE c.basePrice <= :maxPrice AND c.active = true")
     List<Coverage> findActiveCoveragesByMaxPrice(@Param("maxPrice") BigDecimal maxPrice);
@@ -35,12 +32,11 @@ public interface ICoverageRepository extends JpaRepository<Coverage, Long> {
     @Query("SELECT COUNT(p) FROM Coverage c JOIN c.policies p WHERE c.id = :coverageId")
     long countPoliciesUsingCoverage(@Param("coverageId") Long coverageId);
 
-    List<Coverage> findByNameContainingIgnoreCase(String name);
-    List<Coverage> findByPolicies_Id(Long policyId);
-    @Query("SELECT c FROM Coverage c ORDER BY c.createdAt DESC")
-    List<Coverage> findTop5ByOrderByCreatedAtDesc();
+
     
     boolean existsByName(String name);
+
+    List<Coverage> findByInsuranceType(InsuranceType insuranceType);
 
 
 }

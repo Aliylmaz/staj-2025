@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCustomer } from '../contexts/CustomerContext';
 import { 
@@ -12,9 +12,10 @@ import {
   createClaim, 
   makePayment, 
   uploadDocument,
-  getAllAgents
+  getAllAgents,
+  getCoveragesByInsuranceType
 } from '../services/customerApi';
-import type { AgentDto } from '../services/customerApi';
+import type { AgentDto, CoverageDto } from '../services/customerApi';
 
 export default function CustomerPage() {
   const [currentModule, setCurrentModule] = useState<'dashboard' | 'offers' | 'policies' | 'claims' | 'payments' | 'documents' | 'profile'>('dashboard');
@@ -29,7 +30,10 @@ export default function CustomerPage() {
   const [payments, setPayments] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [agents, setAgents] = useState<AgentDto[]>([]);
+  const [coverages, setCoverages] = useState<CoverageDto[]>([]);
+  const [selectedCoverages, setSelectedCoverages] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
+  const [coveragesLoading, setCoveragesLoading] = useState(false);
 
   // Form states
   const [showOfferForm, setShowOfferForm] = useState(false);
@@ -51,7 +55,7 @@ export default function CustomerPage() {
     plateNumber: '',
     vin: '',
     engineNumber: '',
-    fuelType: 'GASOLINE' as any,
+    fuelType: 'PETROL' as any,
     gearType: 'MANUAL' as any,
     usageType: 'PERSONAL' as any,
     kilometers: 0,
@@ -92,6 +96,12 @@ export default function CustomerPage() {
       navigate('/login');
       return;
     }
+    
+    // Debug localStorage values
+    console.log('🔍 CustomerPage - localStorage debug:');
+    console.log('🔍 Token:', localStorage.getItem('token'));
+    console.log('🔍 UserRole:', localStorage.getItem('userRole'));
+    console.log('🔍 CustomerId:', localStorage.getItem('customerId'));
   }, [navigate]);
 
   useEffect(() => {
@@ -99,6 +109,48 @@ export default function CustomerPage() {
       fetchAllData();
     }
   }, [customerId]);
+
+  // Fetch coverages when insurance type changes
+  useEffect(() => {
+    if (showOfferForm && insuranceType) {
+      fetchCoveragesByInsuranceType();
+    }
+  }, [insuranceType, showOfferForm]);
+
+  const fetchCoveragesByInsuranceType = async () => {
+    try {
+      console.log('🔍 fetchCoveragesByInsuranceType called with insuranceType:', insuranceType);
+      setCoveragesLoading(true);
+      const coveragesData = await getCoveragesByInsuranceType(insuranceType);
+      console.log('🔍 Fetched coverages data:', coveragesData);
+      setCoverages(coveragesData);
+      setSelectedCoverages([]); // Reset selected coverages when insurance type changes
+      console.log('🔍 Reset selectedCoverages to empty array');
+    } catch (error) {
+      console.error('Error fetching coverages:', error);
+      setCoverages([]);
+    } finally {
+      setCoveragesLoading(false);
+    }
+  };
+
+  const handleCoverageToggle = (coverageId: number) => {
+    console.log('🔍 handleCoverageToggle called with coverageId:', coverageId);
+    setSelectedCoverages(prev => {
+      const isCurrentlySelected = prev.includes(coverageId);
+      console.log('🔍 Coverage currently selected:', isCurrentlySelected);
+      
+      if (isCurrentlySelected) {
+        const newSelection = prev.filter(id => id !== coverageId);
+        console.log('🔍 Removing coverage, new selection:', newSelection);
+        return newSelection;
+      } else {
+        const newSelection = [...prev, coverageId];
+        console.log('🔍 Adding coverage, new selection:', newSelection);
+        return newSelection;
+      }
+    });
+  };
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -126,11 +178,26 @@ export default function CustomerPage() {
 
   const handleCreateOffer = async () => {
     try {
+      // Debug token status
+      const token = localStorage.getItem('token');
+      const userRole = localStorage.getItem('userRole');
+      const customerId = localStorage.getItem('customerId');
+      
+      console.log('🔍 handleCreateOffer - Token exists:', !!token);
+      console.log('🔍 handleCreateOffer - User role:', userRole);
+      console.log('🔍 handleCreateOffer - Customer ID:', customerId);
+      console.log('🔍 handleCreateOffer - Token value:', token);
+      
       const requestData: any = {
         insuranceType,
         note,
-        agentId: selectedAgentId
+        coverageIds: selectedCoverages
       };
+      
+      // Only include agentId if it's not empty
+      if (selectedAgentId && selectedAgentId.trim() !== '') {
+        requestData.agentId = selectedAgentId;
+      }
       
       // Add specific data based on insurance type
       switch (insuranceType) {
@@ -150,10 +217,11 @@ export default function CustomerPage() {
       setInsuranceType('VEHICLE');
       setSelectedAgentId('');
       setNote('');
+      setSelectedCoverages([]);
       // Reset form data
       setVehicleData({
         make: '', model: '', year: new Date().getFullYear(), plateNumber: '', vin: '', engineNumber: '',
-        fuelType: 'GASOLINE', gearType: 'MANUAL', usageType: 'PERSONAL', kilometers: 0,
+        fuelType: 'PETROL', gearType: 'MANUAL', usageType: 'PERSONAL', kilometers: 0,
         registrationDate: new Date().toISOString().split('T')[0]
       });
       setHealthData({
@@ -1913,6 +1981,113 @@ export default function CustomerPage() {
                </select>
              </div>
 
+             {/* Coverage Selection */}
+             <div style={{ marginBottom: '1.5rem' }}>
+               <label style={{
+                 display: 'block',
+                 fontSize: '0.875rem',
+                 fontWeight: 500,
+                 color: '#374151',
+                 marginBottom: '0.5rem'
+               }}>
+                 Select Coverages
+               </label>
+               {coveragesLoading ? (
+                 <div style={{
+                   padding: '1rem',
+                   textAlign: 'center',
+                   color: '#6b7280',
+                   fontSize: '0.875rem'
+                 }}>
+                   Loading coverages...
+                 </div>
+               ) : coverages.length === 0 ? (
+                 <div style={{
+                   padding: '1rem',
+                   textAlign: 'center',
+                   color: '#6b7280',
+                   fontSize: '0.875rem',
+                   border: '1px solid #d1d5db',
+                   borderRadius: '8px',
+                   background: '#f9fafb'
+                 }}>
+                   No coverages available for this insurance type
+                 </div>
+               ) : (
+                 <div style={{
+                   maxHeight: '200px',
+                   overflowY: 'auto',
+                   border: '1px solid #d1d5db',
+                   borderRadius: '8px',
+                   background: 'white'
+                 }}>
+                   {coverages.map((coverage) => (
+                     <div
+                       key={coverage.id}
+                       onClick={() => handleCoverageToggle(coverage.id)}
+                       style={{
+                         padding: '0.75rem',
+                         borderBottom: '1px solid #f3f4f6',
+                         cursor: 'pointer',
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '0.75rem',
+                         backgroundColor: selectedCoverages.includes(coverage.id) ? '#f0f9ff' : 'transparent',
+                         transition: 'background-color 0.2s'
+                       }}
+                     >
+                       <input
+                         type="checkbox"
+                         checked={selectedCoverages.includes(coverage.id)}
+                         onChange={(e) => {
+                           e.stopPropagation(); // Prevent the div's onClick from firing
+                           handleCoverageToggle(coverage.id);
+                         }}
+                         style={{
+                           width: '1rem',
+                           height: '1rem',
+                           cursor: 'pointer'
+                         }}
+                       />
+                       <div style={{ flex: 1 }}>
+                         <div style={{
+                           fontSize: '0.875rem',
+                           fontWeight: 500,
+                           color: '#1e293b',
+                           marginBottom: '0.25rem'
+                         }}>
+                           {coverage.name}
+                         </div>
+                         <div style={{
+                           fontSize: '0.75rem',
+                           color: '#6b7280',
+                           marginBottom: '0.25rem'
+                         }}>
+                           {coverage.description}
+                         </div>
+                         <div style={{
+                           fontSize: '0.75rem',
+                           fontWeight: 500,
+                           color: '#059669'
+                         }}>
+                           €{coverage.basePrice}
+                         </div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               )}
+               {selectedCoverages.length > 0 && (
+                 <div style={{
+                   marginTop: '0.5rem',
+                   fontSize: '0.75rem',
+                   color: '#6b7280'
+                 }}>
+                   Selected: {selectedCoverages.length} coverage(s)
+                 </div>
+               )}
+             </div>
+
              {/* Dynamic Fields Based on Insurance Type */}
              {insuranceType === 'VEHICLE' && (
                <div style={{ marginBottom: '1.5rem' }}>
@@ -1959,7 +2134,7 @@ export default function CustomerPage() {
                        Year
                      </label>
                      <input
-                       type="number"
+                       type="text"
                        value={vehicleData.year}
                        onChange={(e) => setVehicleData({ ...vehicleData, year: Number(e.target.value) })}
                        style={{
@@ -2037,10 +2212,11 @@ export default function CustomerPage() {
                          fontSize: '0.875rem'
                        }}
                      >
-                       <option value="GASOLINE">Gasoline</option>
+                       <option value="PETROL">Petrol</option>
                        <option value="DIESEL">Diesel</option>
                        <option value="ELECTRIC">Electric</option>
                        <option value="HYBRID">Hybrid</option>
+                       <option value="GAS">Gas</option>
                      </select>
                    </div>
                    <div>
@@ -2060,6 +2236,7 @@ export default function CustomerPage() {
                      >
                        <option value="MANUAL">Manual</option>
                        <option value="AUTOMATIC">Automatic</option>
+                       <option value="SEMI_AUTOMATIC">Semi Automatic</option>
                      </select>
                    </div>
                    <div>
@@ -2079,6 +2256,8 @@ export default function CustomerPage() {
                      >
                        <option value="PERSONAL">Personal</option>
                        <option value="COMMERCIAL">Commercial</option>
+                       <option value="BUSINESS">Business</option>
+                       <option value="RENTAL">Rental</option>
                      </select>
                    </div>
                    <div>
@@ -2086,7 +2265,7 @@ export default function CustomerPage() {
                        Kilometers
                      </label>
                      <input
-                       type="number"
+                       type="text"
                        value={vehicleData.kilometers}
                        onChange={(e) => setVehicleData({ ...vehicleData, kilometers: Number(e.target.value) })}
                        style={{
@@ -2151,7 +2330,7 @@ export default function CustomerPage() {
                        Height (cm)
                      </label>
                      <input
-                       type="number"
+                       type="text"
                        value={healthData.height}
                        onChange={(e) => setHealthData({ ...healthData, height: Number(e.target.value) })}
                        style={{
@@ -2168,7 +2347,7 @@ export default function CustomerPage() {
                        Weight (kg)
                      </label>
                      <input
-                       type="number"
+                       type="text"
                        value={healthData.weight}
                        onChange={(e) => setHealthData({ ...healthData, weight: Number(e.target.value) })}
                        style={{
@@ -2268,7 +2447,7 @@ export default function CustomerPage() {
                        Building Age (years)
                      </label>
                      <input
-                       type="number"
+                       type="text"
                        value={homeData.buildingAge}
                        onChange={(e) => setHomeData({ ...homeData, buildingAge: Number(e.target.value) })}
                        style={{
@@ -2285,7 +2464,7 @@ export default function CustomerPage() {
                        Square Meters
                      </label>
                      <input
-                       type="number"
+                       type="text"
                        value={homeData.squareMeters}
                        onChange={(e) => setHomeData({ ...homeData, squareMeters: Number(e.target.value) })}
                        style={{
@@ -2302,7 +2481,7 @@ export default function CustomerPage() {
                        Floor Number
                      </label>
                      <input
-                       type="number"
+                       type="text"
                        value={homeData.floorNumber}
                        onChange={(e) => setHomeData({ ...homeData, floorNumber: Number(e.target.value) })}
                        style={{
@@ -2319,7 +2498,7 @@ export default function CustomerPage() {
                        Total Floors
                      </label>
                      <input
-                       type="number"
+                       type="text"
                        value={homeData.totalFloors}
                        onChange={(e) => setHomeData({ ...homeData, totalFloors: Number(e.target.value) })}
                        style={{
@@ -2521,7 +2700,7 @@ export default function CustomerPage() {
                  Amount (₺)
                </label>
                <input
-                 type="number"
+                 type="text"
                  value={claimFormData.amount}
                  onChange={(e) => setClaimFormData({ ...claimFormData, amount: Number(e.target.value) })}
                  placeholder="0.00"
@@ -2658,7 +2837,7 @@ export default function CustomerPage() {
                  Amount (₺)
                </label>
                <input
-                 type="number"
+                 type="text"
                  value={paymentFormData.amount}
                  onChange={(e) => setPaymentFormData({ ...paymentFormData, amount: Number(e.target.value) })}
                  placeholder="0.00"

@@ -29,7 +29,7 @@ public class Offer {
     private String offerNumber;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "policy_id")
+    @JoinColumn(name = "policy_id",nullable = true)
     private Policy policy;
 
     @ManyToMany
@@ -76,5 +76,5 @@ public class Offer {
     private LocalDateTime acceptedAt;
     
     @Column(nullable = true)
-    private LocalDateTime convertedAt;
+    private LocalDateTime convertedAt; // Set when offer is converted to policy
 }

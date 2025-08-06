@@ -1,5 +1,6 @@
 package com.ada.insurance_app.entity;
 
+import com.ada.insurance_app.core.enums.InsuranceType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -37,6 +38,10 @@ public class Coverage {
 
     @Column(nullable = false)
     private boolean active = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private InsuranceType insuranceType;
 
     // Many-to-Many relationship with Policy
     @ManyToMany(mappedBy = "coverages")

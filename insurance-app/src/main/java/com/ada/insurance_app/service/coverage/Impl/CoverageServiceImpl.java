@@ -1,5 +1,6 @@
 package com.ada.insurance_app.service.coverage.Impl;
 
+import com.ada.insurance_app.core.enums.InsuranceType;
 import com.ada.insurance_app.core.exception.CoverageNotFoundException;
 import com.ada.insurance_app.core.exception.PolicyNotFoundException;
 import com.ada.insurance_app.dto.CoverageDto;
@@ -105,6 +106,19 @@ public class CoverageServiceImpl implements ICoverageService {
         return policy.getCoverages().stream()
                 .map(mapper::toDto)
                 .toList();
+    }
+
+    @Override
+    public List<CoverageDto> getCoveragesByInsuranceType(InsuranceType insuranceType) {
+        if (insuranceType == null) {
+            throw new IllegalArgumentException("Insurance type cannot be null");
+        }
+
+        List<Coverage> coverages = coverageRepository.findByInsuranceType(insuranceType);
+        return coverages.stream()
+                .map(mapper::toDto)
+                .toList();
+
     }
 
     // PRIVATE VALIDATION

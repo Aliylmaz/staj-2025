@@ -1,5 +1,6 @@
 package com.ada.insurance_app.service.coverage;
 
+import com.ada.insurance_app.core.enums.InsuranceType;
 import com.ada.insurance_app.dto.CoverageDto;
 import com.ada.insurance_app.request.coverage.CreateCoverageRequest;
 import com.ada.insurance_app.request.coverage.UpdateCoverageRequest;
@@ -19,4 +20,6 @@ public interface ICoverageService {
     List<CoverageDto> getAll();
 
     List<CoverageDto> getCoveragesByPolicy(Long policyId);
+
+    List<CoverageDto> getCoveragesByInsuranceType(InsuranceType insuranceType);
 }

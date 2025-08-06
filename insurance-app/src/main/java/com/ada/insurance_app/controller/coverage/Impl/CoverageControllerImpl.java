@@ -2,6 +2,7 @@ package com.ada.insurance_app.controller.coverage.Impl;
 
 import com.ada.insurance_app.controller.coverage.ICoverageController;
 import com.ada.insurance_app.core.common.dto.GeneralResponse;
+import com.ada.insurance_app.core.enums.InsuranceType;
 import com.ada.insurance_app.dto.CoverageDto;
 import com.ada.insurance_app.request.coverage.CreateCoverageRequest;
 import com.ada.insurance_app.request.coverage.UpdateCoverageRequest;
@@ -82,6 +83,18 @@ public class CoverageControllerImpl implements ICoverageController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(GeneralResponse.error(
                     "Failed to retrieve coverages: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @Override
+    @GetMapping("/by-insurance-type")
+    public ResponseEntity<GeneralResponse<List<CoverageDto>>> getCoveragesByInsuranceType(@RequestParam InsuranceType type) {
+        try {
+            List<CoverageDto> coverages = coverageService.getCoveragesByInsuranceType(type);
+            return ResponseEntity.ok(GeneralResponse.success("Coverages retrieved successfully", coverages));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(GeneralResponse.error(
+                    "Failed to retrieve coverages by insurance type: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
         }
     }
 }

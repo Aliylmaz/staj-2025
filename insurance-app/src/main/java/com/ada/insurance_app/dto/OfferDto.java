@@ -19,4 +19,6 @@ public class OfferDto {
     private CustomerDto customer;
     private String note;
     private Set<CoverageDto> coverages;
+    private Long policyId;
+
 }

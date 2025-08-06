@@ -19,11 +19,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/customer")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:5173")
 public class CustomerControllerImpl implements ICustomerController {
 
     private final ICustomerService customerService;
@@ -281,7 +283,7 @@ public class CustomerControllerImpl implements ICustomerController {
             OfferDto offer = customerService.getOfferById(offerId, customerId);
             return ResponseEntity.ok(GeneralResponse.success("Offer retrieved successfully", offer));
         } catch (Exception e) {
-            log.error("Error getting offer by ID: {}", e.getMessage());
+            log.error("Error getting offer by ID", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(GeneralResponse.error("Failed to get offer: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
         }

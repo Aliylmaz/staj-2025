@@ -15,6 +15,7 @@ axiosInstance.interceptors.request.use(
     console.log('🔐 Axios interceptor - Request URL:', config.url);
     console.log('🔐 Axios interceptor - Request method:', config.method);
     console.log('🔐 Axios interceptor - Token from localStorage:', token ? 'EXISTS' : 'NOT FOUND');
+    console.log('🔐 Axios interceptor - Token value:', token);
     
     if (token) {
       // Check for common token issues
@@ -52,6 +53,7 @@ axiosInstance.interceptors.response.use(
     console.error('❌ Axios response interceptor - Error URL:', error.config?.url);
     console.error('❌ Axios response interceptor - Error method:', error.config?.method);
     console.error('❌ Axios response interceptor - Error headers:', error.config?.headers);
+    console.error('❌ Axios response interceptor - Full error object:', error);
     
     if (error.response?.status === 401) {
       console.log('❌ Axios response interceptor - 401 Unauthorized, clearing localStorage');
@@ -309,7 +311,20 @@ export const requestOffer = async (requestData: CreateOfferRequest): Promise<Off
   if (!customerId) {
     throw new Error('Customer ID not found');
   }
-  const response = await axiosInstance.post(`/api/v1/customer/${customerId}/create-offer`, requestData);
+  
+  const url = `/api/v1/customer/${customerId}/create-offer`;
+  
+  console.log('🔍 requestOffer - customerId from localStorage:', customerId);
+  console.log('🔍 requestOffer - requestData:', requestData);
+  console.log('🔍 requestOffer - token from localStorage:', localStorage.getItem('token'));
+  console.log('🔍 requestOffer - URL being called:', url);
+  console.log('🔍 requestOffer - Request method: POST');
+  
+  const response = await axiosInstance.post(url, requestData);
+  
+  console.log('🔍 requestOffer - response status:', response.status);
+  console.log('🔍 requestOffer - response data:', response.data);
+  
   return response.data.data;
 };
 
@@ -406,7 +421,12 @@ export const downloadDocument = async (documentId: number): Promise<Blob> => {
 
 // Coverages
 export const getCoverages = async (): Promise<CoverageDto[]> => {
-  const response = await axiosInstance.get(`/api/v1/coverages`);
+  const response = await axiosInstance.get(`/api/v1/coverages/get-all`);
+  return response.data.data;
+};
+
+export const getCoveragesByInsuranceType = async (insuranceType: keyof typeof InsuranceType): Promise<CoverageDto[]> => {
+  const response = await axiosInstance.get(`/api/v1/coverages/by-insurance-type?type=${insuranceType}`);
   return response.data.data;
 };
 

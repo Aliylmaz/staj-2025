@@ -13,6 +13,8 @@ public interface OfferMapper {
     
     @Mapping(target = "customer", source = "customer")
     @Mapping(target = "coverages", source = "coverages")
+    @Mapping(target="offerNumber", expression = "java(offer.getOfferNumber() != null ? offer.getOfferNumber() : \"\")")
+    @Mapping(target = "policyId", expression = "java(offer.getPolicy() != null ? offer.getPolicy().getId() : null)")
     OfferDto toDto(Offer offer);
     
     @Mapping(target = "customer", ignore = true)

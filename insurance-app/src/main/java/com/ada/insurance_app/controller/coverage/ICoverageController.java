@@ -1,6 +1,7 @@
 package com.ada.insurance_app.controller.coverage;
 
 import com.ada.insurance_app.core.common.dto.GeneralResponse;
+import com.ada.insurance_app.core.enums.InsuranceType;
 import com.ada.insurance_app.dto.CoverageDto;
 import com.ada.insurance_app.request.coverage.CreateCoverageRequest;
 import com.ada.insurance_app.request.coverage.UpdateCoverageRequest;
@@ -16,5 +17,6 @@ public interface ICoverageController {
      ResponseEntity<GeneralResponse<Void>> delete(Long id);
      ResponseEntity<GeneralResponse<CoverageDto>> getById(Long id);
      ResponseEntity<GeneralResponse<List<CoverageDto>>> getAll();
+     ResponseEntity<GeneralResponse<List<CoverageDto>>> getCoveragesByInsuranceType(InsuranceType insuranceType);
 
 }

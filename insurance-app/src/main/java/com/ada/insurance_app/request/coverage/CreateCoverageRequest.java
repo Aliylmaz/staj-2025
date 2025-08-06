@@ -1,5 +1,6 @@
 package com.ada.insurance_app.request.coverage;
 
+import com.ada.insurance_app.core.enums.InsuranceType;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -11,4 +12,5 @@ public class CreateCoverageRequest {
     private String description;
     private BigDecimal basePrice;
     private boolean active = true;
+    private InsuranceType insuranceType;
 }

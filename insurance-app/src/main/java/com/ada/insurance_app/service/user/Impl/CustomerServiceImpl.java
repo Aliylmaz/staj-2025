@@ -30,7 +30,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.ada.insurance_app.core.enums.InsuranceType.*;
 import com.ada.insurance_app.repository.IAgentRepository;
 
 @Slf4j
@@ -52,7 +51,7 @@ public class CustomerServiceImpl implements ICustomerService {
     private final DocumentMapper documentMapper;
     private final ClaimMapper claimMapper;
     private final CustomerMapper customerMapper;
-    private final OfferMapper OfferMapper;
+    private final OfferMapper offerMapper;
     private final PaymentMapper paymentMapper;
     private final IUserRepository userRepository;
 
@@ -97,7 +96,7 @@ public class CustomerServiceImpl implements ICustomerService {
         // Fetch offers directly by customer ID
         List<Offer> offers = offerRepository.findByCustomer_Id(customerId);
         return offers.stream()
-                .map(OfferMapper::toDto)
+                .map(offerMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -126,31 +125,28 @@ public class CustomerServiceImpl implements ICustomerService {
         offer.setInsuranceType(request.getInsuranceType());
         
         // Handle agent if provided
-        if (request.getAgentId() != null) {
+        if (request.getAgentId() != null && !request.getAgentId().toString().trim().isEmpty()) {
             Agent agent = agentRepository.findById(request.getAgentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Agent not found"));
             offer.setAgent(agent);
         }
-        
-        // Handle coverages if provided
+
         if (request.getCoverageIds() != null && !request.getCoverageIds().isEmpty()) {
             Set<Coverage> coverages = new HashSet<>(coverageRepository.findAllById(request.getCoverageIds()));
             offer.setCoverages(coverages);
-            
+
             // Calculate premium based on selected coverages
             BigDecimal calculatedPremium = coverages.stream()
                     .map(Coverage::getBasePrice)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             offer.setTotalPremium(calculatedPremium);
-        } else {
-            // Fallback to insurance type based calculation
-            BigDecimal calculatedPremium = calculatePremium(request);
-            offer.setTotalPremium(calculatedPremium);
         }
-        
+
+
         offer.setStatus(OfferStatus.PENDING);
         offer.setNote(request.getNote());
         offer.setCreatedAt(LocalDateTime.now());
+
 
         // Handle dynamic insurance type details
         switch (request.getInsuranceType()) {
@@ -210,27 +206,10 @@ public class CustomerServiceImpl implements ICustomerService {
         }
 
         Offer saved = offerRepository.save(offer);
-        return OfferMapper.toDto(saved);
+        return offerMapper.toDto(saved);
     }
     
-    private BigDecimal calculatePremium(CreateOfferRequest request) {
-        // Base premium calculation logic
-        BigDecimal basePremium = new BigDecimal("1000.00"); // Base premium
-        
-        switch (request.getInsuranceType()) {
-            case VEHICLE:
-                // Vehicle insurance premium calculation
-                return basePremium.multiply(new BigDecimal("1.5"));
-            case HEALTH:
-                // Health insurance premium calculation
-                return basePremium.multiply(new BigDecimal("2.0"));
-            case HOME:
-                // Home insurance premium calculation
-                return basePremium.multiply(new BigDecimal("1.8"));
-            default:
-                return basePremium;
-        }
-    }
+
 
 
     @Override
@@ -242,7 +221,7 @@ public class CustomerServiceImpl implements ICustomerService {
             throw new UnauthorizedAccessException("Offer does not belong to this customer");
         }
 
-        return OfferMapper.toDto(offer);
+        return offerMapper.toDto(offer);
     }
 
 
