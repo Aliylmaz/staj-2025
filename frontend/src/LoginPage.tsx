@@ -61,32 +61,48 @@ const LoginPage = () => {
       const userData = response.data;
       
       // Role bilgisini al (backend'den gelen response'a göre)
-      // Eğer response'da role yoksa, JWT token'dan decode etmek gerekebilir
       let userRole = 'CUSTOMER'; // Default role
       
       // Backend'den gelen response'a göre role'ü belirle
       if (userData.role) {
-        userRole = userData.role;
-      } else if (userData.user && userData.user.role) {
-        userRole = userData.user.role;
+        userRole = userData.role.toUpperCase();
+      } else if (userData.data && userData.data.role) {
+        userRole = userData.data.role.toUpperCase();
       }
-      
-      // Role'ü büyük harfe çevir
-      userRole = userRole.toUpperCase();
       
       // Role'ü state'e kaydet (type assertion ile)
       setRole(userRole as "ADMIN" | "AGENT" | "CUSTOMER");
       
       // Token'ı localStorage'a kaydet
-      if (userData.accessToken) {
-        localStorage.setItem('accessToken', userData.accessToken);
+      const accessToken = userData.data?.accessToken || userData.accessToken;
+      console.log('LoginPage: accessToken exists:', !!accessToken);
+      console.log('LoginPage: userRole:', userRole);
+      
+      if (accessToken) {
+        localStorage.setItem('token', accessToken);
+        localStorage.setItem('userRole', userRole);
+        console.log('LoginPage: Token and role saved to localStorage');
+      } else {
+        console.error('No accessToken in response!');
       }
       
       setShowToast(true);
+      
+      // Trigger CustomerContext to check for new token
+      window.dispatchEvent(new Event('storage'));
+      
+      // localStorage'a yazma işleminin tamamlanmasını bekle
       setTimeout(() => {
         setShowToast(false);
-        navigate('/dashboard');
-      }, 1200);
+        // Role'e göre yönlendirme
+        if (userRole === 'ADMIN') {
+          navigate('/admin');
+        } else if (userRole === 'AGENT') {
+          navigate('/agent');
+        } else {
+          navigate('/customer');
+        }
+      }, 500);
     } catch (err: any) {
       setError(
         err.response?.data?.message ||
@@ -245,9 +261,9 @@ const LoginPage = () => {
           </Link>
           <div style={{ textAlign: 'center', fontSize: 16 }}>
             <span style={{ color: '#555' }}>Don't have an account? </span>
-            <Link to="/register" style={{ color: '#2563eb', fontWeight: 500, textDecoration: 'none' }}>
-              Register
-            </Link>
+                      <Link to="/register" style={{ color: '#2563eb', fontWeight: 500, textDecoration: 'none' }}>
+            Register
+          </Link>
           </div>
         </div>
       </main>

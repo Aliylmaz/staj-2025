@@ -10,8 +10,7 @@ import java.time.LocalDateTime;
 @Data
 public class UpdatePaymentRequest {
 
-    @NotNull(message = "Payment ID must not be null")
-    private String paymentId; // UUID string
+
 
     private BigDecimal amount; // Optional - only if correction is needed
 

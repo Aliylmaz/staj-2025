@@ -34,6 +34,10 @@ public class Policy {
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
+    @OneToMany(mappedBy = "policy", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Offer> offers = new HashSet<>();
+
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agent_id")
     private Agent agent;

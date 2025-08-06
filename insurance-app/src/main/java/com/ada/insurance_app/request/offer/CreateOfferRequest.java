@@ -1,26 +1,39 @@
 package com.ada.insurance_app.request.offer;
 
+import com.ada.insurance_app.core.enums.InsuranceType;
+import com.ada.insurance_app.request.health.CreateHealthInsuranceDetailRequest;
+import com.ada.insurance_app.request.home.CreateHomeInsuranceDetailRequest;
+import com.ada.insurance_app.request.vehicle.AddVehicleRequest;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class CreateOfferRequest {
 
-    @NotNull(message = "Customer ID must not be null")
-    private Long customerId;
+    @NotNull(message = "Insurance type is required")
+    private InsuranceType insuranceType;
 
-    @NotNull(message = "Vehicle ID must not be null")
-    private String vehicleId; // UUID string (Vehicle entity uses UUID)
+    // Premium will be calculated on backend
+    private BigDecimal totalPremium;
 
-    @NotNull(message = "Start date must not be null")
-    private LocalDate startDate;
+    private String note;
 
-    @NotNull(message = "End date must not be null")
-    private LocalDate endDate;
+    // Selected coverage IDs for the offer
+    private List<Long> coverageIds;
 
-    @NotNull(message = "Premium amount must not be null")
-    private BigDecimal premium;
+    // Agent who will handle this offer
+    private UUID agentId;
+
+    // Detaylar sadece seçilen insuranceType'a göre zorunlu olur
+    private AddVehicleRequest vehicleRequest;
+    private CreateHealthInsuranceDetailRequest healthDetailRequest;
+    private CreateHomeInsuranceDetailRequest homeDetailRequest;
 }

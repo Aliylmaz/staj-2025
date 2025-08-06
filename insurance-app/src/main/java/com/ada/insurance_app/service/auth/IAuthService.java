@@ -15,6 +15,7 @@ public interface IAuthService {
     // Authentication methods
     AuthResponse login(LoginRequest request);
     UserDto register(AddUserRequest request);
+    UserDto registerCustomer(AddUserRequest request);
     AuthResponse refreshToken(RefreshTokenRequest request);
     void logout(String token);
 

@@ -23,6 +23,6 @@ public interface IVehicleService {
     long countByCustomerId(UUID customerId);
     
     // Request sınıflarını kullanan yeni metodlar
-    VehicleDto createVehicleFromRequest(AddVehicleRequest request);
+    VehicleDto createVehicleFromRequest(AddVehicleRequest request, UUID customerId);
     VehicleDto updateVehicleFromRequest(UUID vehicleId, UpdateVehicleRequest request);
 }

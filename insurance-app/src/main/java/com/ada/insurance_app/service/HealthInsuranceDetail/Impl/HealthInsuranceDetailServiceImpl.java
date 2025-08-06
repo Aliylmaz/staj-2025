@@ -1,7 +1,7 @@
 package com.ada.insurance_app.service.HealthInsuranceDetail.Impl;
 
 import com.ada.insurance_app.entity.HealthInsuranceDetail;
-import com.ada.insurance_app.repository.HealthInsuranceDetailRepository;
+import com.ada.insurance_app.repository.IHealthInsuranceDetailRepository;
 import com.ada.insurance_app.service.HealthInsuranceDetail.IHealthInsuranceDetailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,7 +25,7 @@ import com.ada.insurance_app.request.health.UpdateHealthInsuranceDetailRequest;
 @RequiredArgsConstructor
 public class HealthInsuranceDetailServiceImpl implements IHealthInsuranceDetailService {
 
-    private final HealthInsuranceDetailRepository repository;
+    private final IHealthInsuranceDetailRepository repository;
     private final HealthInsuranceDetailMapper mapper;
 
     @Override

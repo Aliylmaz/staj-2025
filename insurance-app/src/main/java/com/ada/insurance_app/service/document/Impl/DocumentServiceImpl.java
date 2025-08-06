@@ -1,9 +1,12 @@
 package com.ada.insurance_app.service.document.Impl;
 
 import com.ada.insurance_app.core.exception.DocumentNotFoundException;
+import com.ada.insurance_app.dto.DocumentDto;
 import com.ada.insurance_app.entity.Document;
 import com.ada.insurance_app.core.enums.DocumentType;
+import com.ada.insurance_app.mapper.DocumentMapper;
 import com.ada.insurance_app.repository.IDocumentRepository;
+import com.ada.insurance_app.request.document.UploadDocumentRequest;
 import com.ada.insurance_app.service.document.IDocumentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,66 +30,116 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DocumentServiceImpl implements IDocumentService {
     private final IDocumentRepository documentRepository;
+    private final DocumentMapper documentMapper;
 
-@Override
-@Transactional
-public Document uploadDocument(Document document, MultipartFile file) {
-    // Validate document data
-    validateDocument(document);
 
-    try {
-        // Validate file
-        if (file.isEmpty()) {
-            throw new IllegalArgumentException("File cannot be empty");
-        }
 
-        // Validate file size (10MB limit)
-        if (file.getSize() > 10 * 1024 * 1024) {
-            throw new IllegalArgumentException("File size cannot exceed 10MB");
-        }
-
-        // Validate content type
-        String contentType = file.getContentType();
-        if (!isValidContentType(contentType)) {
-            throw new IllegalArgumentException("Unsupported file type. Allowed types: PDF, DOC, DOCX, JPG, JPEG, PNG, GIF");
-        }
-
-        // Generate unique filename and path
-        String uniqueFileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-        String uploadDir = "uploads/" + document.getDocumentType().toString().toLowerCase();
-        String filePath = uploadDir + "/" + uniqueFileName;
-
-        // Create directories if they don't exist
-        Path uploadPath = Paths.get(uploadDir);
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
-        }
-
-        // Save file to storage
-        Path targetPath = uploadPath.resolve(uniqueFileName);
-        Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-
-        // Update document metadata
-        document.setFileName(uniqueFileName);
-        document.setOriginalFileName(file.getOriginalFilename());
-        document.setContentType(contentType);
-        document.setFileSize(file.getSize());
-        document.setFilePath(filePath);
-
-        // Save document metadata to database
-        Document savedDocument = documentRepository.save(document);
-        log.info("Document uploaded successfully: {} for customer: {}",
-                savedDocument.getId(),
-                document.getCustomer() != null ? document.getCustomer().getId() : "no customer");
-
-        return savedDocument;
-
-    } catch (IOException ex) {
-        throw new RuntimeException("Failed to store file", ex);
+    @Override
+    public DocumentDto getDocumentById(Long documentId) {
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + documentId));
+        return documentMapper.toDto(document);
     }
-}
 
-private boolean isValidContentType(String contentType) {
+    @Override
+    public List<DocumentDto> getDocumentsByPolicy(Long policyId) {
+        List<Document> documents = documentRepository.findByPolicy_Id(policyId);
+        return documents.stream().map(documentMapper::toDto).toList();
+    }
+
+    @Override
+    public List<DocumentDto> getDocumentsByCustomer(UUID customerId) {
+        List<Document> documents = documentRepository.findByCustomer_Id(customerId);
+        return documents.stream().map(documentMapper::toDto).toList();
+    }
+
+    @Override
+    public List<DocumentDto> getDocumentsByClaim(UUID claimId) {
+        List<Document> documents = documentRepository.findByClaim_Id(claimId);
+        return documents.stream().map(documentMapper::toDto).toList();
+    }
+
+    @Override
+    public byte[] downloadDocument(Long documentId) {
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + documentId));
+        
+        try {
+            Path filePath = Paths.get(document.getFilePath());
+            if (!Files.exists(filePath)) {
+                throw new DocumentNotFoundException("File not found on disk: " + document.getFilePath());
+            }
+            return Files.readAllBytes(filePath);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read file: " + document.getFilePath(), e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public DocumentDto uploadDocument(DocumentDto documentDto, MultipartFile file) {
+        // Validasyon
+        validateDocumentDto(documentDto);
+
+        try {
+            if (file.isEmpty()) {
+                throw new IllegalArgumentException("File cannot be empty");
+            }
+
+            if (file.getSize() > 10 * 1024 * 1024) {
+                throw new IllegalArgumentException("File size cannot exceed 10MB");
+            }
+
+            String contentType = file.getContentType();
+            if (!isValidContentType(contentType)) {
+                throw new IllegalArgumentException("Unsupported file type.");
+            }
+
+            String uniqueFileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+            String uploadDir = "uploads/" + documentDto.getDocumentType().toString().toLowerCase();
+            String filePath = uploadDir + "/" + uniqueFileName;
+
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            Path targetPath = uploadPath.resolve(uniqueFileName);
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+            // DTO'yu entity'ye çevir ve güncelle
+            documentDto.setFileName(uniqueFileName);
+            documentDto.setOriginalFileName(file.getOriginalFilename());
+            documentDto.setContentType(contentType);
+            documentDto.setFileSize(file.getSize());
+            documentDto.setFilePath(filePath);
+
+            Document document = documentMapper.toEntity(documentDto);
+            Document saved = documentRepository.save(document);
+            return documentMapper.toDto(saved);
+
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to store file", ex);
+        }
+    }
+
+    private void validateDocumentDto(DocumentDto dto) {
+        if (dto == null) {
+            throw new IllegalArgumentException("Document data cannot be null");
+        }
+
+        if (dto.getCustomerId() == null && dto.getPolicyId() == null && dto.getClaimId() == null) {
+            throw new IllegalArgumentException("At least one relation (customer, policy or claim) must be provided.");
+        }
+
+        if (!StringUtils.hasText(dto.getDocumentType().name())) {
+            throw new IllegalArgumentException("Document type is required");
+        }
+    }
+
+
+
+    private boolean isValidContentType(String contentType) {
     if (contentType == null) return false;
 
     List<String> validTypes = Arrays.asList(
@@ -137,36 +190,25 @@ private boolean isValidContentType(String contentType) {
    }
 
     @Override
-    public Document getDocument(Long documentId) {
-
-        return documentRepository.findById(documentId)
+    public DocumentDto getDocument(Long documentId) {
+        Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + documentId));
+        return documentMapper.toDto(document);
     }
 
-    @Override
-    public List<Document> getDocumentsByPolicy(Long policyId) {
-        return documentRepository.findByPolicyId(policyId);
-    }
+
+
 
     @Override
-    public List<Document> getDocumentsByCustomer(UUID customerId) {
-        return documentRepository.findByCustomerId(customerId);
-    }
-
-    @Override
-    public List<Document> getDocumentsByClaim(UUID claimId) {
-        return documentRepository.findByClaimId(claimId);
-    }
-
-    @Override
-    public List<Document> getDocumentsByType(DocumentType type) {
+    public List<DocumentDto> getDocumentsByType(DocumentType type) {
         if (type == null) {
             throw new IllegalArgumentException("Document type cannot be null");
         }
-        
+
         List<Document> documents = documentRepository.findByDocumentType(type);
-        return documents;
+        return documents.stream().map(documentMapper::toDto).toList();
     }
+
 
     private void validateDocument(Document document) {
         if (document == null) {

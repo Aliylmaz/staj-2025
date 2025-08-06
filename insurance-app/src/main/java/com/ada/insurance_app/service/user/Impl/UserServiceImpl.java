@@ -3,7 +3,7 @@ package com.ada.insurance_app.service.user.Impl;
 import com.ada.insurance_app.dto.UserDto;
 import com.ada.insurance_app.entity.User;
 import com.ada.insurance_app.mapper.UserInfoMapper;
-import com.ada.insurance_app.repository.IUserRepository;
+import com.ada.insurance_app.repository.auth.User.IUserRepository;
 import com.ada.insurance_app.service.user.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

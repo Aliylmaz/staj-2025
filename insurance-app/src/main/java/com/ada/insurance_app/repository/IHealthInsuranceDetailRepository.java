@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface HealthInsuranceDetailRepository extends JpaRepository<HealthInsuranceDetail, UUID> {
+public interface IHealthInsuranceDetailRepository extends JpaRepository<HealthInsuranceDetail, UUID> {
 
     @Query("SELECT h FROM HealthInsuranceDetail h WHERE h.policy.id = :policyId")
     Optional<HealthInsuranceDetail> findByPolicyId(@Param("policyId") Long policyId);
@@ -26,7 +26,11 @@ public interface HealthInsuranceDetailRepository extends JpaRepository<HealthIns
            "LOWER(h.medicalHistory) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<HealthInsuranceDetail> searchByMedicalHistory(@Param("keyword") String keyword);
 
-    // En çok kullanılacak basit sorgular için method isimlendirme
-    List<HealthInsuranceDetail> findByGender(String gender);
-    List<HealthInsuranceDetail> findByDateOfBirthBefore(LocalDate date);
+    Optional<HealthInsuranceDetail> findByCustomer_Id(UUID customerİd);
+    
+    
+
+    
+
+
 }

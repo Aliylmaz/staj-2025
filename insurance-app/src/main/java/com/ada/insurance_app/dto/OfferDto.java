@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -17,4 +18,5 @@ public class OfferDto {
     private OfferStatus status;
     private CustomerDto customer;
     private String note;
+    private Set<CoverageDto> coverages;
 }

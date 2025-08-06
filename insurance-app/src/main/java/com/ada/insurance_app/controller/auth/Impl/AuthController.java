@@ -31,8 +31,8 @@ public class AuthController implements IAuthController {
 
     @Override
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<GeneralResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(GeneralResponse.success("Login successful", authService.login(request)));
     }
 
     @Override
@@ -40,6 +40,13 @@ public class AuthController implements IAuthController {
     public ResponseEntity<GeneralResponse<UserDto>> register(@Valid @RequestBody AddUserRequest request) {
         UserDto createdUser = authService.register(request);
         return ResponseEntity.ok(GeneralResponse.success("User registered successfully", createdUser));
+    }
+
+    @Override
+    @PostMapping("/register-customer")
+    public ResponseEntity<GeneralResponse<UserDto>> registerCustomer(@Valid @RequestBody AddUserRequest request) {
+        UserDto createdUser = authService.registerCustomer(request);
+        return ResponseEntity.ok(GeneralResponse.success("Customer registered successfully", createdUser));
     }
 
 

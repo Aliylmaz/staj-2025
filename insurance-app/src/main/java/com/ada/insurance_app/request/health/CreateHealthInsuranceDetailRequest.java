@@ -7,7 +7,8 @@ import java.util.UUID;
 
 @Data
 public class CreateHealthInsuranceDetailRequest {
-    private LocalDate dateOfBirth;
+    private UUID CustomerId;
+    private String dateOfBirth;
     private String gender;
     private String medicalHistory;
     private Double height;
@@ -18,5 +19,4 @@ public class CreateHealthInsuranceDetailRequest {
     private String allergies;
     private String familyMedicalHistory;
     private String bloodType;
-    private UUID customerId;
 }

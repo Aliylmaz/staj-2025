@@ -18,7 +18,7 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("/project/policy")
+@RequestMapping("/api/v1/policies")
 @RequiredArgsConstructor
 public class PolicyControllerImpl implements IPolicyController {
 

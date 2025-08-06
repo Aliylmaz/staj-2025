@@ -1,6 +1,6 @@
 package com.ada.insurance_app.service.user.Impl;
 
-import com.ada.insurance_app.repository.IUserRepository;
+import com.ada.insurance_app.repository.auth.User.IUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

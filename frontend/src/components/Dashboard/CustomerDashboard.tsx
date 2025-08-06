@@ -100,109 +100,144 @@ export default function CustomerDashboard({ page }: { page: string }) {
     }
   };
 
-  const handleCreatePolicy = async () => {
-    try {
-      const newPolicy = {
-        type: "Health",
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-        premium: 89.99
-      };
-      
-      await axios.post(`http://localhost:8080/project/customer/policy/create/${customerId}`, newPolicy);
-      alert("Policy created successfully!");
-      fetchPolicies();
-    } catch (error) {
-      console.error("Error creating policy:", error);
-      alert("Failed to create policy");
-    }
-  };
 
-  const handleFileClaim = async () => {
-    try {
-      // Backend'de claim endpoint'i varsa kullan
-      // await axios.post(`http://localhost:8080/api/v1/claims`, {
-      //   policyId: policies[0]?.id || 301,
-      //   description: "New claim",
-      //   amount: 500
-      // });
-      alert("Claim filed successfully!");
-      fetchClaims();
-    } catch (error) {
-      console.error("Error filing claim:", error);
-      alert("Failed to file claim");
-    }
-  };
 
   if (page === "dashboard" || page === "policies") {
     return (
-      <div className="p-6 space-y-6">
-        {/* Header Section */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">My Policies</h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your insurance policies</p>
-          </div>
-          <button 
-            className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
-            onClick={handleCreatePolicy}
-          >
-            <span className="mr-2">🛡️</span>
-            Submit New Policy
-          </button>
+      <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{ 
+            fontSize: '2.5rem', 
+            fontWeight: 700, 
+            color: '#1e293b',
+            marginBottom: '0.5rem'
+          }}>
+            My Policies
+          </h1>
+          <p style={{ 
+            fontSize: '1.1rem', 
+            color: '#64748b',
+            margin: 0
+          }}>
+            Manage your insurance policies and coverage
+          </p>
         </div>
 
         {/* Loading State */}
         {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            padding: '3rem' 
+          }}>
+            <div style={{
+              width: '3rem',
+              height: '3rem',
+              border: '4px solid #e5e7eb',
+              borderTop: '4px solid #3b82f6',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
           </div>
         ) : (
           /* Policies Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+            gap: '1.5rem' 
+          }}>
             {policies.map(policy => (
-              <div key={policy.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200 dark:border-gray-700">
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white text-xl">
-                      🛡️
-                    </div>
-                    <span className={`px-3 py-1 text-xs rounded-full font-medium ${
-                      policy.status === "active" 
-                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" 
-                        : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                    }`}>
-                      {policy.status}
-                    </span>
+              <div key={policy.id} style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '1.5rem',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                border: '1px solid #e5e7eb',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+              }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <div style={{
+                    width: '3rem',
+                    height: '3rem',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '1.5rem'
+                  }}>
+                    🛡️
                   </div>
-                  
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{policy.type} Insurance</h3>
-                  <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                    <div className="flex justify-between">
-                      <span>Policy ID:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">#{policy.id}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Premium:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">${policy.premium}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Start Date:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{policy.startDate}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>End Date:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{policy.endDate}</span>
-                    </div>
-                  </div>
-                  
-                  <button 
-                    className="w-full mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105"
-                    onClick={() => { setSelected(policy); setShowModal(true); }}
-                  >
-                    View Details
-                  </button>
+                  <span style={{
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    background: policy.status === "active" ? '#dcfce7' : '#f3f4f6',
+                    color: policy.status === "active" ? '#166534' : '#374151'
+                  }}>
+                    {policy.status}
+                  </span>
                 </div>
+                
+                <h3 style={{ 
+                  fontSize: '1.25rem', 
+                  fontWeight: 700, 
+                  color: '#1e293b',
+                  marginBottom: '1rem' 
+                }}>
+                  {policy.type} Insurance
+                </h3>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Policy ID:</span>
+                    <span style={{ fontWeight: 600, color: '#1e293b' }}>#{policy.id}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Premium:</span>
+                    <span style={{ fontWeight: 600, color: '#1e293b' }}>${policy.premium}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Start Date:</span>
+                    <span style={{ fontWeight: 600, color: '#1e293b' }}>{policy.startDate}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.875rem' }}>End Date:</span>
+                    <span style={{ fontWeight: 600, color: '#1e293b' }}>{policy.endDate}</span>
+                  </div>
+                </div>
+                
+                <button 
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  onClick={() => { setSelected(policy); setShowModal(true); }}
+                >
+                  View Details
+                </button>
               </div>
             ))}
           </div>
@@ -259,73 +294,140 @@ export default function CustomerDashboard({ page }: { page: string }) {
 
   if (page === "claims") {
     return (
-      <div className="p-6 space-y-6">
-        {/* Header Section */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">My Claims</h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">Track your insurance claims</p>
-          </div>
-          <button 
-            className="flex items-center px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
-            onClick={handleFileClaim}
-          >
-            <span className="mr-2">📋</span>
-            File New Claim
-          </button>
+      <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{ 
+            fontSize: '2.5rem', 
+            fontWeight: 700, 
+            color: '#1e293b',
+            marginBottom: '0.5rem'
+          }}>
+            My Claims
+          </h1>
+          <p style={{ 
+            fontSize: '1.1rem', 
+            color: '#64748b',
+            margin: 0
+          }}>
+            Track and manage your insurance claims
+          </p>
         </div>
 
         {/* Loading State */}
         {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            padding: '3rem' 
+          }}>
+            <div style={{
+              width: '3rem',
+              height: '3rem',
+              border: '4px solid #e5e7eb',
+              borderTop: '4px solid #ef4444',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
           </div>
         ) : (
           /* Claims Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+            gap: '1.5rem' 
+          }}>
             {claims.map(claim => (
-              <div key={claim.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200 dark:border-gray-700">
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-pink-600 rounded-lg flex items-center justify-center text-white text-xl">
-                      📋
-                    </div>
-                    <span className={`px-3 py-1 text-xs rounded-full font-medium ${
-                      claim.status === "approved" 
-                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" 
-                        : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                    }`}>
-                      {claim.status}
-                    </span>
+              <div key={claim.id} style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '1.5rem',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                border: '1px solid #e5e7eb',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+              }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <div style={{
+                    width: '3rem',
+                    height: '3rem',
+                    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '1.5rem'
+                  }}>
+                    📋
                   </div>
-                  
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Claim #{claim.id}</h3>
-                  <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                    <div className="flex justify-between">
-                      <span>Policy ID:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">#{claim.policyId}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Amount:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">${claim.amount}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Created:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{claim.createdAt}</span>
-                    </div>
-                    <div className="mt-3">
-                      <span className="font-medium text-gray-900 dark:text-white">Description:</span>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{claim.description}</p>
-                    </div>
-                  </div>
-                  
-                  <button 
-                    className="w-full mt-4 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105"
-                    onClick={() => { setSelected(claim); setShowModal(true); }}
-                  >
-                    View Details
-                  </button>
+                  <span style={{
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    background: claim.status === "approved" ? '#dcfce7' : '#fef3c7',
+                    color: claim.status === "approved" ? '#166534' : '#92400e'
+                  }}>
+                    {claim.status}
+                  </span>
                 </div>
+                
+                <h3 style={{ 
+                  fontSize: '1.25rem', 
+                  fontWeight: 700, 
+                  color: '#1e293b',
+                  marginBottom: '1rem' 
+                }}>
+                  Claim #{claim.id}
+                </h3>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Policy ID:</span>
+                    <span style={{ fontWeight: 600, color: '#1e293b' }}>#{claim.policyId}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Amount:</span>
+                    <span style={{ fontWeight: 600, color: '#1e293b' }}>${claim.amount}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Created:</span>
+                    <span style={{ fontWeight: 600, color: '#1e293b' }}>{claim.createdAt}</span>
+                  </div>
+                  <div style={{ marginTop: '1rem' }}>
+                    <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.875rem' }}>Description:</span>
+                    <p style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '0.25rem' }}>{claim.description}</p>
+                  </div>
+                </div>
+                
+                <button 
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  onClick={() => { setSelected(claim); setShowModal(true); }}
+                >
+                  View Details
+                </button>
               </div>
             ))}
           </div>

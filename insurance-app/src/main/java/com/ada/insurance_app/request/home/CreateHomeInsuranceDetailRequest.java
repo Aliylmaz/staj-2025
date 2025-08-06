@@ -13,4 +13,12 @@ public class CreateHomeInsuranceDetailRequest {
     private Integer floorNumber;
     private Integer totalFloors;
     private UUID customerId;
+    
+    public boolean getEarthquakeResistance() {
+        return earthquakeResistance;
+    }
+    
+    public void setEarthquakeResistance(boolean earthquakeResistance) {
+        this.earthquakeResistance = earthquakeResistance;
+    }
 }

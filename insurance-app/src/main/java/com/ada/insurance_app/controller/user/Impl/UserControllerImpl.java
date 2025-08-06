@@ -5,14 +5,16 @@ import com.ada.insurance_app.core.common.dto.GeneralResponse;
 import com.ada.insurance_app.dto.UserDto;
 import com.ada.insurance_app.service.user.IUserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @RestController
-@RequestMapping("/project/user")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserControllerImpl implements IUserController {
 

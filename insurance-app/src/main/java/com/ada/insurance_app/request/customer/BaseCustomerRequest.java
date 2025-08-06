@@ -16,4 +16,5 @@ public abstract class BaseCustomerRequest {
     private String city;
     private String country;
     private String postalCode;
+
 }

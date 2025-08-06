@@ -1,14 +1,19 @@
 package com.ada.insurance_app.service.auth.Impl;
 
+import com.ada.insurance_app.core.enums.CustomerType;
 import com.ada.insurance_app.core.enums.Role;
+import com.ada.insurance_app.core.exception.InvalidRequestException;
 import com.ada.insurance_app.core.exception.UserNotFoundException;
 import com.ada.insurance_app.core.security.JwtTokenProvider;
 import com.ada.insurance_app.core.security.SecurityUtils;
+import com.ada.insurance_app.dto.CustomerDto;
 import com.ada.insurance_app.dto.UserDto;
+import com.ada.insurance_app.entity.Customer;
 import com.ada.insurance_app.entity.User;
 import com.ada.insurance_app.entity.RefreshToken;
 import com.ada.insurance_app.mapper.UserInfoMapper;
-import com.ada.insurance_app.repository.IUserRepository;
+import com.ada.insurance_app.repository.ICustomerRepository;
+import com.ada.insurance_app.repository.auth.User.IUserRepository;
 import com.ada.insurance_app.request.auth.LoginRequest;
 import com.ada.insurance_app.request.auth.RefreshTokenRequest;
 import com.ada.insurance_app.request.password.ChangePasswordRequest;
@@ -25,6 +30,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -47,6 +53,7 @@ public class AuthServiceImpl implements IAuthService {
     private final PasswordEncoder passwordEncoder;
     private final UserInfoMapper userInfoMapper;
     private final EmailService emailService;
+    private final ICustomerRepository customerRepository;
 
     @Value("${security.jwt.expirationMs}")
     private long accessTokenExpirationMs;
@@ -76,27 +83,28 @@ public class AuthServiceImpl implements IAuthService {
             String accessToken = jwtTokenProvider.generateToken(authentication);
             String refreshTokenValue = UUID.randomUUID().toString();
 
-
-
-            // Create refresh token entity
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, refreshTokenValue);
 
             log.info("User logged in successfully: {}", user.getEmail());
 
-            // Build and return response
             return AuthResponse.builder()
                     .accessToken(accessToken)
                     .refreshToken(refreshToken.getToken())
-                    .expiresIn(accessTokenExpirationMs / 1000) // Convert to seconds
+                    .expiresIn(accessTokenExpirationMs / 1000)
                     .username(user.getUsername())
                     .email(user.getEmail())
+                    .role(user.getRole().name())
                     .build();
 
+        } catch (BadCredentialsException ex) {
+            log.warn("Login failed due to invalid credentials for email: {}", request.getEmail());
+            throw new InvalidRequestException("Invalid email or password"); // kendi custom exception'ını fırlat
         } catch (Exception e) {
             log.error("Login failed for email: {}", request.getEmail(), e);
-            throw e;
+            throw e; // diğer exceptionlar yine yukarı fırlasın
         }
     }
+
 
     @Transactional
     @Override
@@ -109,6 +117,60 @@ public class AuthServiceImpl implements IAuthService {
             throw new IllegalArgumentException("Username already in use");
         }
 
+        // User oluşturuluyor
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setRole(Role.CUSTOMER);  // Dilersen Role'ü dinamik alabilirsin
+        user.setActive(true);
+        user = userRepository.save(user);
+
+        // Customer DTO'dan veri alınıyor
+        CustomerDto customerDto = request.getCustomer();
+        Customer customer = new Customer();
+        customer.setUser(user);
+        customer.setCustomerType(customerDto.getCustomerType());
+        customer.setCustomerNumber(UUID.randomUUID().toString().substring(0, 8)); // örnek
+
+        customer.setAddress(customerDto.getAddress());
+        customer.setNationalId(customerDto.getNationalId());
+
+        if (customerDto.getCustomerType() == CustomerType.INDIVIDUAL) {
+            customer.setDateOfBirth(customerDto.getDateOfBirth());
+        } else if (customerDto.getCustomerType() == CustomerType.CORPORATE) {
+            customer.setCompanyName(customerDto.getCompanyName());
+            customer.setTaxNumber(customerDto.getTaxNumber());
+            customer.setCompanyRegistrationNumber(customerDto.getCompanyRegistrationNumber());
+            customer.setCity(customerDto.getCity());
+            customer.setCountry(customerDto.getCountry());
+            customer.setPostalCode(customerDto.getPostalCode());
+        }
+
+        customerRepository.save(customer);
+
+        log.info("New customer registered: {}", user.getEmail());
+
+        return userInfoMapper.fromUserInfo(user);
+
+        //TODO frontend tarafında register için customer bilgilerinde bireysel ve kurumsal için farklı alanlar olacak şekilde düzenleme yap ona göre bu bilgiler dolacak.
+    }
+
+    @Transactional
+    @Override
+    public UserDto registerCustomer(AddUserRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email already in use");
+        }
+
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new IllegalArgumentException("Username already in use");
+        }
+
+        // User oluşturuluyor - Customer role ile
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
@@ -118,13 +180,36 @@ public class AuthServiceImpl implements IAuthService {
         user.setPhoneNumber(request.getPhoneNumber());
         user.setRole(Role.CUSTOMER);
         user.setActive(true);
-
         user = userRepository.save(user);
 
-        log.info("New user registered: {}", user.getEmail());
+        // Customer DTO'dan veri alınıyor
+        CustomerDto customerDto = request.getCustomer();
+        Customer customer = new Customer();
+        customer.setUser(user);
+        customer.setCustomerType(customerDto.getCustomerType());
+        customer.setCustomerNumber("CUST-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+
+        customer.setAddress(customerDto.getAddress());
+        customer.setNationalId(customerDto.getNationalId());
+
+        if (customerDto.getCustomerType() == CustomerType.INDIVIDUAL) {
+            customer.setDateOfBirth(customerDto.getDateOfBirth());
+        } else if (customerDto.getCustomerType() == CustomerType.CORPORATE) {
+            customer.setCompanyName(customerDto.getCompanyName());
+            customer.setTaxNumber(customerDto.getTaxNumber());
+            customer.setCompanyRegistrationNumber(customerDto.getCompanyRegistrationNumber());
+            customer.setCity(customerDto.getCity());
+            customer.setCountry(customerDto.getCountry());
+            customer.setPostalCode(customerDto.getPostalCode());
+        }
+
+        customerRepository.save(customer);
+
+        log.info("New customer registered via register-customer endpoint: {}", user.getEmail());
 
         return userInfoMapper.fromUserInfo(user);
     }
+
 
     @Override
     @Transactional

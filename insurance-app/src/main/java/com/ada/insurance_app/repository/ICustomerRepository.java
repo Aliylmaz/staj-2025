@@ -12,11 +12,15 @@ import java.util.UUID;
 
 public interface ICustomerRepository extends JpaRepository<Customer, UUID> {
     Optional<Customer> findByUserId(UUID userId);
-    Optional<Customer> findByCustomerNumber(String customerNumber);
-    List<Customer> findByCustomerType(CustomerType customerType);
-    List<Customer> findByCityIgnoreCase(String city);
-    @Query("SELECT c FROM Customer c WHERE c.user.email = :email")
-    Optional<Customer> findByUserEmail(String email);
+
+    Optional<Customer> findCustomerByCustomerNumber(String customerNumber);
+
+    List<Customer> findCustomerByCustomerType(CustomerType customerType);
+
+    List<Customer> findByCity(String city);
+
+    Optional<Customer> findByUser_Email(String userEmail);
+
     long countByCustomerType(CustomerType customerType);
 
 

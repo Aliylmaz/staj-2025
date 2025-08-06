@@ -1,26 +1,36 @@
 package com.ada.insurance_app.service.dashboard.Impl;
 
+import com.ada.insurance_app.core.enums.Role;
+import com.ada.insurance_app.dto.AgentStatsDto;
+import com.ada.insurance_app.entity.Agent;
+import com.ada.insurance_app.entity.User;
 import com.ada.insurance_app.repository.*;
-import com.ada.insurance_app.service.dashboard.DashboardService;
+import com.ada.insurance_app.repository.IAgentRepository;
+import com.ada.insurance_app.repository.auth.User.IUserRepository;
+import com.ada.insurance_app.service.dashboard.IDashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
-public class DashboardServiceImpl implements DashboardService {
+public class DashboardServiceImpl implements IDashboardService {
     private final IPolicyRepository policyRepository;
-    private final ICustomerRepository customerRepository;
     private final IClaimRepository claimRepository;
     private final IPaymentRepository paymentRepository;
     private final IOfferRepository offerRepository;
+    private final IUserRepository userRepository;
+    private final IAgentRepository agentRepository;
 
     @Override
     public long getTotalPolicyCount() {
         return policyRepository.count();
     }
     @Override
-    public long getTotalCustomerCount() {
-        return customerRepository.count();
+    public long getTotalUserInSystem() {
+        return userRepository.count();
     }
     @Override
     public long getTotalClaimCount() {
@@ -38,4 +48,32 @@ public class DashboardServiceImpl implements DashboardService {
     public double getTotalPremiumSum() {
         return policyRepository.sumTotalPremium();
     }
+
+    @Override
+    public List<AgentStatsDto> getAgentStatistics() {
+        List<Agent> agents = agentRepository.findAllByUserRole(Role.AGENT);
+
+        List<AgentStatsDto> stats = new ArrayList<>();
+
+        for (Agent  agent : agents) {
+            String agentNumber = agent.getAgentNumber();
+
+            long policyCount = policyRepository.countPoliciesByAgent_AgentNumber(agentNumber);
+            long claimCount = claimRepository.countByPolicy_Agent_AgentNumber(agentNumber);
+            long paymentCount = paymentRepository.countByPolicy_Agent_AgentNumber(agentNumber);
+            double totalPremium = policyRepository.sumTotalPremiumByAgentNumber(agentNumber);
+
+            AgentStatsDto agentStats = new AgentStatsDto(
+                    agent.getName(),
+                    agentNumber,
+                    policyCount,
+                    claimCount,
+                    paymentCount,
+                    totalPremium
+            );
+            stats.add(agentStats);
+        }
+        return stats;
+    }
+
 } 

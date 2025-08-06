@@ -42,6 +42,14 @@ public class Coverage {
     @ManyToMany(mappedBy = "coverages")
     private Set<Policy> policies = new HashSet<>();
 
+    @ManyToMany
+    @JoinTable(
+            name = "offer_coverages",
+            joinColumns = @JoinColumn(name = "coverage_id"),
+            inverseJoinColumns = @JoinColumn(name = "offer_id")
+    )
+    private Set<Offer> offers = new HashSet<>();
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

@@ -1,4 +1,4 @@
-package com.ada.insurance_app.repository;
+package com.ada.insurance_app.repository.auth.User;
 
 import com.ada.insurance_app.entity.User;
 import com.ada.insurance_app.core.enums.Role;

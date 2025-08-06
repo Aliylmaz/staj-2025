@@ -23,7 +23,7 @@ public interface IVehicleRepository extends JpaRepository<Vehicle, UUID> {
     Optional<Vehicle> findByEngineNumber(String engineNumber);
 
 
-    List<Vehicle> findByCustomerId(UUID customerId);
+    Optional<Vehicle> findByCustomerId(UUID customerId);
 
 
     List<Vehicle> findByMakeContainingIgnoreCase(String make);

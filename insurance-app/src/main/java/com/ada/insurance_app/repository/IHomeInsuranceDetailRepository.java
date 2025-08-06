@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface HomeInsuranceDetailRepository extends JpaRepository<HomeInsuranceDetail, UUID> {
+public interface IHomeInsuranceDetailRepository extends JpaRepository<HomeInsuranceDetail, UUID> {
 
     @Query("SELECT h FROM HomeInsuranceDetail h WHERE h.policy.id = :policyId")
     Optional<HomeInsuranceDetail> findByPolicyId(@Param("policyId") Long policyId);
@@ -27,9 +27,9 @@ public interface HomeInsuranceDetailRepository extends JpaRepository<HomeInsuran
             @Param("minSize") double minSize,
             @Param("isResistant") boolean isResistant);
 
-    // Basit sorgular için method isimlendirme
-    List<HomeInsuranceDetail> findByBuildingAgeLessThan(int age);
-    List<HomeInsuranceDetail> findByEarthquakeResistance(boolean isResistant);
+    Optional<HomeInsuranceDetail> findByCustomer_Id(UUID customerİd);
+
+
 
 
 }

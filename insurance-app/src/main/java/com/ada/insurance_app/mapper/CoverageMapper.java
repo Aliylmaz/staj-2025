@@ -14,6 +14,7 @@ public interface CoverageMapper {
 
     // DTO to Entity (sadece CoverageDto'dan çevirirken kullanılır)
     @Mapping(target = "policies", ignore = true)
+    @Mapping(target = "offers", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Coverage toEntity(CoverageDto coverageDto);
@@ -21,6 +22,7 @@ public interface CoverageMapper {
     // CreateRequest → Entity (Create işlemi için)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "policies", ignore = true)
+    @Mapping(target = "offers", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Coverage toEntity(CreateCoverageRequest request);
@@ -29,5 +31,6 @@ public interface CoverageMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "policies", ignore = true)
+    @Mapping(target = "offers", ignore = true)
     void updateEntityFromRequest(@MappingTarget Coverage entity, UpdateCoverageRequest request);
 }

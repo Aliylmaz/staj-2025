@@ -1,6 +1,7 @@
 package com.ada.insurance_app.request.user;
 
 import com.ada.insurance_app.core.enums.Role;
+import com.ada.insurance_app.dto.CustomerDto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -38,5 +39,6 @@ public class AddUserRequest {
     @Size(max = 15, message = "Phone number must be less than 15 characters")
     private String phoneNumber;
 
+    private CustomerDto customer;
 
 }

@@ -7,23 +7,26 @@ import com.ada.insurance_app.request.coverage.CreateCoverageRequest;
 import com.ada.insurance_app.request.coverage.UpdateCoverageRequest;
 import com.ada.insurance_app.service.coverage.ICoverageService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @RestController
-@RequestMapping("/project/coverage")
+@RequestMapping("/api/v1/coverages")
 @RequiredArgsConstructor
-
 public class CoverageControllerImpl implements ICoverageController {
 
     private final ICoverageService coverageService;
 
     @Override
+    @PostMapping("/create")
     public ResponseEntity<GeneralResponse<CoverageDto>> create(CreateCoverageRequest request) {
         try {
             CoverageDto createdCoverage = coverageService.create(request);
@@ -35,6 +38,7 @@ public class CoverageControllerImpl implements ICoverageController {
     }
 
     @Override
+    @PutMapping("/update/{id}")
     public ResponseEntity<GeneralResponse<CoverageDto>> update(Long id, UpdateCoverageRequest request) {
         try {
             CoverageDto updatedCoverage = coverageService.update(id, request);
@@ -46,6 +50,7 @@ public class CoverageControllerImpl implements ICoverageController {
     }
 
     @Override
+    @DeleteMapping("/delete/{id}")
     public ResponseEntity<GeneralResponse<Void>> delete(Long id) {
         try {
             coverageService.delete(id);
@@ -57,6 +62,7 @@ public class CoverageControllerImpl implements ICoverageController {
     }
 
     @Override
+    @GetMapping("/get/{id}")
     public ResponseEntity<GeneralResponse<CoverageDto>> getById(Long id) {
         try {
             CoverageDto coverage = coverageService.getById(id);
@@ -68,6 +74,7 @@ public class CoverageControllerImpl implements ICoverageController {
     }
 
     @Override
+    @GetMapping("/get-all")
     public ResponseEntity<GeneralResponse<List<CoverageDto>>> getAll() {
         try {
             List<CoverageDto> coverages = coverageService.getAll();

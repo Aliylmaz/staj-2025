@@ -12,8 +12,6 @@ import java.util.UUID;
 @Data
 public class UpdateVehicleRequest {
 
-    @NotNull(message = "Vehicle ID is required")
-    private UUID vehicleId;
 
     private String make;
 
@@ -35,5 +33,5 @@ public class UpdateVehicleRequest {
 
     private Integer kilometers;
 
-    private LocalDate registrationDate;
+    private String registrationDate;
 }

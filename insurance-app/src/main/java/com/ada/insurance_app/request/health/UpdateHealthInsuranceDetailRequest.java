@@ -7,6 +7,7 @@ import java.util.UUID;
 
 @Data
 public class UpdateHealthInsuranceDetailRequest {
+    private UUID CustomerId;
     private LocalDate dateOfBirth;
     private String gender;
     private String medicalHistory;
@@ -18,5 +19,5 @@ public class UpdateHealthInsuranceDetailRequest {
     private String allergies;
     private String familyMedicalHistory;
     private String bloodType;
-    private UUID customerId;
+
 }

@@ -6,9 +6,11 @@ import com.ada.insurance_app.core.exception.PolicyNotFoundException;
 import com.ada.insurance_app.dto.ClaimDto;
 import com.ada.insurance_app.entity.Claim;
 import com.ada.insurance_app.entity.Policy;
+import com.ada.insurance_app.entity.Agent;
 import com.ada.insurance_app.mapper.ClaimMapper;
 import com.ada.insurance_app.repository.IClaimRepository;
 import com.ada.insurance_app.repository.IPolicyRepository;
+import com.ada.insurance_app.repository.IAgentRepository;
 import com.ada.insurance_app.request.claim.CreateClaimRequest;
 import com.ada.insurance_app.request.claim.UpdateClaimRequest;
 import com.ada.insurance_app.service.policy.IClaimService;
@@ -33,6 +35,7 @@ public class ClaimServiceImpl implements IClaimService {
     private final IClaimRepository claimRepository;
     private final IPolicyRepository policyRepository;
     private final ClaimMapper claimMapper;
+    private final IAgentRepository agentRepository;
 
     @Override
     @Transactional
@@ -124,7 +127,7 @@ public class ClaimServiceImpl implements IClaimService {
             throw new PolicyNotFoundException("Policy not found with id: " + policyId);
         }
         
-        List<Claim> claims = claimRepository.findByPolicyId(policyId);
+        List<Claim> claims = claimRepository.findClaimByPolicy_Id(policyId);
         return claims.stream()
                 .map(claimMapper::toDto)
                 .collect(Collectors.toList());
@@ -294,5 +297,63 @@ public class ClaimServiceImpl implements IClaimService {
                 throw new IllegalArgumentException("Invalid claim status: " + request.getStatus());
             }
         }
+    }
+
+    // Agent management methods
+    @Override
+    @Transactional
+    public ClaimDto approveClaim(UUID claimId, UUID agentId) {
+        Claim claim = claimRepository.findById(claimId)
+                .orElseThrow(() -> new ClaimNotFoundException("Claim not found: " + claimId));
+        
+        // Business rule: Can only approve PENDING or IN_REVIEW claims
+        if (claim.getStatus() != ClaimStatus.PENDING && claim.getStatus() != ClaimStatus.IN_REVIEW) {
+            throw new IllegalArgumentException("Can only approve PENDING or IN_REVIEW claims. Current status: " + claim.getStatus());
+        }
+        
+        // Set agent and update status
+        Agent agent = agentRepository.findById(agentId)
+                .orElseThrow(() -> new IllegalArgumentException("Agent not found: " + agentId));
+        
+        claim.setAgent(agent);
+        claim.setStatus(ClaimStatus.APPROVED);
+        claim.setUpdatedAt(LocalDateTime.now());
+        
+        Claim savedClaim = claimRepository.save(claim);
+        log.info("Claim approved by agent: {} for claim: {}", agentId, claimId);
+        
+        return claimMapper.toDto(savedClaim);
+    }
+
+    @Override
+    @Transactional
+    public ClaimDto rejectClaim(UUID claimId, UUID agentId, String reason) {
+        Claim claim = claimRepository.findById(claimId)
+                .orElseThrow(() -> new ClaimNotFoundException("Claim not found: " + claimId));
+        
+        // Business rule: Can only reject PENDING or IN_REVIEW claims
+        if (claim.getStatus() != ClaimStatus.PENDING && claim.getStatus() != ClaimStatus.IN_REVIEW) {
+            throw new IllegalArgumentException("Can only reject PENDING or IN_REVIEW claims. Current status: " + claim.getStatus());
+        }
+        
+        // Set agent and update status
+        Agent agent = agentRepository.findById(agentId)
+                .orElseThrow(() -> new IllegalArgumentException("Agent not found: " + agentId));
+        
+        claim.setAgent(agent);
+        claim.setStatus(ClaimStatus.REJECTED);
+        claim.setRejectionReason(reason);
+        claim.setUpdatedAt(LocalDateTime.now());
+        
+        Claim savedClaim = claimRepository.save(claim);
+        log.info("Claim rejected by agent: {} for claim: {} with reason: {}", agentId, claimId, reason);
+        
+        return claimMapper.toDto(savedClaim);
+    }
+
+    @Override
+    public List<ClaimDto> getClaimsByAgent(UUID agentId) {
+        List<Claim> claims = claimRepository.findByAgent_Id(agentId);
+        return claims.stream().map(claimMapper::toDto).toList();
     }
 }

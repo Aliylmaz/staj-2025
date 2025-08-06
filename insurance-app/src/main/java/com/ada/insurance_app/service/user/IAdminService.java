@@ -1,7 +1,11 @@
 package com.ada.insurance_app.service.user;
 
+import com.ada.insurance_app.dto.AgentDto;
+import com.ada.insurance_app.dto.AgentStatsDto;
 import com.ada.insurance_app.dto.DashboardSummaryDto;
 import com.ada.insurance_app.dto.UserDto;
+import com.ada.insurance_app.request.agent.AddAgentRequest;
+import com.ada.insurance_app.request.agent.UpdateAgentRequest;
 import com.ada.insurance_app.request.user.ChangeRoleRequest;
 import com.ada.insurance_app.response.TestAdminResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,4 +20,10 @@ public interface IAdminService {
     UserDto changeUserRole(ChangeRoleRequest request);
     DashboardSummaryDto getSummaryReport();
     UserDto getUserByIdForAdmin(UUID userId);
+
+    AgentDto createAgent(AddAgentRequest request);
+    AgentDto updateAgent(String agentNumber, UpdateAgentRequest request);
+    void deleteAgentByAgentNumber(String agentNumber);
+    List<AgentDto> getAllAgents();
+    List<AgentStatsDto> getAgentStatistics();
 } 

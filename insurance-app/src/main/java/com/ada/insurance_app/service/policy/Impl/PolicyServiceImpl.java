@@ -8,7 +8,7 @@ import com.ada.insurance_app.entity.Agent;
 import com.ada.insurance_app.entity.Customer;
 import com.ada.insurance_app.entity.Policy;
 import com.ada.insurance_app.mapper.PolicyMapper;
-import com.ada.insurance_app.repository.AgentRepository;
+import com.ada.insurance_app.repository.IAgentRepository;
 import com.ada.insurance_app.repository.ICustomerRepository;
 import com.ada.insurance_app.repository.IPolicyRepository;
 import com.ada.insurance_app.request.policy.CreatePolicyRequest;
@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PolicyServiceImpl implements IPolicyService {
     private final IPolicyRepository policyRepository;
-    private final AgentRepository agentRepository;
+    private final IAgentRepository agentRepository;
     private final ICustomerRepository customerRepository;
     private final PolicyMapper policyMapper;
 
@@ -50,7 +50,7 @@ public class PolicyServiceImpl implements IPolicyService {
                 .orElseThrow(() -> new CustomerNotFoundException("Customer not found with id: " + customerId));
         
         // Business rule: Check if customer already has active policy for same insurance type
-        List<Policy> existingPolicies = policyRepository.findByCustomerId(customerId);
+        List<Policy> existingPolicies = policyRepository.findByCustomer_Id(customerId);
         boolean hasActivePolicy = existingPolicies.stream()
                 .anyMatch(policy -> policy.getInsuranceType().equals(policyDto.getInsuranceType()) && 
                                   policy.getStatus().name().equals("ACTIVE"));
@@ -160,7 +160,7 @@ public class PolicyServiceImpl implements IPolicyService {
             throw new CustomerNotFoundException("Customer not found with id: " + customerId);
         }
         
-        List<Policy> policies = policyRepository.findByCustomerId(customerId);
+        List<Policy> policies = policyRepository.findByCustomer_Id(customerId);
         return policies.stream()
                 .map(policyMapper::toDto)
                 .collect(Collectors.toList());
@@ -192,7 +192,7 @@ public class PolicyServiceImpl implements IPolicyService {
         }
         
         // Business rule: Check if customer already has active policy for same insurance type
-        List<Policy> existingPolicies = policyRepository.findByCustomerId(request.getCustomerId());
+        List<Policy> existingPolicies = policyRepository.findByCustomer_Id(request.getCustomerId());
         boolean hasActivePolicy = existingPolicies.stream()
                 .anyMatch(policy -> policy.getInsuranceType().equals(request.getInsuranceType()) && 
                                   policy.getStatus().name().equals("ACTIVE"));

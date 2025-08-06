@@ -4,7 +4,7 @@ import com.ada.insurance_app.core.exception.ResourceNotFoundException;
 import com.ada.insurance_app.dto.HomeInsuranceDetailDto;
 import com.ada.insurance_app.entity.HomeInsuranceDetail;
 import com.ada.insurance_app.mapper.HomeInsuranceDetailMapper;
-import com.ada.insurance_app.repository.HomeInsuranceDetailRepository;
+import com.ada.insurance_app.repository.IHomeInsuranceDetailRepository;
 import com.ada.insurance_app.request.home.CreateHomeInsuranceDetailRequest;
 import com.ada.insurance_app.request.home.UpdateHomeInsuranceDetailRequest;
 import com.ada.insurance_app.service.HomeInsuranceDetail.IHomeInsuranceDetailService;
@@ -18,7 +18,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class HomeInsuranceDetailServiceImpl implements IHomeInsuranceDetailService {
 
-    private final HomeInsuranceDetailRepository repository;
+    private final IHomeInsuranceDetailRepository repository;
     private final HomeInsuranceDetailMapper mapper;
 
     @Override

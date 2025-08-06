@@ -1,5 +1,6 @@
 package com.ada.insurance_app.entity;
 
+import com.ada.insurance_app.core.enums.InsuranceType;
 import com.ada.insurance_app.core.enums.OfferStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -10,6 +11,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "offers")
@@ -25,9 +28,19 @@ public class Offer {
     @Column(nullable = false, unique = true)
     private String offerNumber;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "policy_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "policy_id")
     private Policy policy;
+
+    @ManyToMany
+    @JoinTable(
+            name = "offer_coverages",
+            joinColumns = @JoinColumn(name = "offer_id"),
+            inverseJoinColumns = @JoinColumn(name = "coverage_id")
+    )
+    private Set<Coverage> coverages = new HashSet<>();
+
+
 
     @Column(nullable = false)
     private BigDecimal totalPremium;
@@ -40,6 +53,10 @@ public class Offer {
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "agent_id")
+    private Agent agent;
+
     @Column(length = 1000)
     private String note;
 
@@ -47,11 +64,17 @@ public class Offer {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private InsuranceType insuranceType;
+
+
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private LocalDateTime acceptedAt;
-    @Column(nullable = false)
-    private  LocalDateTime convertedAt;
+    
+    @Column(nullable = true)
+    private LocalDateTime convertedAt;
 }

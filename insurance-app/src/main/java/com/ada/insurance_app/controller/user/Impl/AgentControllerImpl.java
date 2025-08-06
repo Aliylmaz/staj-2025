@@ -2,6 +2,7 @@ package com.ada.insurance_app.controller.user.Impl;
 
 import com.ada.insurance_app.controller.user.IAgentController;
 import com.ada.insurance_app.core.common.dto.GeneralResponse;
+import com.ada.insurance_app.dto.AgentDto;
 import com.ada.insurance_app.dto.CustomerDto;
 import com.ada.insurance_app.dto.OfferDto;
 import com.ada.insurance_app.dto.PolicyDto;
@@ -52,5 +53,12 @@ public class AgentControllerImpl implements IAgentController {
     public ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyPolicies(@PathVariable UUID agentId) {
         List<PolicyDto> policies = agentService.getMyPolicies(agentId);
         return ResponseEntity.ok(GeneralResponse.success("Agent's policies", policies));
+    }
+
+    @Override
+    @GetMapping("/all")
+    public ResponseEntity<GeneralResponse<List<AgentDto>>> getAllAgents() {
+        List<AgentDto> agents = agentService.getAllAgents();
+        return ResponseEntity.ok(GeneralResponse.success("Agent list", agents));
     }
 } 

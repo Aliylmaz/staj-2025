@@ -17,7 +17,7 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("/project/vehicle")
+@RequestMapping("/api/v1/vehicles")
 @RequiredArgsConstructor
 public class VehicleControllerImpl implements IVehicleController {
 
@@ -128,7 +128,7 @@ public class VehicleControllerImpl implements IVehicleController {
     public ResponseEntity<GeneralResponse<VehicleDto>> createVehicle(@RequestBody AddVehicleRequest request) {
         try {
             log.info("Creating vehicle for customer: {} with plate: {}", request.getCustomerId(), request.getPlateNumber());
-            VehicleDto vehicle = vehicleService.createVehicleFromRequest(request);
+            VehicleDto vehicle = vehicleService.createVehicleFromRequest(request, request.getCustomerId());
             
             return ResponseEntity.ok(GeneralResponse.success("Vehicle created successfully", vehicle));
         } catch (Exception e) {

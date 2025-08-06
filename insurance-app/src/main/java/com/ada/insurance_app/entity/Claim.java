@@ -33,6 +33,10 @@ public class Claim {
     @JoinColumn(name = "policy_id", nullable = false)
     private Policy policy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "agent_id")
+    private Agent agent;
+
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private ClaimStatus status;

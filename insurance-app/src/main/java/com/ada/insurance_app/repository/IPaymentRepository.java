@@ -18,9 +18,10 @@ public interface IPaymentRepository extends JpaRepository<Payment, UUID> {
 
     List<Payment> findByStatus(PaymentStatus status);
 
-    List<Payment> findByPolicyId(Long policyId);
+    List<Payment> findByPolicy_Id(Long policyId);
 
-    Optional<Payment> findByTransactionReference(String transactionReference);
+    Optional<Payment> findByIdAndPolicy_Customer_Id(UUID paymentId, UUID customerId);
+
 
     @Query("SELECT p FROM Payment p WHERE p.policy.id = :policyId ORDER BY p.createdAt DESC")
     List<Payment> findPolicyPaymentHistory(@Param("policyId") Long policyId);
@@ -45,7 +46,10 @@ public interface IPaymentRepository extends JpaRepository<Payment, UUID> {
            "p.policy.policyNumber LIKE %:keyword%")
     List<Payment> searchPayments(@Param("keyword") String keyword);
 
-    long countByStatus(PaymentStatus status);
-    @Query("SELECT p FROM Payment p ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Payment p ORDER BY p.createdAt DESC LIMIT 5")
     List<Payment> findTop5ByOrderByCreatedAtDesc();
+
+    long countByPolicy_Agent_AgentNumber(String policyAgentAgentNumber);
+
+    int countByPolicy_Customer_Id(UUID policyCustomerId);
 }

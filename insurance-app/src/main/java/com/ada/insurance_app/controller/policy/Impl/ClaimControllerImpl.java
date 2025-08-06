@@ -17,11 +17,26 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("/project/claim")
+@RequestMapping("/api/v1/claims")
 @RequiredArgsConstructor
 public class ClaimControllerImpl implements IClaimController {
     
     private final IClaimService claimService;
+    
+    @Override
+    @PostMapping("/request")
+    public ResponseEntity<GeneralResponse<ClaimDto>> requestClaim(@RequestBody CreateClaimRequest request) {
+        try {
+            log.info("Requesting claim for policy: {}", request.getPolicyId());
+            ClaimDto claim = claimService.createClaimFromRequest(request);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(GeneralResponse.success("Claim requested successfully", claim));
+        } catch (Exception e) {
+            log.error("Error requesting claim: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(GeneralResponse.error("Failed to request claim: " + e.getMessage(), HttpStatus.BAD_REQUEST));
+        }
+    }
     
     @Override
     @PostMapping("/create")
@@ -128,8 +143,49 @@ public class ClaimControllerImpl implements IClaimController {
         } catch (Exception e) {
             log.error("Error deleting claim: {}", e.getMessage());
             
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                    GeneralResponse.error("Failed to delete claim: " + e.getMessage(), HttpStatus.BAD_REQUEST));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(GeneralResponse.error("Failed to delete claim: " + e.getMessage(), HttpStatus.BAD_REQUEST));
+        }
+    }
+
+    @Override
+    @PutMapping("/{claimId}/approve")
+    public ResponseEntity<GeneralResponse<ClaimDto>> approveClaim(@PathVariable UUID claimId, @RequestParam UUID agentId) {
+        try {
+            log.info("Agent {} approving claim: {}", agentId, claimId);
+            ClaimDto claim = claimService.approveClaim(claimId, agentId);
+            return ResponseEntity.ok(GeneralResponse.success("Claim approved successfully", claim));
+        } catch (Exception e) {
+            log.error("Error approving claim: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(GeneralResponse.error("Failed to approve claim: " + e.getMessage(), HttpStatus.BAD_REQUEST));
+        }
+    }
+
+    @Override
+    @PutMapping("/{claimId}/reject")
+    public ResponseEntity<GeneralResponse<ClaimDto>> rejectClaim(@PathVariable UUID claimId, @RequestParam UUID agentId, @RequestParam String reason) {
+        try {
+            log.info("Agent {} rejecting claim: {} with reason: {}", agentId, claimId, reason);
+            ClaimDto claim = claimService.rejectClaim(claimId, agentId, reason);
+            return ResponseEntity.ok(GeneralResponse.success("Claim rejected successfully", claim));
+        } catch (Exception e) {
+            log.error("Error rejecting claim: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(GeneralResponse.error("Failed to reject claim: " + e.getMessage(), HttpStatus.BAD_REQUEST));
+        }
+    }
+
+    @Override
+    @GetMapping("/agent/{agentId}")
+    public ResponseEntity<GeneralResponse<List<ClaimDto>>> getClaimsByAgent(@PathVariable UUID agentId) {
+        try {
+            log.info("Getting claims for agent: {}", agentId);
+            List<ClaimDto> claims = claimService.getClaimsByAgent(agentId);
+            return ResponseEntity.ok(GeneralResponse.success("Claims retrieved successfully", claims));
+        } catch (Exception e) {
+            log.error("Error getting claims for agent: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get claims: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
         }
     }
 }

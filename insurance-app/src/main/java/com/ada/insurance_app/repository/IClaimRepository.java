@@ -17,13 +17,11 @@ import java.util.UUID;
 @Repository
 public interface IClaimRepository extends JpaRepository<Claim, UUID> {
 
-    Optional<Claim> findByClaimNumber(String claimNumber);
+    Optional<Claim> findClaimByClaimNumber(String claimNumber);
 
-    List<Claim> findByStatus(ClaimStatus status);
+    List<Claim> findClaimByPolicy_Id(Long policyİd);
 
-    List<Claim> findByPolicyId(Long policyId);
-
-
+    List<Claim> findByAgent_Id(UUID agentId);
 
     @Query("SELECT c FROM Claim c WHERE c.incidentDate BETWEEN :startDate AND :endDate")
     List<Claim> findByIncidentDateBetween(
@@ -62,4 +60,7 @@ public interface IClaimRepository extends JpaRepository<Claim, UUID> {
 
     Optional<Claim> findByIdAndPolicy_Customer_Id(UUID claimId, UUID customerId);
 
+    long countByPolicy_Agent_AgentNumber(String policyAgentAgentNumber);
+
+    int countByPolicy_Customer_Id(UUID policyCustomerId);
 }

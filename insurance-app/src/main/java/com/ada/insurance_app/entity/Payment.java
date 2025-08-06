@@ -28,8 +28,14 @@ public class Payment {
     @JoinColumn(name = "policy_id", nullable = false)
     private Policy policy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id", nullable = false)
+    private Customer customer;
+
+
     @Column(nullable = false)
     private BigDecimal amount;
+
 
 
 

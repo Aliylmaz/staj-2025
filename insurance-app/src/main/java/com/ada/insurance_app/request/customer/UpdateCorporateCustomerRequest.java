@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateCorporateCustomerRequest {
+public class UpdateCorporateCustomerRequest extends BaseCustomerRequest {
 
     @NotBlank(message = "Company name is required")
     private String companyName;
@@ -18,8 +18,7 @@ public class UpdateCorporateCustomerRequest {
 
     private String companyRegistrationNumber;
 
-    private String address;
-    private String city;
-    private String country;
-    private String postalCode;
+
+
+
 }

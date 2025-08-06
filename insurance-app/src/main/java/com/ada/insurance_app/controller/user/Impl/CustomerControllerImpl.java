@@ -2,66 +2,34 @@ package com.ada.insurance_app.controller.user.Impl;
 
 import com.ada.insurance_app.controller.user.ICustomerController;
 import com.ada.insurance_app.core.common.dto.GeneralResponse;
-import com.ada.insurance_app.dto.ClaimDto;
-import com.ada.insurance_app.dto.CustomerDto;
-import com.ada.insurance_app.dto.DocumentDto;
-import com.ada.insurance_app.dto.PolicyDto;
-import com.ada.insurance_app.request.customer.AddCorporateCustomerRequest;
-import com.ada.insurance_app.request.customer.AddIndividualCustomerRequest;
+import com.ada.insurance_app.dto.*;
+import com.ada.insurance_app.request.claim.CreateClaimRequest;
+
 import com.ada.insurance_app.request.customer.UpdateCorporateCustomerRequest;
 import com.ada.insurance_app.request.customer.UpdateIndividualCustomerRequest;
+import com.ada.insurance_app.request.offer.CreateOfferRequest;
+import com.ada.insurance_app.request.payment.CreatePaymentRequest;
 import com.ada.insurance_app.service.user.ICustomerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("/project/customer")
+@RequestMapping("/api/v1/customer")
 @RequiredArgsConstructor
 public class CustomerControllerImpl implements ICustomerController {
 
     private final ICustomerService customerService;
 
     @Override
-    @PostMapping("/individual/create")
-    public ResponseEntity<GeneralResponse<CustomerDto>> createIndividualCustomer(@RequestBody AddIndividualCustomerRequest request) {
-        try {
-            log.info("Creating individual customer with national ID: {}", request.getNationalId());
-            CustomerDto customer = customerService.createIndividualCustomer(request);
-
-           return ResponseEntity.ok(GeneralResponse.success("Individual customer created successfully", customer));
-        } catch (Exception e) {
-            log.error("Error creating individual customer: {}", e.getMessage());
-
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(GeneralResponse.error("Failed to create individual customer: " + e.getMessage(), HttpStatus.BAD_REQUEST));
-        }
-    }
-
-    @Override
-    @PostMapping("/corporate/create")
-    public ResponseEntity<GeneralResponse<CustomerDto>> createCorporateCustomer(@RequestBody AddCorporateCustomerRequest request) {
-        try {
-            log.info("Creating corporate customer with tax number: {}", request.getTaxNumber());
-            CustomerDto customer = customerService.createCorporateCustomer(request);
-
-            return ResponseEntity.ok(GeneralResponse.success("Corporate customer created successfully", customer));
-        } catch (Exception e) {
-            log.error("Error creating corporate customer: {}", e.getMessage());
-
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(GeneralResponse.error("Failed to create corporate customer: " + e.getMessage(), HttpStatus.BAD_REQUEST));
-        }
-    }
-
-    @Override
-    @PutMapping("/individual/{customerId}")
+    @PutMapping("/{customerId}/individual")
     public ResponseEntity<GeneralResponse<CustomerDto>> updateIndividualCustomer(@PathVariable UUID customerId, @RequestBody UpdateIndividualCustomerRequest request) {
         try {
             log.info("Updating individual customer: {}", customerId);
@@ -77,7 +45,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
-    @PutMapping("/corporate/{customerId}")
+    @PutMapping("/{customerId}/corporate")
     public ResponseEntity<GeneralResponse<CustomerDto>> updateCorporateCustomer(@PathVariable UUID customerId, @RequestBody UpdateCorporateCustomerRequest request) {
         try {
             log.info("Updating corporate customer: {}", customerId);
@@ -94,7 +62,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
-    @GetMapping("/{customerId}")
+    @GetMapping("/{customerId}/get")
     public ResponseEntity<GeneralResponse<CustomerDto>> getCustomer(@PathVariable UUID customerId) {
         try {
             log.info("Getting customer: {}", customerId);
@@ -112,25 +80,25 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
-    @GetMapping("/all")
-    public ResponseEntity<GeneralResponse<List<CustomerDto>>> getAllCustomers() {
+    @GetMapping("/current")
+    public ResponseEntity<GeneralResponse<CustomerDto>> getCurrentCustomer() {
         try {
-            log.info("Getting all customers");
-            List<CustomerDto> customers = customerService.getAllCustomers();
+            log.info("Getting current customer");
+            CustomerDto customer = customerService.getCurrentCustomer();
 
-            return ResponseEntity.ok(GeneralResponse.success( "All customers retrieved successfully", customers));
-
+            return ResponseEntity.ok(GeneralResponse.success("Current customer retrieved successfully", customer));
 
         } catch (Exception e) {
-            log.error("Error getting all customers: {}", e.getMessage());
+            log.error("Error getting current customer: {}", e.getMessage());
 
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(GeneralResponse.error("Failed to get all customers: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+                    .body(GeneralResponse.error("Failed to get current customer: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
         }
     }
 
+
  @Override
- @DeleteMapping("/{customerId}")
+ @DeleteMapping("/{customerId}/delete")
  public ResponseEntity<GeneralResponse<Void>> deleteCustomer(@PathVariable UUID customerId) {
      try {
          log.info("Deleting customer: {}", customerId);
@@ -144,8 +112,22 @@ public class CustomerControllerImpl implements ICustomerController {
  }
 
     @Override
-    @GetMapping("/policies/{customerId}")
-    public ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyPolicies(UUID customerId) {
+    @GetMapping("/{customerId}/dashboard")
+    public ResponseEntity<GeneralResponse<CustomerDashboardDto>> getCustomerDashboard(@PathVariable UUID customerId) {
+        try {
+            log.info("Getting dashboard for customer: {}", customerId);
+            CustomerDashboardDto dashboard = customerService.getCustomerDashboard(customerId);
+            return ResponseEntity.ok(GeneralResponse.success("Dashboard retrieved successfully", dashboard));
+        } catch (Exception e) {
+            log.error("Error getting customer dashboard: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get customer dashboard: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @Override
+    @GetMapping("/{customerId}/policies")
+    public ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyPolicies(@PathVariable UUID customerId) {
         try {
             log.info("Getting policies for customer: {}", customerId);
             List<PolicyDto> policies = customerService.getMyPolicies(customerId);
@@ -158,8 +140,8 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
-    @GetMapping("/documents/{customerId}")
-    public ResponseEntity<GeneralResponse<List<DocumentDto>>> getMyDocuments(UUID customerId) {
+    @GetMapping("/{customerId}/documents")
+    public ResponseEntity<GeneralResponse<List<DocumentDto>>> getMyDocuments(@PathVariable UUID customerId) {
         try {
             log.info("Getting documents for customer: {}", customerId);
             List<DocumentDto> documents = customerService.getMyDocuments(customerId);
@@ -172,8 +154,8 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
-    @GetMapping("/claims/{customerId}")
-    public ResponseEntity<GeneralResponse<List<ClaimDto>>> getMyClaims(UUID customerId) {
+    @GetMapping("/{customerId}/claims")
+    public ResponseEntity<GeneralResponse<List<ClaimDto>>> getMyClaims(@PathVariable UUID customerId) {
         try {
             log.info("Getting claims for customer: {}", customerId);
             List<ClaimDto> claims = customerService.getMyClaims(customerId);
@@ -186,8 +168,8 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
-    @GetMapping("/policy/{policyId}/customer/{customerId}")
-    public ResponseEntity<GeneralResponse<PolicyDto>> getPolicyById(Long policyId, UUID customerId) {
+    @GetMapping("/{customerId}/policies/{policyId}")
+    public ResponseEntity<GeneralResponse<PolicyDto>> getPolicyById(@PathVariable Long policyId, @PathVariable UUID customerId) {
 
         try {
             log.info("Getting policy by ID: {} for customer: {}", policyId, customerId);
@@ -201,8 +183,8 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
-    @GetMapping("/document/{documentId}/customer/{customerId}")
-    public ResponseEntity<GeneralResponse<DocumentDto>> getDocumentById(Long documentId, UUID customerId) {
+    @GetMapping("/{customerId}/documents/{documentId}")
+    public ResponseEntity<GeneralResponse<DocumentDto>> getDocumentById(@PathVariable Long documentId, @PathVariable UUID customerId) {
 
         try {
             log.info("Getting document by ID: {} for customer: {}", documentId, customerId);
@@ -218,8 +200,24 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
-    @GetMapping("/claim/{claimId}/customer/{customerId}")
-    public ResponseEntity<GeneralResponse<ClaimDto>> getClaimById(UUID claimId, UUID customerId) {
+    @PostMapping("/{customerId}/documents")
+    public ResponseEntity<GeneralResponse<DocumentDto>> uploadDocument(@RequestParam("file") MultipartFile file, @PathVariable UUID customerId) {
+        try {
+            log.info("Uploading document for customer: {}", customerId);
+            DocumentDto document = customerService.uploadDocument(file, customerId);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(GeneralResponse.success("Document uploaded successfully", document));
+        } catch (Exception e) {
+            log.error("Error uploading document: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(GeneralResponse.error("Failed to upload document: " + e.getMessage(), HttpStatus.BAD_REQUEST));
+        }
+    }
+
+    @Override
+    @GetMapping("/{customerId}/claims/{claimId}")
+
+    public ResponseEntity<GeneralResponse<ClaimDto>> getClaimById(@PathVariable UUID claimId, @PathVariable UUID customerId) {
         try {
             log.info("Getting claim by ID: {} for customer: {}", claimId, customerId);
             ClaimDto claim = customerService.getClaimById(claimId, customerId);
@@ -232,16 +230,122 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
-    @PostMapping("/policy/create/{customerId}")
-    public ResponseEntity<GeneralResponse<PolicyDto>> createPolicy(PolicyDto policyDto, UUID customerId) {
+    @PostMapping("/{customerId}/create-claim")
+    public ResponseEntity<GeneralResponse<ClaimDto>> createClaim(@RequestBody  CreateClaimRequest request,@PathVariable UUID customerId) {
         try {
-            log.info("Creating policy for customer: {}", customerId);
-            PolicyDto createdPolicy = customerService.createPolicy(policyDto, customerId);
-            return ResponseEntity.ok(GeneralResponse.success("Policy created successfully", createdPolicy));
+            log.info("Creating claim for customer: {}", customerId);
+            ClaimDto claim = customerService.createClaim(request, customerId);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(GeneralResponse.success("Claim created successfully", claim));
         } catch (Exception e) {
-            log.error("Error creating policy: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(GeneralResponse.error("Failed to create policy: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+            log.error("Error creating claim: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(GeneralResponse.error("Failed to create claim: " + e.getMessage(), HttpStatus.BAD_REQUEST));
         }
     }
+
+    @Override
+    @PostMapping("/{customerId}/create-offer")
+    public ResponseEntity<GeneralResponse<OfferDto>> requestOffer(@RequestBody CreateOfferRequest request, @PathVariable UUID customerId) {
+        try {
+            log.info("Requesting offer for customer: {}", customerId);
+            OfferDto offer = customerService.requestOffer(request, customerId);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(GeneralResponse.success("Offer requested successfully", offer));
+        } catch (Exception e) {
+            log.error("Error requesting offer: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(GeneralResponse.error("Failed to request offer: " + e.getMessage(), HttpStatus.BAD_REQUEST));
+        }
+    }
+
+    @Override
+    @GetMapping("/{customerId}/get-offers")
+    public ResponseEntity<GeneralResponse<List<OfferDto>>> getMyOffers(@PathVariable UUID customerId) {
+        try {
+            log.info("Getting offers for customer: {}", customerId);
+            List<OfferDto> offers = customerService.getMyOffers(customerId);
+            return ResponseEntity.ok(GeneralResponse.success("Offers retrieved successfully", offers));
+        } catch (Exception e) {
+            log.error("Error getting offers: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get offers: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @Override
+    @GetMapping("/{customerId}/offers/{offerId}")
+    public ResponseEntity<GeneralResponse<OfferDto>> getOfferById(@PathVariable Long offerId, @PathVariable UUID customerId) {
+        try {
+            log.info("Getting offer by ID: {} for customer: {}", offerId, customerId);
+            OfferDto offer = customerService.getOfferById(offerId, customerId);
+            return ResponseEntity.ok(GeneralResponse.success("Offer retrieved successfully", offer));
+        } catch (Exception e) {
+            log.error("Error getting offer by ID: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get offer: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @Override
+    @PostMapping("/{customerId}/offers/{offerId}/accept")
+    public ResponseEntity<GeneralResponse<PolicyDto>> acceptOfferAndCreatePolicy(@PathVariable Long offerId, @PathVariable UUID customerId) {
+        try {
+            log.info("Accepting offer and creating policy for offer ID: {} and customer ID: {}", offerId, customerId);
+            PolicyDto policy = customerService.acceptOfferAndCreatePolicy(offerId, customerId);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(GeneralResponse.success("Policy created successfully from offer", policy));
+        } catch (Exception e) {
+            log.error("Error accepting offer and creating policy: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(GeneralResponse.error("Failed to create policy from offer: " + e.getMessage(), HttpStatus.BAD_REQUEST));
+        }
+    }
+
+    @Override
+    @GetMapping("/{customerId}/payments")
+    public ResponseEntity<GeneralResponse<List<PaymentDto>>> getMyPayments(@PathVariable UUID customerId) {
+        try {
+            log.info("Getting payments for customer: {}", customerId);
+            List<PaymentDto> payments = customerService.getMyPayments(customerId);
+            return ResponseEntity.ok(GeneralResponse.success("Payments retrieved successfully", payments));
+        } catch (Exception e) {
+            log.error("Error getting payments: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get payments: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @Override
+    @GetMapping("/{customerId}/payments/{paymentId}")
+    public ResponseEntity<GeneralResponse<PaymentDto>> getPaymentById(@PathVariable UUID paymentId, @PathVariable UUID customerId) {
+        try {
+            log.info("Getting payment by ID: {} for customer: {}", paymentId, customerId);
+            PaymentDto payment = customerService.getPaymentById(paymentId, customerId);
+            return ResponseEntity.ok(GeneralResponse.success("Payment retrieved successfully", payment));
+        } catch (Exception e) {
+            log.error("Error getting payment by ID: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get payment: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @Override
+    @PostMapping("/{customerId}/policies/{policyId}/make-payment")
+    public ResponseEntity<GeneralResponse<PaymentDto>> makePayment(@PathVariable Long policyId, @RequestBody CreatePaymentRequest request, @PathVariable UUID customerId) {
+
+        try {
+            log.info("Making payment for policy ID: {} and customer ID: {}", policyId, customerId);
+            PaymentDto payment = customerService.makePayment(policyId, request, customerId);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(GeneralResponse.success("Payment made successfully", payment));
+        } catch (Exception e) {
+            log.error("Error making payment: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(GeneralResponse.error("Failed to make payment: " + e.getMessage(), HttpStatus.BAD_REQUEST));
+        }
+
+    }
+
+
 }

@@ -4,6 +4,8 @@ import com.ada.insurance_app.entity.Payment;
 import com.ada.insurance_app.core.enums.PaymentStatus;
 import com.ada.insurance_app.request.payment.CreatePaymentRequest;
 import com.ada.insurance_app.request.payment.UpdatePaymentRequest;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,4 +19,18 @@ public interface IPaymentService {
     // Request sınıflarını kullanan yeni metodlar
     Payment createPayment(CreatePaymentRequest request);
     Payment updatePayment(UUID paymentId, UpdatePaymentRequest request);
+
+    List<Payment> findPolicyPaymentHistory(Long policyId);
+
+    List<Payment> findPaymentsBetweenDates(LocalDateTime startDate, LocalDateTime endDate);
+
+    List<Payment> findTimedOutPayments(LocalDateTime timeout);
+
+    boolean hasSuccessfulPayment(Long policyId);
+
+    List<Payment> searchPayments(String keyword);
+
+    List<Payment> getLatestPayments(); // findTop5ByOrderByCreatedAtDesc
+
+
 }

@@ -45,9 +45,10 @@ public class User {
     private String phoneNumber;
 
 
-    @CollectionTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Role role;
+
 
     @Column(nullable = false)
     private boolean active = true;

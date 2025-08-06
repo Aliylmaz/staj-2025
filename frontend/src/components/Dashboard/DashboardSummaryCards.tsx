@@ -1,4 +1,13 @@
 import { useRole } from "../../hooks/useRole";
+import { useState, useEffect } from "react";
+import {
+  getMyPolicies,
+  getMyOffers,
+  getMyDocuments,
+  type PolicyDto,
+  type OfferDto,
+  type DocumentDto
+} from "../../services/customerApi";
 
 interface SummaryCard {
   title: string;
@@ -11,6 +20,31 @@ interface SummaryCard {
 
 export default function DashboardSummaryCards() {
   const { role } = useRole();
+  const [policies, setPolicies] = useState<PolicyDto[]>([]);
+  const [offers, setOffers] = useState<OfferDto[]>([]);
+  const [documents, setDocuments] = useState<DocumentDto[]>([]);
+
+  useEffect(() => {
+    if (role === "CUSTOMER") {
+      fetchCustomerData();
+    }
+  }, [role]);
+
+  const fetchCustomerData = async () => {
+    try {
+      const [policiesData, offersData, documentsData] = await Promise.all([
+        getMyPolicies(),
+        getMyOffers(),
+        getMyDocuments()
+      ]);
+      
+      setPolicies(policiesData);
+      setOffers(offersData);
+      setDocuments(documentsData);
+    } catch (error) {
+      console.error("Error fetching customer data:", error);
+    }
+  };
 
   const getSummaryCards = (): SummaryCard[] => {
     switch (role) {
@@ -85,36 +119,41 @@ export default function DashboardSummaryCards() {
           }
         ];
       case "CUSTOMER":
+        const activePolicies = policies.filter(p => p.status === 'ACTIVE').length;
+        const pendingOffers = offers.filter(o => o.status === 'PENDING').length;
+        const totalPremium = policies.reduce((sum, p) => sum + p.totalPremium, 0);
+        const totalDocuments = documents.length;
+        
         return [
           {
             title: "My Policies",
-            value: "3",
-            change: "+1",
-            changeType: "positive",
+            value: policies.length.toString(),
+            change: activePolicies > 0 ? `+${activePolicies}` : "0",
+            changeType: activePolicies > 0 ? "positive" : "neutral",
             icon: "🛡️",
             color: "bg-gradient-to-r from-blue-500 to-blue-600"
           },
           {
-            title: "Active Claims",
-            value: "2",
-            change: "0",
-            changeType: "neutral",
+            title: "Active Offers",
+            value: pendingOffers.toString(),
+            change: pendingOffers > 0 ? `+${pendingOffers}` : "0",
+            changeType: pendingOffers > 0 ? "positive" : "neutral",
             icon: "📋",
             color: "bg-gradient-to-r from-green-500 to-green-600"
           },
           {
             title: "Total Premium",
-            value: "$450",
-            change: "+$50",
-            changeType: "positive",
+            value: `₺${totalPremium.toFixed(2)}`,
+            change: totalPremium > 0 ? `+₺${totalPremium.toFixed(2)}` : "₺0.00",
+            changeType: totalPremium > 0 ? "positive" : "neutral",
             icon: "💳",
             color: "bg-gradient-to-r from-purple-500 to-purple-600"
           },
           {
             title: "Documents",
-            value: "12",
-            change: "+3",
-            changeType: "positive",
+            value: totalDocuments.toString(),
+            change: totalDocuments > 0 ? `+${totalDocuments}` : "0",
+            changeType: totalDocuments > 0 ? "positive" : "neutral",
             icon: "📁",
             color: "bg-gradient-to-r from-orange-500 to-orange-600"
           }

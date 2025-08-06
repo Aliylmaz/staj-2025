@@ -21,6 +21,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -166,7 +167,7 @@ public class VehicleServiceImpl implements IVehicleService {
             throw new CustomerNotFoundException("Customer not found with id: " + customerId);
         }
         
-        List<Vehicle> vehicles = vehicleRepository.findByCustomerId(customerId);
+        Optional<Vehicle> vehicles = vehicleRepository.findByCustomerId(customerId);
         return vehicles.stream()
                 .map(vehicleMapper::toDto)
                 .collect(Collectors.toList());
@@ -230,13 +231,13 @@ public class VehicleServiceImpl implements IVehicleService {
 
     @Override
     @Transactional
-    public VehicleDto createVehicleFromRequest(AddVehicleRequest request) {
+    public VehicleDto createVehicleFromRequest(AddVehicleRequest request, UUID customerId) {
         // Validate request
         validateAddVehicleRequest(request);
         
         // Check if customer exists
-        Customer customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new CustomerNotFoundException("Customer not found with id: " + request.getCustomerId()));
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new CustomerNotFoundException("Customer not found with id: " + customerId));
         
         // Check for duplicate plate number
         if (vehicleRepository.existsByPlateNumber(request.getPlateNumber())) {
@@ -266,11 +267,13 @@ public class VehicleServiceImpl implements IVehicleService {
         vehicle.setGearType(request.getGearType());
         vehicle.setUsageType(request.getUsageType());
         vehicle.setKilometers(request.getKilometers());
-        vehicle.setRegistrationDate(request.getRegistrationDate());
+        if (request.getRegistrationDate() != null && StringUtils.hasText(request.getRegistrationDate())) {
+            vehicle.setRegistrationDate(LocalDate.parse(request.getRegistrationDate()));
+        }
         vehicle.setCreatedAt(LocalDateTime.now());
         
         Vehicle savedVehicle = vehicleRepository.save(vehicle);
-        log.info("Vehicle created from request successfully: {} for customer: {}", savedVehicle.getPlateNumber(), request.getCustomerId());
+        log.info("Vehicle created from request successfully: {} for customer: {}", savedVehicle.getPlateNumber(), customerId);
         
         return vehicleMapper.toDto(savedVehicle);
     }
@@ -341,8 +344,8 @@ public class VehicleServiceImpl implements IVehicleService {
             vehicle.setKilometers(request.getKilometers());
         }
         
-        if (request.getRegistrationDate() != null) {
-            vehicle.setRegistrationDate(request.getRegistrationDate());
+        if (request.getRegistrationDate() != null && StringUtils.hasText(request.getRegistrationDate())) {
+            vehicle.setRegistrationDate(LocalDate.parse(request.getRegistrationDate()));
         }
         
         vehicle.setUpdatedAt(LocalDateTime.now());
@@ -410,9 +413,7 @@ public class VehicleServiceImpl implements IVehicleService {
             throw new IllegalArgumentException("Engine number is required");
         }
         
-        if (request.getCustomerId() == null) {
-            throw new IllegalArgumentException("Customer ID is required");
-        }
+
         
         // Validate plate number format (basic Turkish format)
         if (!request.getPlateNumber().matches("^[0-9]{2}[A-Z]{1,3}[0-9]{2,4}$")) {

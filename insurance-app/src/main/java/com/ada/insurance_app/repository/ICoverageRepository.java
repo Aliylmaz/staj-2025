@@ -42,5 +42,5 @@ public interface ICoverageRepository extends JpaRepository<Coverage, Long> {
     
     boolean existsByName(String name);
 
-    Optional<Coverage> findById(Long id);
+
 }

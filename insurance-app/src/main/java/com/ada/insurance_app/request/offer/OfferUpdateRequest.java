@@ -6,6 +6,8 @@ import lombok.Data;
 
 @Data
 public class OfferUpdateRequest {
+
+
     @NotNull(message = "Offer ID must not be null")
     private Long offerId;
 

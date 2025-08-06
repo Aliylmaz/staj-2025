@@ -13,6 +13,8 @@ import java.util.UUID;
 @Data
 public class AddVehicleRequest {
 
+    private UUID customerId;
+
     @NotBlank
     private String make;
 
@@ -39,8 +41,7 @@ public class AddVehicleRequest {
 
     private Integer kilometers;
 
-    private LocalDate registrationDate;
+    private String registrationDate;
 
-    @NotNull
-    private UUID customerId;
+
 }

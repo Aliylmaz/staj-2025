@@ -18,4 +18,9 @@ public interface IClaimService {
     // Request sınıflarını kullanan yeni metodlar
     ClaimDto createClaimFromRequest(CreateClaimRequest request);
     ClaimDto updateClaimFromRequest(UUID claimId, UpdateClaimRequest request);
+    
+    // Agent management methods
+    ClaimDto approveClaim(UUID claimId, UUID agentId);
+    ClaimDto rejectClaim(UUID claimId, UUID agentId, String reason);
+    List<ClaimDto> getClaimsByAgent(UUID agentId);
 }

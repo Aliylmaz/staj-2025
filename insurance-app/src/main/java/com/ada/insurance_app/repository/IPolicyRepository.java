@@ -1,28 +1,24 @@
 package com.ada.insurance_app.repository;
 
+import com.ada.insurance_app.entity.Agent;
 import com.ada.insurance_app.entity.Policy;
 import com.ada.insurance_app.core.enums.PolicyStatus;
 import com.ada.insurance_app.core.enums.InsuranceType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface IPolicyRepository extends JpaRepository<Policy, Long> {
-    Optional<Policy> findByPolicyNumber(String policyNumber);
-    List<Policy> findByCustomerId(UUID customerId);
-    List<Policy> findByStatus(PolicyStatus status);
-    List<Policy> findByInsuranceType(InsuranceType insuranceType);
-    @Query("SELECT p FROM Policy p WHERE p.customer.id = :customerId AND p.insuranceType = :insuranceType")
-    List<Policy> findByCustomerIdAndInsuranceType(UUID customerId, InsuranceType insuranceType);
-    long countByStatus(PolicyStatus status);
-    long countByInsuranceType(InsuranceType insuranceType);
-    @Query("SELECT p FROM Policy p WHERE p.startDate BETWEEN :startDate AND :endDate")
-    List<Policy> findPoliciesBetweenDates(LocalDate startDate, LocalDate endDate);
-    @Query("SELECT p FROM Policy p ORDER BY p.createdAt DESC")
-    List<Policy> findTop5ByOrderByCreatedAtDesc();
+
+    List<Policy> findByCustomer_Id(UUID customerId);
+
+
     List<Policy> findByAgentId(UUID agentId);
 
     Optional<Policy> findByIdAndCustomerId(Long policyId, UUID customerId);
@@ -32,6 +28,17 @@ public interface IPolicyRepository extends JpaRepository<Policy, Long> {
 
     @Query("SELECT COALESCE(SUM(p.premium), 0) FROM Policy p")
     double sumTotalPremium();
+
+    long countPoliciesByAgent_AgentNumber(String agentAgentNumber);
+
+
+    @Query("SELECT COALESCE(SUM(p.premium), 0) FROM Policy p WHERE p.agent.agentNumber = :agentNumber")
+    double sumTotalPremiumByAgentNumber(@Param("agentNumber") String agentNumber);
+
+    int countByCustomer_Id(UUID customerId);
+
+    @Query("SELECT COALESCE(SUM(p.premium),0) FROM Policy p WHERE p.customer.id = :customerId")
+    BigDecimal sumPremiumByCustomerId(UUID customerId);
 }
 
 

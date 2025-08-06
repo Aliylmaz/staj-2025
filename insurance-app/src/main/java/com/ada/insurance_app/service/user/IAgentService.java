@@ -1,5 +1,6 @@
 package com.ada.insurance_app.service.user;
 
+import com.ada.insurance_app.dto.AgentDto;
 import com.ada.insurance_app.dto.CustomerDto;
 import com.ada.insurance_app.dto.OfferDto;
 import com.ada.insurance_app.dto.PolicyDto;
@@ -13,4 +14,5 @@ public interface IAgentService {
     List<CustomerDto> getAllCustomers();
     CustomerDto updateCustomer(UUID customerId, UpdateIndividualCustomerRequest request);
     List<PolicyDto> getMyPolicies(UUID agentId);
+    List<AgentDto> getAllAgents();
 } 

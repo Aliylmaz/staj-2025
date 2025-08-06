@@ -4,17 +4,31 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+@Component
 public class SecurityUtils {
+
+    private static final Logger log = LoggerFactory.getLogger(SecurityUtils.class);
 
     public static String extractToken(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
+        log.info("SecurityUtils - Authorization header: {}", header);
+        
         if (header != null && header.startsWith("Bearer ")) {
-            return header.substring(7);
+            String token = header.substring(7);
+            log.info("SecurityUtils - Token extracted successfully, length: {}", token.length());
+            return token;
+        } else {
+            log.warn("SecurityUtils - Authorization header is null or doesn't start with 'Bearer '");
+            return null;
         }
-        return null;
     }
 
     public static Authentication getCurrentAuthentication() {
@@ -36,17 +50,54 @@ public class SecurityUtils {
     }
 
     public static UUID getCurrentUserId() {
-        Authentication authentication = getCurrentAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new IllegalStateException("No authenticated user found");
-        }
+        try {
+            log.info("SecurityUtils.getCurrentUserId: Starting to get current user ID");
+            Authentication authentication = getCurrentAuthentication();
+            log.info("SecurityUtils.getCurrentUserId: Authentication object: {}", authentication);
+            
+            if (authentication == null || !authentication.isAuthenticated()) {
+                log.error("SecurityUtils.getCurrentUserId: No authenticated user found");
+                throw new IllegalStateException("No authenticated user found");
+            }
 
-        Object principal = authentication.getPrincipal();
-        if (principal instanceof CustomUserDetailsInterface) {
-            return ((CustomUserDetailsInterface) principal).getId();
-        }
+            Object principal = authentication.getPrincipal();
+            log.info("SecurityUtils.getCurrentUserId: Principal type: {}", principal.getClass().getName());
+            log.info("SecurityUtils.getCurrentUserId: Principal: {}", principal);
+            
+            if (principal instanceof CustomUserDetailsInterface) {
+                UUID userId = ((CustomUserDetailsInterface) principal).getId();
+                log.info("SecurityUtils.getCurrentUserId: User ID extracted from CustomUserDetails: {}", userId);
+                return userId;
+            }
 
-        throw new IllegalStateException("Unable to extract user ID from authentication context");
+            // Try to get user ID from JWT token if not available from authentication context
+            try {
+                ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+                if (attributes != null) {
+                    HttpServletRequest request = attributes.getRequest();
+                    String token = extractToken(request);
+                    if (token != null) {
+                        // We need to inject JwtTokenProvider here, but since this is a static method,
+                        // we'll need to get it from the application context
+                        // For now, let's try to get the user ID from the username
+                        String username = getCurrentUsername();
+                        log.info("SecurityUtils.getCurrentUserId: Trying to get user ID from username: {}", username);
+                        
+                        // This would require a UserService to get user by username
+                        // For now, we'll throw an exception and handle it in the service layer
+                        throw new IllegalStateException("User ID not available in authentication context, need to implement user lookup");
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("SecurityUtils.getCurrentUserId: Could not extract user ID from JWT token: {}", e.getMessage());
+            }
+
+            log.error("SecurityUtils.getCurrentUserId: Unable to extract user ID from authentication context");
+            throw new IllegalStateException("Unable to extract user ID from authentication context");
+        } catch (Exception e) {
+            log.error("SecurityUtils.getCurrentUserId: Error getting current user ID: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     public static boolean isAuthenticated() {

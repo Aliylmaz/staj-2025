@@ -11,8 +11,12 @@ import java.util.UUID;
 public interface IOfferRepository extends JpaRepository<Offer, Long> {
     Optional<Offer> findByOfferNumber(String offerNumber);
     List<Offer> findByStatus(OfferStatus status);
-    List<Offer> findByCustomerId(UUID customerId);
-    List<Offer> findByPolicyId(Long policyId);
+
+    List<Offer> findByCustomer_Id(UUID customerİd);
+
+    List<Offer> findByAgent_Id(UUID agentId);
+
+    List<Offer> findByPolicy_Id(Long policyİd);
     @Query("SELECT o FROM Offer o WHERE o.customer.id = :customerId AND o.status = :status")
     List<Offer> findByCustomerIdAndStatus(UUID customerId, OfferStatus status);
     long countByStatus(OfferStatus status);

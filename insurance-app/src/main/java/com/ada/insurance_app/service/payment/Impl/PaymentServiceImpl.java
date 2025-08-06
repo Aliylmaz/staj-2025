@@ -64,7 +64,7 @@ public class PaymentServiceImpl implements IPaymentService {
             throw new PolicyNotFoundException("Policy not found with id: " + policyId);
         }
         
-        List<Payment> payments = paymentRepository.findByPolicyId(policyId);
+        List<Payment> payments = paymentRepository.findByPolicy_Id(policyId);
         return payments;
     }
 
@@ -75,6 +75,7 @@ public class PaymentServiceImpl implements IPaymentService {
         }
         
         List<Payment> payments = paymentRepository.findByStatus(status);
+
         return payments;
     }
 
@@ -112,18 +113,16 @@ public class PaymentServiceImpl implements IPaymentService {
             throw new IllegalArgumentException("Cannot make payment for inactive policy");
         }
         
-        // Business rule: Check if payment amount matches policy premium
-        if (request.getAmount().compareTo(policy.getPremium()) != 0) {
-            throw new IllegalArgumentException("Payment amount must match policy premium");
-        }
+
         
         // Create payment entity from request
         Payment payment = new Payment();
         payment.setPolicy(policy);
-        payment.setAmount(request.getAmount());
-        payment.setPaymentDate(request.getPaymentDate());
-        payment.setStatus(PaymentStatus.SUCCESS); // Dummy payment simulation
-        
+        payment.setCustomer(policy.getCustomer());
+        payment.setAmount(policy.getPremium());
+        payment.setStatus(PaymentStatus.SUCCESS); // Simulated successful payment
+        payment.setPaymentDate(LocalDateTime.now());
+
         // Generate transaction reference
         payment.setTransactionReference("TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         
@@ -162,6 +161,39 @@ public class PaymentServiceImpl implements IPaymentService {
         return updatedPayment;
     }
 
+    @Override
+    public List<Payment> findPolicyPaymentHistory(Long policyId) {
+        return paymentRepository.findPolicyPaymentHistory(policyId);
+    }
+
+    @Override
+    public List<Payment> findPaymentsBetweenDates(LocalDateTime startDate, LocalDateTime endDate) {
+        return paymentRepository.findPaymentsBetweenDates(startDate, endDate);
+    }
+
+    @Override
+    public List<Payment> findTimedOutPayments(LocalDateTime timeout) {
+        return paymentRepository.findTimedOutPayments(timeout);
+    }
+
+    @Override
+    public boolean hasSuccessfulPayment(Long policyId) {
+        return paymentRepository.hasSuccessfulPayment(policyId);
+    }
+
+    @Override
+    public List<Payment> searchPayments(String keyword) {
+        return paymentRepository.searchPayments(keyword);
+    }
+
+    @Override
+    public List<Payment> getLatestPayments() {
+        return paymentRepository.findTop5ByOrderByCreatedAtDesc();
+    }
+
+
+
+
     // Private validation methods
     private void validatePayment(Payment payment) {
         if (payment == null) {
@@ -180,14 +212,6 @@ public class PaymentServiceImpl implements IPaymentService {
         
         if (request.getPolicyId() == null) {
             throw new IllegalArgumentException("Policy ID cannot be null");
-        }
-        
-        if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Payment amount must be greater than zero");
-        }
-        
-        if (request.getPaymentDate() == null) {
-            throw new IllegalArgumentException("Payment date cannot be null");
         }
         
         // Validate card details (simulated validation)
