@@ -57,58 +57,106 @@ const LoginPage = () => {
         password,
       });
       
-      // Backend'den gelen user bilgisini al
-      const userData = response.data;
-      
-      // Role bilgisini al (backend'den gelen response'a göre)
-      let userRole = 'CUSTOMER'; // Default role
-      
-      // Backend'den gelen response'a göre role'ü belirle
-      if (userData.role) {
-        userRole = userData.role.toUpperCase();
-      } else if (userData.data && userData.data.role) {
-        userRole = userData.data.role.toUpperCase();
+      // Check HTTP status first
+      if (response.status !== 200) {
+        throw new Error(`HTTP ${response.status}: Login failed`);
       }
       
-      // Role'ü state'e kaydet (type assertion ile)
+      // Backend returns GeneralResponse<AuthResponse> wrapper
+      const generalResponse = response.data;
+      
+      // Validate GeneralResponse success flag
+      if (!generalResponse.success) {
+        throw new Error(generalResponse.message || 'Login failed');
+      }
+      
+      // Extract AuthResponse from GeneralResponse.data
+      const authData = generalResponse.data;
+      if (!authData) {
+        throw new Error('No authentication data received');
+      }
+      
+      // Extract required fields from AuthResponse
+      const { accessToken, role, username, email: userEmail } = authData;
+      
+      // Validate required fields
+      if (!accessToken) {
+        throw new Error('No access token received');
+      }
+      
+      if (!role) {
+        throw new Error('No user role received');
+      }
+      
+      // Normalize and validate role
+      const userRole = role.toUpperCase();
+      if (!['ADMIN', 'AGENT', 'CUSTOMER'].includes(userRole)) {
+        throw new Error(`Invalid user role: ${role}`);
+      }
+      
+      // Set role in context
       setRole(userRole as "ADMIN" | "AGENT" | "CUSTOMER");
       
-      // Token'ı localStorage'a kaydet
-      const accessToken = userData.data?.accessToken || userData.accessToken;
-      console.log('LoginPage: accessToken exists:', !!accessToken);
-      console.log('LoginPage: userRole:', userRole);
+      // Store authentication data
+      localStorage.setItem('token', accessToken);
+      localStorage.setItem('userRole', userRole);
+      localStorage.setItem('username', username || '');
+      localStorage.setItem('email', userEmail || '');
       
-      if (accessToken) {
-        localStorage.setItem('token', accessToken);
-        localStorage.setItem('userRole', userRole);
-        console.log('LoginPage: Token and role saved to localStorage');
-      } else {
-        console.error('No accessToken in response!');
-      }
+      console.log('LoginPage: Login successful', {
+        userRole,
+        username,
+        email: userEmail,
+        tokenExists: !!accessToken
+      });
       
       setShowToast(true);
       
-      // Trigger CustomerContext to check for new token
+      // Trigger storage event for other components
       window.dispatchEvent(new Event('storage'));
       
-      // localStorage'a yazma işleminin tamamlanmasını bekle
+      // Navigate based on role after short delay
       setTimeout(() => {
         setShowToast(false);
-        // Role'e göre yönlendirme
-        if (userRole === 'ADMIN') {
-          navigate('/admin');
-        } else if (userRole === 'AGENT') {
-          navigate('/agent');
-        } else {
-          navigate('/customer');
+        switch (userRole) {
+          case 'ADMIN':
+            navigate('/admin');
+            break;
+          case 'AGENT':
+            navigate('/agent');
+            break;
+          case 'CUSTOMER':
+            navigate('/customer');
+            break;
+          default:
+            navigate('/customer');
         }
       }, 500);
+      
     } catch (err: any) {
-      setError(
-        err.response?.data?.message ||
-          err.response?.data?.error ||
-          'Invalid credentials or server error.'
-      );
+      console.error('Login error:', err);
+      
+      // Handle different error types
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (err.response) {
+        // HTTP error response
+        const errorData = err.response.data;
+        if (errorData?.message) {
+          errorMessage = errorData.message;
+        } else if (errorData?.error) {
+          errorMessage = errorData.error;
+        } else if (err.response.status === 401) {
+          errorMessage = 'Invalid email or password.';
+        } else if (err.response.status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+      } else if (err.message) {
+        // Custom error message
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

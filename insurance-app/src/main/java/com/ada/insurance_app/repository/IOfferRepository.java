@@ -2,6 +2,7 @@ package com.ada.insurance_app.repository;
 
 import com.ada.insurance_app.entity.Offer;
 import com.ada.insurance_app.core.enums.OfferStatus;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import java.util.List;
@@ -12,7 +13,11 @@ public interface IOfferRepository extends JpaRepository<Offer, Long> {
     Optional<Offer> findByOfferNumber(String offerNumber);
     List<Offer> findByStatus(OfferStatus status);
 
-    List<Offer> findByCustomer_Id(UUID customerİd);
+
+        @EntityGraph(attributePaths = {"coverages", "customer", "policy"})
+        List<Offer> findByCustomer_Id(UUID customerId);
+
+
 
     List<Offer> findByAgent_Id(UUID agentId);
 

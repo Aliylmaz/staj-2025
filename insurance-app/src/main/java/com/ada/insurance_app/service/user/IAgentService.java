@@ -14,5 +14,29 @@ public interface IAgentService {
     List<CustomerDto> getAllCustomers();
     CustomerDto updateCustomer(UUID customerId, UpdateIndividualCustomerRequest request);
     List<PolicyDto> getMyPolicies(UUID agentId);
-    List<AgentDto> getAllAgents();
+    List<OfferDto> getAllOffers();
+    
+    // New methods for real agent operations
+    AgentDto getAgentProfile(UUID agentId);
+    AgentDto updateAgentProfile(UUID agentId, AgentDto agentDto);
+    
+    // Agent Statistics
+   // Long getMyCustomersCount(UUID agentId);
+    Long getMyActivePoliciesCount(UUID agentId);
+    Long getMyPendingClaimsCount(UUID agentId);
+
+    
+    // Customer Management
+    List<CustomerDto> getMyCustomers(UUID agentId);
+    CustomerDto assignCustomerToAgent(UUID customerId, UUID agentId);
+    CustomerDto removeCustomerFromAgent(UUID customerId, UUID agentId);
+    
+    // Policy Management
+    List<PolicyDto> getMyActivePolicies(UUID agentId);
+    List<PolicyDto> getMyExpiredPolicies(UUID agentId);
+    PolicyDto assignPolicyToAgent(Long policyId, UUID agentId);
+    
+    // Commission Tracking
+    Double getCommissionForPolicy(Long policyId, UUID agentId);
+    List<PolicyDto> getPoliciesForCommissionCalculation(UUID agentId, String month, String year);
 } 

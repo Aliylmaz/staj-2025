@@ -14,4 +14,5 @@ public class AgentStatsDto {
     private long totalClaims;
     private long totalPayments;
     private double totalPremium;
+    private double successRate;
 }

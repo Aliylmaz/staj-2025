@@ -49,4 +49,7 @@ public interface ICustomerController {
     ResponseEntity<GeneralResponse<List<PaymentDto>>> getMyPayments(UUID customerId);
     ResponseEntity<GeneralResponse<PaymentDto>> getPaymentById(UUID paymentId, UUID customerId);
     ResponseEntity<GeneralResponse<PaymentDto>> makePayment(Long policyId, CreatePaymentRequest request, UUID customerId);
+
+    // ----------- Agent İşlemleri -----------
+    ResponseEntity<GeneralResponse<List<AgentDto>>> getAllAgents(UUID customerId);
 }

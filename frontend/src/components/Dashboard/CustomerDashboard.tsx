@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useCustomer } from '../../contexts/CustomerContext';
+import { isCustomerIdReady } from '../../utils/uuidUtils';
 import Modal from "./Modal";
 
 interface Policy {
@@ -36,23 +38,31 @@ export default function CustomerDashboard({ page }: { page: string }) {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Mock customer ID - gerçek uygulamada JWT'den alınacak
-  const customerId = "123e4567-e89b-12d3-a456-426614174000";
+  // Get customerId from context instead of hardcoded mock
+  const { customerId, loading: contextLoading } = useCustomer();
 
   useEffect(() => {
-    if (page === "policies" || page === "dashboard") {
-      fetchPolicies();
-    } else if (page === "claims") {
-      fetchClaims();
-    } else if (page === "documents") {
-      fetchDocuments();
+    // Only fetch data if customerId is valid and ready
+    if (isCustomerIdReady(customerId) && !contextLoading) {
+      if (page === "policies" || page === "dashboard") {
+        fetchPolicies();
+      } else if (page === "claims") {
+        fetchClaims();
+      } else if (page === "documents") {
+        fetchDocuments();
+      }
     }
-  }, [page]);
+  }, [page, customerId, contextLoading]);
 
   const fetchPolicies = async () => {
+    if (!isCustomerIdReady(customerId)) {
+      console.log('CustomerDashboard - CustomerId not ready for policies fetch:', customerId);
+      return;
+    }
+
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8080/project/customer/policies/${customerId}`);
+      const response = await axios.get(`http://localhost:8080/api/v1/customer/${customerId}/policies`);
       setPolicies(response.data.data || []);
     } catch (error) {
       console.error("Error fetching policies:", error);
@@ -67,9 +77,14 @@ export default function CustomerDashboard({ page }: { page: string }) {
   };
 
   const fetchClaims = async () => {
+    if (!isCustomerIdReady(customerId)) {
+      console.log('CustomerDashboard - CustomerId not ready for claims fetch:', customerId);
+      return;
+    }
+
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8080/project/customer/claims/${customerId}`);
+      const response = await axios.get(`http://localhost:8080/api/v1/customer/${customerId}/claims`);
       setClaims(response.data.data || []);
     } catch (error) {
       console.error("Error fetching claims:", error);
@@ -84,9 +99,14 @@ export default function CustomerDashboard({ page }: { page: string }) {
   };
 
   const fetchDocuments = async () => {
+    if (!isCustomerIdReady(customerId)) {
+      console.log('CustomerDashboard - CustomerId not ready for documents fetch:', customerId);
+      return;
+    }
+
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8080/project/customer/documents/${customerId}`);
+      const response = await axios.get(`http://localhost:8080/api/v1/customer/${customerId}/documents`);
       setDocuments(response.data.data || []);
     } catch (error) {
       console.error("Error fetching documents:", error);
@@ -100,7 +120,15 @@ export default function CustomerDashboard({ page }: { page: string }) {
     }
   };
 
-
+  // Show loading state if context is still loading or customerId is not ready
+  if (contextLoading || !isCustomerIdReady(customerId)) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-gray-600">Loading customer data...</span>
+      </div>
+    );
+  }
 
   if (page === "dashboard" || page === "policies") {
     return (

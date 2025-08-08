@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -128,6 +129,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/{customerId}/policies")
     public ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyPolicies(@PathVariable UUID customerId) {
         try {
@@ -142,6 +144,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/{customerId}/documents")
     public ResponseEntity<GeneralResponse<List<DocumentDto>>> getMyDocuments(@PathVariable UUID customerId) {
         try {
@@ -156,6 +159,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/{customerId}/claims")
     public ResponseEntity<GeneralResponse<List<ClaimDto>>> getMyClaims(@PathVariable UUID customerId) {
         try {
@@ -262,6 +266,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/{customerId}/get-offers")
     public ResponseEntity<GeneralResponse<List<OfferDto>>> getMyOffers(@PathVariable UUID customerId) {
         try {
@@ -269,7 +274,7 @@ public class CustomerControllerImpl implements ICustomerController {
             List<OfferDto> offers = customerService.getMyOffers(customerId);
             return ResponseEntity.ok(GeneralResponse.success("Offers retrieved successfully", offers));
         } catch (Exception e) {
-            log.error("Error getting offers: {}", e.getMessage());
+            log.error("Error getting offers: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(GeneralResponse.error("Failed to get offers: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
         }
@@ -305,6 +310,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/{customerId}/payments")
     public ResponseEntity<GeneralResponse<List<PaymentDto>>> getMyPayments(@PathVariable UUID customerId) {
         try {
@@ -315,6 +321,21 @@ public class CustomerControllerImpl implements ICustomerController {
             log.error("Error getting payments: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(GeneralResponse.error("Failed to get payments: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @GetMapping("/{customerId}/agents")
+    public ResponseEntity<GeneralResponse<List<AgentDto>>> getAllAgents(@PathVariable UUID customerId) {
+        try {
+            log.info("Getting all agents for customer: {}", customerId);
+            List<AgentDto> agents = customerService.getAllAgents();
+            return ResponseEntity.ok(GeneralResponse.success("Agents retrieved successfully", agents));
+        } catch (Exception e) {
+            log.error("Error getting agents: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get agents: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
         }
     }
 

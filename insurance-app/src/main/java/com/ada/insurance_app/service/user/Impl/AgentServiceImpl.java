@@ -13,10 +13,7 @@ import com.ada.insurance_app.mapper.AgentMapper;
 import com.ada.insurance_app.mapper.CustomerMapper;
 import com.ada.insurance_app.mapper.OfferMapper;
 import com.ada.insurance_app.mapper.PolicyMapper;
-import com.ada.insurance_app.repository.IAgentRepository;
-import com.ada.insurance_app.repository.ICustomerRepository;
-import com.ada.insurance_app.repository.IOfferRepository;
-import com.ada.insurance_app.repository.IPolicyRepository;
+import com.ada.insurance_app.repository.*;
 import com.ada.insurance_app.request.offer.OfferUpdateRequest;
 import com.ada.insurance_app.request.customer.UpdateIndividualCustomerRequest;
 import com.ada.insurance_app.service.user.IAgentService;
@@ -35,6 +32,7 @@ public class AgentServiceImpl implements IAgentService {
     private final ICustomerRepository customerRepository;
     private final IPolicyRepository policyRepository;
     private final IAgentRepository agentRepository;
+    private final IClaimRepository claimRepository;
     private final OfferMapper offerMapper;
     private final CustomerMapper customerMapper;
     private final PolicyMapper policyMapper;
@@ -87,10 +85,96 @@ public class AgentServiceImpl implements IAgentService {
     }
 
     @Override
-    @Transactional
-    public List<AgentDto> getAllAgents() {
-        return agentRepository.findAll().stream()
-                .map(agentMapper::toDto)
+    public List<OfferDto> getAllOffers() {
+        return offerRepository.findAll().stream()
+                .map(offerMapper::toDto)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public AgentDto getAgentProfile(UUID agentId) {
+        Agent agent = agentRepository.findById(agentId)
+                .orElseThrow(() -> new RuntimeException("Agent not found: " + agentId));
+        return agentMapper.toDto(agent);
+    }
+
+    @Override
+    public AgentDto updateAgentProfile(UUID agentId, AgentDto agentDto) {
+        Agent agent = agentRepository.findById(agentId)
+                .orElseThrow(() -> new RuntimeException("Agent not found: " + agentId));
+
+        // Update agent details
+        agent.setName(agentDto.getName());
+        agent.setEmail(agentDto.getEmail());
+        agent.setPhoneNumber(agentDto.getPhoneNumber());
+        agent.setAddress(agentDto.getAddress());
+        agent.setCity(agentDto.getCity());
+        agent.setCountry(agentDto.getCountry());
+        agent.setPostalCode(agentDto.getPostalCode());
+
+        // Save updated agent
+        agentRepository.save(agent);
+        return agentMapper.toDto(agent);
+    }
+
+//    @Override
+//    public Long getMyCustomersCount(UUID agentId) {
+//        return customerRepository.countByAssignedAgentId(agentId);
+//    }
+
+    @Override
+    public Long getMyActivePoliciesCount(UUID agentId) {
+        //return policyRepository.countByAgentIdAndStatus(agentId, com.ada.insurance_app.core.enums.PolicyStatus.ACTIVE);
+        return  null;
+    }
+
+    @Override
+    public Long getMyPendingClaimsCount(UUID agentId) {
+        //return claimRepository.countByAgentIdAndStatus(agentId, com.ada.insurance_app.core.enums.ClaimStatus.PENDING);
+        return null;
+    }
+
+
+
+    @Override
+    public List<CustomerDto> getMyCustomers(UUID agentId) {
+        return List.of();
+    }
+
+    @Override
+    public CustomerDto assignCustomerToAgent(UUID customerId, UUID agentId) {
+        return null;
+    }
+
+    @Override
+    public CustomerDto removeCustomerFromAgent(UUID customerId, UUID agentId) {
+        return null;
+    }
+
+    @Override
+    public List<PolicyDto> getMyActivePolicies(UUID agentId) {
+        return List.of();
+    }
+
+    @Override
+    public List<PolicyDto> getMyExpiredPolicies(UUID agentId) {
+        return List.of();
+    }
+
+    @Override
+    public PolicyDto assignPolicyToAgent(Long policyId, UUID agentId) {
+        return null;
+    }
+
+    @Override
+    public Double getCommissionForPolicy(Long policyId, UUID agentId) {
+        return 0.0;
+    }
+
+    @Override
+    public List<PolicyDto> getPoliciesForCommissionCalculation(UUID agentId, String month, String year) {
+        return List.of();
+    }
+
+
 } 

@@ -77,10 +77,6 @@ public class Customer {
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
     private List<HealthInsuranceDetail> healthInsuranceDetails = new ArrayList<>();
 
-
-
-
-
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

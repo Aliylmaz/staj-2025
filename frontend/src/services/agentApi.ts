@@ -1,17 +1,12 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
-
-// Create axios instance with default config
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+const axiosInstance = axios.create({
+  baseURL: 'http://localhost:8080',
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Add request interceptor to include auth token
-api.interceptors.request.use(
+// Request interceptor to add JWT token
+axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -24,163 +19,199 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor for error handling
-api.interceptors.response.use(
+// Response interceptor for error handling
+axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('userRole');
-      window.location.href = '/login';
-    }
+    console.error('API Error:', error.response?.data || error.message);
     return Promise.reject(error);
   }
 );
 
-export interface AgentDashboardDto {
-  totalCustomers: number;
-  totalPolicies: number;
-  totalClaims: number;
-  totalOffers: number;
-  pendingOffers: number;
-  pendingClaims: number;
-}
-
-export interface AgentDto {
-  id: string;
-  agentNumber: string;
-  user: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-  };
-  specialization: string;
-  licenseNumber: string;
-  active: boolean;
-}
-
+// Interfaces
 export interface OfferDto {
   id: number;
   offerNumber: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CONVERTED';
   totalPremium: number;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  customer: { id: string; firstName: string; lastName: string; email: string; };
   insuranceType: string;
   note?: string;
-  customerId: string;
-  customerName?: string;
   createdAt: string;
-  coverages?: CoverageDto[];
+  updatedAt: string;
 }
 
-export interface ClaimDto {
+export interface OfferUpdateRequest {
+  offerId: number;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  note?: string;
+}
+
+export interface CustomerDto {
   id: string;
-  claimNumber: string;
-  description: string;
-  incidentDate: string;
-  status: string;
-  policyId: number;
-  customerName?: string;
-  estimatedAmount?: number;
-  approvedAmount?: number;
-  createdAt: string;
+  customerNumber: string;
+  customerType: 'INDIVIDUAL' | 'CORPORATE';
+  firstName?: string;
+  lastName?: string;
+  companyName?: string;
+  email: string;
+  phoneNumber?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  postalCode?: string;
+  assignedAgentId?: string;
 }
 
 export interface PolicyDto {
   id: number;
   policyNumber: string;
+  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
   startDate: string;
   endDate: string;
   premium: number;
-  status: string;
   insuranceType: string;
-  customerId: string;
-  customerName?: string;
+  customer: { id: string; firstName: string; lastName: string; };
+  agent?: { id: string; name: string; };
 }
 
-export interface CoverageDto {
-  id: number;
-  code: string;
+export interface AgentDto {
+  id: string;
+  agentNumber: string;
   name: string;
-  description: string;
-  basePrice: number;
-  active: boolean;
+  phoneNumber?: string;
+  email: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  postalCode?: string;
+  totalCustomersServed: number;
+  totalPoliciesSold: number;
+  totalCommissionEarned: number;
+  monthlyCommission: number;
+  successRate: number;
+  licenseNumber?: string;
+  licenseExpiryDate?: string;
+  isActive: boolean;
 }
+
+export interface AgentStatsDto {
+  agentName: string;
+  agentNumber: string;
+  totalPolicies: number;
+  totalClaims: number;
+  totalPayments: number;
+  totalPremium: number;
+  totalCommission: number;
+  successRate: number;
+}
+
+// Offer Management
+export const getAllOffers = async (): Promise<OfferDto[]> => {
+  const response = await axiosInstance.get('/api/v1/agent/offers');
+  return response.data.data;
+};
+
+export const updateOfferStatus = async (request: OfferUpdateRequest): Promise<OfferDto> => {
+  const response = await axiosInstance.post('/api/v1/agent/offers/update-status', request);
+  return response.data.data;
+};
+
+// Customer Management
+export const getAllCustomers = async (): Promise<CustomerDto[]> => {
+  const response = await axiosInstance.get('/api/v1/agent/customers');
+  return response.data.data;
+};
+
+export const getMyCustomers = async (agentId: string): Promise<CustomerDto[]> => {
+  const response = await axiosInstance.get(`/api/v1/agent/my-customers/${agentId}`);
+  return response.data.data;
+};
+
+export const assignCustomerToAgent = async (customerId: string, agentId: string): Promise<CustomerDto> => {
+  const response = await axiosInstance.post(`/api/v1/agent/customers/${customerId}/assign/${agentId}`);
+  return response.data.data;
+};
+
+export const removeCustomerFromAgent = async (customerId: string, agentId: string): Promise<CustomerDto> => {
+  const response = await axiosInstance.delete(`/api/v1/agent/customers/${customerId}/remove/${agentId}`);
+  return response.data.data;
+};
+
+// Policy Management
+export const getMyPolicies = async (agentId: string): Promise<PolicyDto[]> => {
+  const response = await axiosInstance.get(`/api/v1/agent/policies/${agentId}`);
+  return response.data.data;
+};
+
+export const getMyActivePolicies = async (agentId: string): Promise<PolicyDto[]> => {
+  const response = await axiosInstance.get(`/api/v1/agent/active-policies/${agentId}`);
+  return response.data.data;
+};
+
+export const getMyExpiredPolicies = async (agentId: string): Promise<PolicyDto[]> => {
+  const response = await axiosInstance.get(`/api/v1/agent/expired-policies/${agentId}`);
+  return response.data.data;
+};
+
+export const assignPolicyToAgent = async (policyId: number, agentId: string): Promise<PolicyDto> => {
+  const response = await axiosInstance.post(`/api/v1/agent/policies/${policyId}/assign/${agentId}`);
+  return response.data.data;
+};
 
 // Agent Profile
-export const getAgent = async (agentId: string): Promise<AgentDto> => {
-  const response = await api.get(`/agent/${agentId}`);
+export const getAgentProfile = async (agentId: string): Promise<AgentDto> => {
+  const response = await axiosInstance.get(`/api/v1/agent/profile/${agentId}`);
   return response.data.data;
 };
 
-export const getCurrentAgent = async (): Promise<AgentDto> => {
-  const response = await api.get('/agent/current');
+export const updateAgentProfile = async (agentId: string, agentData: Partial<AgentDto>): Promise<AgentDto> => {
+  const response = await axiosInstance.put(`/api/v1/agent/profile/${agentId}`, agentData);
   return response.data.data;
 };
 
-// Agent Dashboard
-export const getAgentDashboard = async (agentId: string): Promise<AgentDashboardDto> => {
-  const response = await api.get(`/agent/${agentId}/dashboard`);
+// Agent Statistics
+export const getMyCustomersCount = async (agentId: string): Promise<number> => {
+  const response = await axiosInstance.get(`/api/v1/agent/statistics/customers-count/${agentId}`);
   return response.data.data;
 };
 
-// Offers Management
-export const getOffersByAgent = async (agentId: string): Promise<OfferDto[]> => {
-  const response = await api.get(`/offers/agent/${agentId}`);
+export const getMyActivePoliciesCount = async (agentId: string): Promise<number> => {
+  const response = await axiosInstance.get(`/api/v1/agent/statistics/active-policies-count/${agentId}`);
   return response.data.data;
 };
 
-export const approveOffer = async (offerId: number, agentId: string): Promise<OfferDto> => {
-  const response = await api.put(`/offers/${offerId}/approve?agentId=${agentId}`);
+export const getMyPendingClaimsCount = async (agentId: string): Promise<number> => {
+  const response = await axiosInstance.get(`/api/v1/agent/statistics/pending-claims-count/${agentId}`);
   return response.data.data;
 };
 
-export const rejectOffer = async (offerId: number, agentId: string, reason: string): Promise<OfferDto> => {
-  const response = await api.put(`/offers/${offerId}/reject?agentId=${agentId}&reason=${encodeURIComponent(reason)}`);
+export const getMyMonthlyCommission = async (agentId: string): Promise<number> => {
+  const response = await axiosInstance.get(`/api/v1/agent/statistics/monthly-commission/${agentId}`);
   return response.data.data;
 };
 
-export const getOfferById = async (offerId: number): Promise<OfferDto> => {
-  const response = await api.get(`/offers/${offerId}`);
+export const getMyTotalCommission = async (agentId: string): Promise<number> => {
+  const response = await axiosInstance.get(`/api/v1/agent/statistics/total-commission/${agentId}`);
   return response.data.data;
 };
 
-// Claims Management
-export const getClaimsByAgent = async (agentId: string): Promise<ClaimDto[]> => {
-  const response = await api.get(`/claims/agent/${agentId}`);
+// Commission Tracking
+export const getCommissionForPolicy = async (policyId: number, agentId: string): Promise<number> => {
+  const response = await axiosInstance.get(`/api/v1/agent/commission/policy/${policyId}/${agentId}`);
   return response.data.data;
 };
 
-export const approveClaim = async (claimId: string, agentId: string): Promise<ClaimDto> => {
-  const response = await api.put(`/claims/${claimId}/approve?agentId=${agentId}`);
+export const getPoliciesForCommissionCalculation = async (
+  agentId: string, 
+  month: string, 
+  year: string
+): Promise<PolicyDto[]> => {
+  const response = await axiosInstance.get(`/api/v1/agent/commission/policies/${agentId}?month=${month}&year=${year}`);
   return response.data.data;
-};
+}; 
 
-export const rejectClaim = async (claimId: string, agentId: string, reason: string): Promise<ClaimDto> => {
-  const response = await api.put(`/claims/${claimId}/reject?agentId=${agentId}&reason=${encodeURIComponent(reason)}`);
+export const getAgentStatistics = async (): Promise<AgentStatsDto[]> => {
+  const response = await axiosInstance.get('/api/v1/dashboard/agent-statistics');
   return response.data.data;
-};
-
-export const getClaimById = async (claimId: string): Promise<ClaimDto> => {
-  const response = await api.get(`/claims/${claimId}`);
-  return response.data.data;
-};
-
-// Policies Management
-export const getPoliciesByAgent = async (agentId: string): Promise<PolicyDto[]> => {
-  const response = await api.get(`/policies/agent/${agentId}`);
-  return response.data.data;
-};
-
-export const getPolicyById = async (policyId: number): Promise<PolicyDto> => {
-  const response = await api.get(`/policies/${policyId}`);
-  return response.data.data;
-};
-
-// Coverages
-export const getCoverages = async (): Promise<CoverageDto[]> => {
-  const response = await api.get('/coverages');
-  return response.data.data;
-};
-
-export default api; 
+}; 

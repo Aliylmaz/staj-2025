@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getAgentStatistics, type AgentStatsDto } from '../services/agentApi';
 
 export default function AgentPage() {
-  const [currentModule, setCurrentModule] = useState<'dashboard' | 'customers' | 'policies' | 'offers' | 'claims'>('dashboard');
+  const [currentModule, setCurrentModule] = useState<'dashboard' | 'customers' | 'policies' | 'offers' | 'claims' | 'profile'>('dashboard');
+  const [agentStats, setAgentStats] = useState<AgentStatsDto | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -12,11 +15,28 @@ export default function AgentPage() {
       navigate('/login');
       return;
     }
+    fetchAgentStats();
   }, [navigate]);
+
+  const fetchAgentStats = async () => {
+    setStatsLoading(true);
+    try {
+      const allStats = await getAgentStatistics();
+      const agentNumber = localStorage.getItem('agentNumber');
+      // Find the stats for the current agent
+      const myStats = allStats.find(s => s.agentNumber === agentNumber);
+      setAgentStats(myStats || null);
+    } catch (error) {
+      setAgentStats(null);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('agentNumber');
     navigate('/login');
   };
 
@@ -41,13 +61,16 @@ export default function AgentPage() {
       </div>
 
       {/* Stats Cards */}
+      {statsLoading ? (
+        <div style={{ textAlign: 'center', padding: '2rem' }}>Loading statistics...</div>
+      ) : agentStats ? (
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
         gap: '1.5rem',
         marginBottom: '2rem'
       }}>
-        {/* My Customers */}
+        {/* My Policies */}
         <div style={{
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           borderRadius: '16px',
@@ -58,38 +81,16 @@ export default function AgentPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                My Customers
+                My Policies
               </div>
               <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-                12
-              </div>
-            </div>
-            <div style={{ fontSize: '2rem' }}>👥</div>
-          </div>
-        </div>
-
-        {/* Active Policies */}
-        <div style={{
-          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-          borderRadius: '16px',
-          padding: '1.5rem',
-          color: 'white',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                Active Policies
-              </div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-                8
+                {agentStats.totalPolicies}
               </div>
             </div>
             <div style={{ fontSize: '2rem' }}>📋</div>
           </div>
         </div>
-
-        {/* Pending Claims */}
+        {/* Claims */}
         <div style={{
           background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
           borderRadius: '16px',
@@ -100,17 +101,16 @@ export default function AgentPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                Pending Claims
+                Claims
               </div>
               <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-                3
+                {agentStats.totalClaims}
               </div>
             </div>
             <div style={{ fontSize: '2rem' }}>🔧</div>
           </div>
         </div>
-
-        {/* Monthly Commission */}
+        {/* Payments */}
         <div style={{
           background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
           borderRadius: '16px',
@@ -121,16 +121,79 @@ export default function AgentPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                Monthly Commission
+                Payments
               </div>
               <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-                $2,450
+                {agentStats.totalPayments}
               </div>
             </div>
             <div style={{ fontSize: '2rem' }}>💰</div>
           </div>
         </div>
+        {/* Total Premium */}
+        <div style={{
+          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+          borderRadius: '16px',
+          padding: '1.5rem',
+          color: 'white',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
+                Total Premium
+              </div>
+              <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+                ₺{agentStats.totalPremium.toFixed(2)}
+              </div>
+            </div>
+            <div style={{ fontSize: '2rem' }}>💎</div>
+          </div>
+        </div>
+        {/* Total Commission */}
+        <div style={{
+          background: 'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)',
+          borderRadius: '16px',
+          padding: '1.5rem',
+          color: 'white',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
+                Total Commission
+              </div>
+              <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+                ₺{agentStats.totalCommission.toFixed(2)}
+              </div>
+            </div>
+            <div style={{ fontSize: '2rem' }}>💸</div>
+          </div>
+        </div>
+        {/* Success Rate */}
+        <div style={{
+          background: 'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)',
+          borderRadius: '16px',
+          padding: '1.5rem',
+          color: 'white',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
+                Success Rate
+              </div>
+              <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+                {agentStats.successRate.toFixed(1)}%
+              </div>
+            </div>
+            <div style={{ fontSize: '2rem' }}>🏆</div>
+          </div>
+        </div>
       </div>
+      ) : (
+        <div style={{ textAlign: 'center', padding: '2rem' }}>No statistics found for your agent profile.</div>
+      )}
 
       {/* Quick Actions */}
       <div style={{ marginBottom: '2rem' }}>
@@ -275,6 +338,13 @@ export default function AgentPage() {
             <p style={{ color: '#64748b' }}>Coming soon...</p>
           </div>
         );
+      case 'profile':
+        return (
+          <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
+            <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: '#1e293b' }}>My Profile</h1>
+            <p style={{ color: '#64748b' }}>Coming soon...</p>
+          </div>
+        );
       default:
         return renderDashboard();
     }
@@ -309,7 +379,8 @@ export default function AgentPage() {
             { id: 'customers', label: 'My Customers', icon: '👥' },
             { id: 'policies', label: 'Policies', icon: '📋' },
             { id: 'offers', label: 'Offers', icon: '📄' },
-            { id: 'claims', label: 'Claims', icon: '🔧' }
+            { id: 'claims', label: 'Claims', icon: '🔧' },
+            { id: 'profile', label: 'My Profile', icon: '👤' }
           ].map((module) => (
             <button
               key={module.id}

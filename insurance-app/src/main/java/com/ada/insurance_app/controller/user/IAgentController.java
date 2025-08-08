@@ -16,5 +16,29 @@ public interface IAgentController {
     ResponseEntity<GeneralResponse<List<CustomerDto>>> getAllCustomers();
     ResponseEntity<GeneralResponse<CustomerDto>> updateCustomer(UUID customerId, UpdateIndividualCustomerRequest request);
     ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyPolicies(UUID agentId);
-    ResponseEntity<GeneralResponse<List<AgentDto>>> getAllAgents();
+    ResponseEntity<GeneralResponse<List<OfferDto>>> getAllOffers();
+    
+    // New endpoints for real agent operations
+    ResponseEntity<GeneralResponse<AgentDto>> getAgentProfile(UUID agentId);
+    ResponseEntity<GeneralResponse<AgentDto>> updateAgentProfile(UUID agentId, AgentDto agentDto);
+    
+    // Agent Statistics
+    //ResponseEntity<GeneralResponse<Long>> getMyCustomersCount(UUID agentId);
+    ResponseEntity<GeneralResponse<Long>> getMyActivePoliciesCount(UUID agentId);
+    ResponseEntity<GeneralResponse<Long>> getMyPendingClaimsCount(UUID agentId);
+
+    
+    // Customer Management
+    ResponseEntity<GeneralResponse<List<CustomerDto>>> getMyCustomers(UUID agentId);
+    ResponseEntity<GeneralResponse<CustomerDto>> assignCustomerToAgent(UUID customerId, UUID agentId);
+    ResponseEntity<GeneralResponse<CustomerDto>> removeCustomerFromAgent(UUID customerId, UUID agentId);
+    
+    // Policy Management
+    ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyActivePolicies(UUID agentId);
+    ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyExpiredPolicies(UUID agentId);
+    ResponseEntity<GeneralResponse<PolicyDto>> assignPolicyToAgent(Long policyId, UUID agentId);
+    
+    // Commission Tracking
+    ResponseEntity<GeneralResponse<Double>> getCommissionForPolicy(Long policyId, UUID agentId);
+    ResponseEntity<GeneralResponse<List<PolicyDto>>> getPoliciesForCommissionCalculation(UUID agentId, String month, String year);
 } 

@@ -63,15 +63,15 @@ public class DashboardServiceImpl implements IDashboardService {
             long paymentCount = paymentRepository.countByPolicy_Agent_AgentNumber(agentNumber);
             double totalPremium = policyRepository.sumTotalPremiumByAgentNumber(agentNumber);
 
-            AgentStatsDto agentStats = new AgentStatsDto(
-                    agent.getName(),
-                    agentNumber,
-                    policyCount,
-                    claimCount,
-                    paymentCount,
-                    totalPremium
-            );
-            stats.add(agentStats);
+//            AgentStatsDto agentStats = new AgentStatsDto(
+//                    agent.getName(),
+//                    agentNumber,
+//                    policyCount,
+//                    claimCount,
+//                    paymentCount,
+//                    totalPremium
+//            );
+//            stats.add(agentStats);
         }
         return stats;
     }

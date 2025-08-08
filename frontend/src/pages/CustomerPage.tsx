@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCustomer } from '../contexts/CustomerContext';
+
 import { 
   getMyOffers, 
   getMyPolicies, 
@@ -20,8 +21,7 @@ import type { AgentDto, CoverageDto } from '../services/customerApi';
 export default function CustomerPage() {
   const [currentModule, setCurrentModule] = useState<'dashboard' | 'offers' | 'policies' | 'claims' | 'payments' | 'documents' | 'profile'>('dashboard');
   const navigate = useNavigate();
-  const { customer, loading: contextLoading, error: contextError } = useCustomer();
-  const customerId = customer?.id;
+  const { customer, customerId, loading: contextLoading, error: contextError, isReady } = useCustomer();
 
   // Data states
   const [offers, setOffers] = useState<any[]>([]);
@@ -90,32 +90,30 @@ export default function CustomerPage() {
   const [paymentFormData, setPaymentFormData] = useState({ amount: 0 });
   const [documentFormData, setDocumentFormData] = useState({ file: null as File | null });
 
+  // Debug localStorage values on mount
   useEffect(() => {
-    const userRole = localStorage.getItem('userRole');
-    if (userRole !== 'CUSTOMER') {
-      navigate('/login');
-      return;
-    }
-    
-    // Debug localStorage values
     console.log('🔍 CustomerPage - localStorage debug:');
     console.log('🔍 Token:', localStorage.getItem('token'));
     console.log('🔍 UserRole:', localStorage.getItem('userRole'));
     console.log('🔍 CustomerId:', localStorage.getItem('customerId'));
-  }, [navigate]);
+  }, []);
 
+  // Customer ID guard for data fetching
   useEffect(() => {
-    if (customerId) {
+    if (isReady && customerId) {
+      console.log('✅ CustomerPage - Context is ready and customerId exists, fetching data:', customerId);
       fetchAllData();
+    } else {
+      console.log('⏳ CustomerPage - Context not ready or customerId missing:', { isReady, customerId });
     }
-  }, [customerId]);
+  }, [isReady, customerId]);
 
   // Fetch coverages when insurance type changes
   useEffect(() => {
-    if (showOfferForm && insuranceType) {
+    if (showOfferForm && insuranceType && isReady) {
       fetchCoveragesByInsuranceType();
     }
-  }, [insuranceType, showOfferForm]);
+  }, [insuranceType, showOfferForm, isReady]);
 
   const fetchCoveragesByInsuranceType = async () => {
     try {
@@ -153,8 +151,22 @@ export default function CustomerPage() {
   };
 
   const fetchAllData = async () => {
+    if (!isReady || !customerId) {
+      console.log('⏳ CustomerPage - Context not ready or customerId missing, skipping data fetch');
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log('🔄 CustomerPage - Fetching all data with customerId:', customerId);
+      
+      // Check token before making API calls
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('❌ CustomerPage - No token found, cannot fetch data');
+        return;
+      }
+      
       const [offersData, policiesData, claimsData, paymentsData, documentsData, agentsData] = await Promise.all([
         getMyOffers(),
         getMyPolicies(),
@@ -169,23 +181,35 @@ export default function CustomerPage() {
       setPayments(paymentsData);
       setDocuments(documentsData);
       setAgents(agentsData);
-    } catch (error) {
-      console.error('Error fetching data:', error);
+      console.log('✅ CustomerPage - All data fetched successfully');
+    } catch (error: any) {
+      console.error('❌ CustomerPage - Error fetching data:', error);
+      
+      // Handle 401 error specifically
+      if (error.response?.status === 401) {
+        console.log('❌ CustomerPage - 401 error, token might be expired');
+        // Don't redirect here, let axios interceptor handle it
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleCreateOffer = async () => {
+    if (!isReady) {
+      console.log('⏳ CustomerPage - Context not ready, cannot create offer');
+      return;
+    }
+
     try {
       // Debug token status
       const token = localStorage.getItem('token');
       const userRole = localStorage.getItem('userRole');
-      const customerId = localStorage.getItem('customerId');
+      const currentCustomerId = localStorage.getItem('customerId');
       
       console.log('🔍 handleCreateOffer - Token exists:', !!token);
       console.log('🔍 handleCreateOffer - User role:', userRole);
-      console.log('🔍 handleCreateOffer - Customer ID:', customerId);
+      console.log('🔍 handleCreateOffer - Customer ID:', currentCustomerId);
       console.log('🔍 handleCreateOffer - Token value:', token);
       
       const requestData: any = {
@@ -238,6 +262,11 @@ export default function CustomerPage() {
   };
 
   const handleAcceptOffer = async (offerId: number) => {
+    if (!isReady) {
+      console.log('⏳ CustomerPage - Context not ready, cannot accept offer');
+      return;
+    }
+
     try {
       await acceptOfferAndCreatePolicy(offerId);
       fetchAllData();
@@ -247,7 +276,11 @@ export default function CustomerPage() {
   };
 
   const handleCreateClaim = async () => {
-    if (!selectedPolicyId) return;
+    if (!isReady || !selectedPolicyId) {
+      console.log('⏳ CustomerPage - Context not ready or no policy selected');
+      return;
+    }
+
     try {
       await createClaim({
         policyId: selectedPolicyId,
@@ -265,7 +298,11 @@ export default function CustomerPage() {
   };
 
   const handleMakePayment = async () => {
-    if (!selectedPolicyId) return;
+    if (!isReady || !selectedPolicyId) {
+      console.log('⏳ CustomerPage - Context not ready or no policy selected');
+      return;
+    }
+
     try {
       await makePayment(selectedPolicyId, {
         amount: paymentFormData.amount,
@@ -299,7 +336,8 @@ export default function CustomerPage() {
     navigate('/login');
   };
 
-  if (contextLoading) {
+  // Show loading state while context is loading or customer data is not ready
+  if (contextLoading || !isReady) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -323,12 +361,16 @@ export default function CustomerPage() {
             fontWeight: 500,
             color: '#334155',
             margin: 0
-          }}>Loading customer data...</p>
+          }}>
+            {contextLoading ? 'Loading customer data...' : 'Preparing customer dashboard...'}
+          </p>
           <p style={{
             fontSize: '0.875rem',
             color: '#64748b',
             marginTop: '0.5rem'
-          }}>Please wait while we fetch your information</p>
+          }}>
+            {contextLoading ? 'Please wait while we fetch your information' : 'Setting up your personalized dashboard'}
+          </p>
         </div>
       </div>
     );
@@ -381,33 +423,7 @@ export default function CustomerPage() {
     );
   }
 
-  if (!customerId) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #e0e7ff 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{
-          textAlign: 'center',
-          maxWidth: '28rem',
-          margin: '0 auto',
-          padding: '2rem'
-        }}>
-          <div style={{ fontSize: '3.75rem', marginBottom: '1rem' }}>👤</div>
-          <h2 style={{
-            fontSize: '1.5rem',
-            fontWeight: 700,
-            color: '#0f172a',
-            marginBottom: '0.5rem'
-          }}>No Customer Data</h2>
-          <p style={{ color: '#475569' }}>Customer information is not available. Please log in again.</p>
-        </div>
-      </div>
-    );
-  }
+
 
   const renderDashboard = () => (
     <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>

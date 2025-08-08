@@ -9,6 +9,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.lang.IllegalArgumentException;
 import java.time.LocalDateTime;
@@ -88,12 +89,29 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-
-
-
-
-
-
+    /**
+     * Handle UUID parsing errors in path parameters
+     * This provides a proper 400 JSON response when invalid UUIDs are passed
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Object> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
+        String message = "Invalid parameter format";
+        
+        // Check if it's a UUID parsing error
+        if (ex.getRequiredType() != null && ex.getRequiredType().equals(java.util.UUID.class)) {
+            message = "Invalid UUID format: " + ex.getValue() + ". Expected format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
+        }
+        
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("error", "Bad Request");
+        body.put("message", message);
+        body.put("path", ex.getName());
+        body.put("value", ex.getValue());
+        
+        return ResponseEntity.badRequest().body(body);
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleValidationException(MethodArgumentNotValidException ex) {

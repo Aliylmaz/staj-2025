@@ -49,6 +49,7 @@ public class CustomerServiceImpl implements ICustomerService {
     private final IAgentRepository agentRepository;
     private final PolicyMapper policyMapper;
     private final DocumentMapper documentMapper;
+    private final  AgentMapper agentMapper;
     private final ClaimMapper claimMapper;
     private final CustomerMapper customerMapper;
     private final OfferMapper offerMapper;
@@ -88,16 +89,13 @@ public class CustomerServiceImpl implements ICustomerService {
                 .collect(Collectors.toList());
     }
 
-    @Override
+    @Transactional(readOnly = true)
     public List<OfferDto> getMyOffers(UUID customerId) {
-        // Validate customer exists
-        validateCustomerExists(customerId);
-
-        // Fetch offers directly by customer ID
         List<Offer> offers = offerRepository.findByCustomer_Id(customerId);
+
         return offers.stream()
                 .map(offerMapper::toDto)
-                .collect(Collectors.toList());
+                .collect(java.util.stream.Collectors.toList());
     }
 
     @Override
@@ -658,5 +656,18 @@ public class CustomerServiceImpl implements ICustomerService {
             log.error("getCurrentCustomer: Error getting current customer: {}", e.getMessage(), e);
             throw e;
         }
+    }
+
+    @Override
+    public List<AgentDto> getAllAgents() {
+
+        List<Agent> agents = agentRepository.findAll();
+        if (agents.isEmpty()) {
+            throw new ResourceNotFoundException("No agents found");
+        }
+        return agents.stream()
+                .map(agentMapper::toDto)
+                .collect(Collectors.toList());
+
     }
 }

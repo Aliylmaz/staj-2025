@@ -42,6 +42,7 @@ public interface ICustomerService {
     CustomerDashboardDto getCustomerDashboard(UUID customerId);
     CustomerDto getCurrentCustomer();
 
+    List<AgentDto> getAllAgents();
 
     // CustomerSummaryDto getCustomerSummary(UUID customerId);
 }

@@ -20,4 +20,11 @@ public class AgentDto {
     private String phoneNumber;
     private String email;
     private List<Long> policyIds;
+
+    private String address;
+    private String city;
+    private String country;
+    private  String postalCode;
+
+
 }

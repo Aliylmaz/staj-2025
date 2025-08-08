@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,19 @@ public class Agent {
     @Column
     private String email;
 
+    @Column
+    private String address;
+
+    @Column
+    private String city;
+
+    @Column
+    private String country;
+
+    @Column
+    private String postalCode;
+
+
     @OneToMany(mappedBy = "agent", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Policy> policies = new ArrayList<>();
 
@@ -48,15 +62,6 @@ public class Agent {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    // Helper method to add a policy
-    public void addPolicy(Policy policy) {
-        policies.add(policy);
-        policy.setAgent(this);
-    }
 
-    // Helper method to remove a policy
-    public void removePolicy(Policy policy) {
-        policies.remove(policy);
-        policy.setAgent(null);
-    }
+
 } 
