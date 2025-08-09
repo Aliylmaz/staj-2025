@@ -236,7 +236,12 @@ export default function CustomerPage() {
           break;
       }
       
-      await requestOffer(requestData);
+      const response = await requestOffer(requestData);
+      console.log('✅ Offer created successfully:', response);
+      
+      // Show success message
+      alert(`✅ Offer created successfully!\n\nOffer Number: ${response.offerNumber}\nStatus: PENDING\n\nYour offer is now waiting for agent approval. You will be notified once an agent reviews your request.`);
+      
       setShowOfferForm(false);
       setInsuranceType('VEHICLE');
       setSelectedAgentId('');
@@ -261,19 +266,7 @@ export default function CustomerPage() {
     }
   };
 
-  const handleAcceptOffer = async (offerId: number) => {
-    if (!isReady) {
-      console.log('⏳ CustomerPage - Context not ready, cannot accept offer');
-      return;
-    }
 
-    try {
-      await acceptOfferAndCreatePolicy(offerId);
-      fetchAllData();
-    } catch (error) {
-      console.error('Error accepting offer:', error);
-    }
-  };
 
   const handleCreateClaim = async () => {
     if (!isReady || !selectedPolicyId) {
@@ -334,6 +327,20 @@ export default function CustomerPage() {
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     navigate('/login');
+  };
+
+  const handleConvertOfferToPolicy = async (offerId: number) => {
+    if (!isReady) {
+      console.log('⏳ CustomerPage - Context not ready, cannot convert offer to policy');
+      return;
+    }
+
+    try {
+      await acceptOfferAndCreatePolicy(offerId);
+      fetchAllData();
+    } catch (error) {
+      console.error('Error converting offer to policy:', error);
+    }
   };
 
   // Show loading state while context is loading or customer data is not ready
@@ -777,8 +784,8 @@ export default function CustomerPage() {
                          borderRadius: '9999px',
                          fontSize: '0.75rem',
                          fontWeight: 500,
-                         background: offer.status === "PENDING" ? '#fef3c7' : offer.status === "ACCEPTED" ? '#dcfce7' : '#fee2e2',
-                         color: offer.status === "PENDING" ? '#92400e' : offer.status === "ACCEPTED" ? '#166534' : '#991b1b'
+                         background: offer.status === "PENDING" ? '#fef3c7' : offer.status === "APPROVED" ? '#dcfce7' : offer.status === "REJECTED" ? '#fee2e2' : '#e0e7ff',
+                         color: offer.status === "PENDING" ? '#92400e' : offer.status === "APPROVED" ? '#166534' : offer.status === "REJECTED" ? '#991b1b' : '#3730a3'
                        }}>
                          {offer.status}
                        </span>
@@ -807,9 +814,10 @@ export default function CustomerPage() {
                          </div>
                        )}
                      </div>
-                     {offer.status === 'PENDING' && (
+
+                     {offer.status === 'APPROVED' && (
                        <button
-                         onClick={() => handleAcceptOffer(offer.id)}
+                         onClick={() => handleConvertOfferToPolicy(offer.id)}
                          style={{
                            width: '100%',
                            padding: '0.75rem 1rem',
@@ -825,7 +833,49 @@ export default function CustomerPage() {
                          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
                          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                        >
-                         Accept Offer
+                         Convert to Policy
+                       </button>
+                     )}
+                     {offer.status === 'REJECTED' && (
+                       <button
+                         onClick={() => setCurrentModule('offers')}
+                         style={{
+                           width: '100%',
+                           padding: '0.75rem 1rem',
+                           background: 'linear-gradient(135deg, #dc2626 0%, #db2777 100%)',
+                           color: 'white',
+                           border: 'none',
+                           borderRadius: '8px',
+                           fontSize: '0.875rem',
+                           fontWeight: 600,
+                           cursor: 'pointer',
+                           transition: 'transform 0.2s'
+                         }}
+                         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                       >
+                         Rejected
+                       </button>
+                     )}
+                     {offer.status === 'CONVERTED' && (
+                       <button
+                         onClick={() => setCurrentModule('policies')}
+                         style={{
+                           width: '100%',
+                           padding: '0.75rem 1rem',
+                           background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                           color: 'white',
+                           border: 'none',
+                           borderRadius: '8px',
+                           fontSize: '0.875rem',
+                           fontWeight: 600,
+                           cursor: 'pointer',
+                           transition: 'transform 0.2s'
+                         }}
+                         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                       >
+                         Go to Policy
                        </button>
                      )}
                    </div>

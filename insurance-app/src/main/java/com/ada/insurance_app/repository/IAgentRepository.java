@@ -19,4 +19,8 @@ public interface IAgentRepository extends JpaRepository<Agent, UUID> {
     @Query("SELECT a FROM Agent a WHERE a.user.role = :role")
     List<Agent> findAllByUserRole(@Param("role") Role role);
 
+    Optional<Agent> findByUser_Email(String email);
+
+
+
 } 

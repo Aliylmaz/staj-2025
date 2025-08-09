@@ -2,6 +2,7 @@ package com.ada.insurance_app.service.user.Impl;
 
 import com.ada.insurance_app.core.enums.OfferStatus;
 import com.ada.insurance_app.dto.AgentDto;
+import com.ada.insurance_app.dto.AgentStatsDto;
 import com.ada.insurance_app.dto.CustomerDto;
 import com.ada.insurance_app.dto.OfferDto;
 import com.ada.insurance_app.dto.PolicyDto;
@@ -19,6 +20,7 @@ import com.ada.insurance_app.request.customer.UpdateIndividualCustomerRequest;
 import com.ada.insurance_app.service.user.IAgentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -33,6 +35,7 @@ public class AgentServiceImpl implements IAgentService {
     private final IPolicyRepository policyRepository;
     private final IAgentRepository agentRepository;
     private final IClaimRepository claimRepository;
+    private final IPaymentRepository paymentRepository;
     private final OfferMapper offerMapper;
     private final CustomerMapper customerMapper;
     private final PolicyMapper policyMapper;
@@ -86,9 +89,72 @@ public class AgentServiceImpl implements IAgentService {
 
     @Override
     public List<OfferDto> getAllOffers() {
-        return offerRepository.findAll().stream()
+        // Only return PENDING offers for agents to review
+        return offerRepository.findByStatus(OfferStatus.PENDING).stream()
                 .map(offerMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    @PreAuthorize("hasRole('AGENT')")
+    public OfferDto approveOffer(Long offerId, UUID agentId) {
+        Offer offer = offerRepository.findById(offerId)
+                .orElseThrow(() -> new RuntimeException("Offer not found: " + offerId));
+        
+        // Business rule: Can only approve PENDING offers
+        if (offer.getStatus() != OfferStatus.PENDING) {
+            throw new RuntimeException("Can only approve PENDING offers. Current status: " + offer.getStatus());
+        }
+        
+        // Set agent and update status
+        Agent agent = agentRepository.findById(agentId)
+                .orElseThrow(() -> new RuntimeException("Agent not found: " + agentId));
+        
+        offer.setAgent(agent);
+        offer.setStatus(OfferStatus.APPROVED);
+        offer.setAcceptedAt(java.time.LocalDateTime.now());
+        
+        Offer savedOffer = offerRepository.save(offer);
+        return offerMapper.toDto(savedOffer);
+    }
+
+    @Override
+    @Transactional
+    @PreAuthorize("hasRole('AGENT')")
+    public OfferDto rejectOffer(Long offerId, UUID agentId, String reason) {
+        Offer offer = offerRepository.findById(offerId)
+                .orElseThrow(() -> new RuntimeException("Offer not found: " + offerId));
+        
+        // Business rule: Can only reject PENDING offers
+        if (offer.getStatus() != OfferStatus.PENDING) {
+            throw new RuntimeException("Can only reject PENDING offers. Current status: " + offer.getStatus());
+        }
+        
+        // Set agent and update status
+        Agent agent = agentRepository.findById(agentId)
+                .orElseThrow(() -> new RuntimeException("Agent not found: " + agentId));
+        
+        offer.setAgent(agent);
+        offer.setStatus(OfferStatus.REJECTED);
+        offer.setNote(reason);
+        
+        Offer savedOffer = offerRepository.save(offer);
+        return offerMapper.toDto(savedOffer);
+    }
+
+    @Override
+    public AgentDto getCurrentAgent() {
+        // Get current agent from security context
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        
+        // Try to find by username first, then by email
+        Agent agent = agentRepository.findAll().stream()
+                .filter(a -> a.getUser().getUsername().equals(currentUsername) || a.getUser().getEmail().equals(currentUsername))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Current agent not found with username/email: " + currentUsername));
+        
+        return agentMapper.toDto(agent);
     }
 
     @Override
@@ -117,10 +183,35 @@ public class AgentServiceImpl implements IAgentService {
         return agentMapper.toDto(agent);
     }
 
-//    @Override
-//    public Long getMyCustomersCount(UUID agentId) {
-//        return customerRepository.countByAssignedAgentId(agentId);
-//    }
+
+    @Override
+    public AgentStatsDto getMyStatistics() {
+        // Get current agent directly from repository
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        
+        Agent agent = agentRepository.findAll().stream()
+                .filter(a -> a.getUser().getUsername().equals(currentUsername) || a.getUser().getEmail().equals(currentUsername))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Current agent not found with username/email: " + currentUsername));
+
+        String agentNumber = agent.getAgentNumber();
+
+        long policyCount = policyRepository.countPoliciesByAgent_AgentNumber(agentNumber);
+        long claimCount = claimRepository.countByPolicy_Agent_AgentNumber(agentNumber);
+        long paymentCount = paymentRepository.countByPolicy_Agent_AgentNumber(agentNumber);
+        double totalPremium = policyRepository.sumTotalPremiumByAgentNumber(agentNumber);
+
+        AgentStatsDto agentStats = new AgentStatsDto();
+        agentStats.setAgentName(agent.getName());
+        agentStats.setAgentNumber(agent.getAgentNumber());
+        agentStats.setTotalPolicies(policyCount);
+        agentStats.setTotalClaims(claimCount);
+        agentStats.setTotalPayments(paymentCount);
+        agentStats.setTotalPremium(totalPremium);
+        agentStats.setSuccessRate(claimCount > 0 ? (double) paymentCount / claimCount * 100 : 0.0);
+
+        return agentStats;
+    }
 
     @Override
     public Long getMyActivePoliciesCount(UUID agentId) {
@@ -149,6 +240,25 @@ public class AgentServiceImpl implements IAgentService {
     @Override
     public CustomerDto removeCustomerFromAgent(UUID customerId, UUID agentId) {
         return null;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('AGENT')")
+    public Long getMyCustomersCount(UUID agentId) {
+        if (agentId == null) {
+            throw new IllegalArgumentException("agentId must not be null");
+        }
+
+        // Ensure the agent exists to avoid returning counts for non-existent principals
+        boolean agentExists = agentRepository.existsById(agentId);
+        if (!agentExists) {
+            throw new RuntimeException("Agent not found: " + agentId);
+        }
+
+        // Count distinct customers who have policies assigned to this agent
+        Long count = customerRepository.countByAgentId(agentId);
+        return count != null ? count : 0L;
     }
 
     @Override

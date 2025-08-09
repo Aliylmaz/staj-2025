@@ -232,23 +232,20 @@ public class CustomerServiceImpl implements ICustomerService {
 
         // Teklifi oluşturan müşteriyle şu anki müşteri aynı mı?
         if (!offer.getCustomer().getId().equals(customerId)) {
-            throw new UnauthorizedAccessException("You are not authorized to accept this offer");
+            throw new UnauthorizedAccessException("You are not authorized to convert this offer");
         }
 
-        // Teklif zaten işlenmiş mi?
-        if (offer.getStatus() != OfferStatus.PENDING) {
-            throw new InvalidRequestException("Offer is already processed");
+        // Teklif sadece APPROVED durumunda mı?
+        if (offer.getStatus() != OfferStatus.APPROVED) {
+            throw new InvalidRequestException("Only APPROVED offers can be converted to policy. Current status: " + offer.getStatus());
         }
-
-        // Teklifi kabul et
-        offer.setStatus(OfferStatus.APPROVED);
-        offer.setAcceptedAt(LocalDateTime.now());
 
         // Yeni poliçe oluştur
         Policy policy = new Policy();
-        policy.setPolicyNumber(UUID.randomUUID().toString());
+        policy.setPolicyNumber("POL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         policy.setCustomer(offer.getCustomer());
-        policy.setStatus(PolicyStatus.ACTIVE);
+        policy.setAgent(offer.getAgent()); // Agent'ı offer'dan al
+        policy.setStatus(PolicyStatus.PENDING_PAYMENT); // Başlangıçta ödeme bekliyor
         policy.setStartDate(LocalDate.now());
         policy.setEndDate(LocalDate.now().plusYears(1));
         policy.setPremium(offer.getTotalPremium());
@@ -273,11 +270,13 @@ public class CustomerServiceImpl implements ICustomerService {
         // Kaydet
         policyRepository.save(policy);
 
-        // Teklifle poliçeyi bağla
+        // Teklifi CONVERTED durumuna güncelle
+        offer.setStatus(OfferStatus.CONVERTED);
         offer.setConvertedAt(LocalDateTime.now());
         offer.setPolicy(policy);
         offerRepository.save(offer);
 
+        log.info("Offer {} converted to policy {} for customer {}", offerId, policy.getId(), customerId);
         return policyMapper.toDto(policy);
     }
 

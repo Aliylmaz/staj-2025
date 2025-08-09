@@ -1,6 +1,7 @@
 package com.ada.insurance_app.service.user;
 
 import com.ada.insurance_app.dto.AgentDto;
+import com.ada.insurance_app.dto.AgentStatsDto;
 import com.ada.insurance_app.dto.CustomerDto;
 import com.ada.insurance_app.dto.OfferDto;
 import com.ada.insurance_app.dto.PolicyDto;
@@ -16,12 +17,17 @@ public interface IAgentService {
     List<PolicyDto> getMyPolicies(UUID agentId);
     List<OfferDto> getAllOffers();
     
+    // Offer approval methods
+    OfferDto approveOffer(Long offerId, UUID agentId);
+    OfferDto rejectOffer(Long offerId, UUID agentId, String reason);
+    
     // New methods for real agent operations
+    AgentDto getCurrentAgent();
     AgentDto getAgentProfile(UUID agentId);
     AgentDto updateAgentProfile(UUID agentId, AgentDto agentDto);
     
     // Agent Statistics
-   // Long getMyCustomersCount(UUID agentId);
+    AgentStatsDto getMyStatistics();
     Long getMyActivePoliciesCount(UUID agentId);
     Long getMyPendingClaimsCount(UUID agentId);
 
@@ -30,6 +36,7 @@ public interface IAgentService {
     List<CustomerDto> getMyCustomers(UUID agentId);
     CustomerDto assignCustomerToAgent(UUID customerId, UUID agentId);
     CustomerDto removeCustomerFromAgent(UUID customerId, UUID agentId);
+    Long getMyCustomersCount(UUID agentId);
     
     // Policy Management
     List<PolicyDto> getMyActivePolicies(UUID agentId);

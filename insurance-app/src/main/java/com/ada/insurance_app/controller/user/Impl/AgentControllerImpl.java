@@ -3,6 +3,7 @@ package com.ada.insurance_app.controller.user.Impl;
 import com.ada.insurance_app.controller.user.IAgentController;
 import com.ada.insurance_app.core.common.dto.GeneralResponse;
 import com.ada.insurance_app.dto.AgentDto;
+import com.ada.insurance_app.dto.AgentStatsDto;
 import com.ada.insurance_app.dto.CustomerDto;
 import com.ada.insurance_app.dto.OfferDto;
 import com.ada.insurance_app.dto.PolicyDto;
@@ -70,7 +71,34 @@ public class AgentControllerImpl implements IAgentController {
         return ResponseEntity.ok(GeneralResponse.success("Offers list", offers));
     }
 
+    @Override
+    @PreAuthorize("hasRole('AGENT')")
+    @PutMapping("/offers/{offerId}/approve")
+    public ResponseEntity<GeneralResponse<OfferDto>> approveOffer(@PathVariable Long offerId, @RequestParam UUID agentId) {
+        log.info("Agent {} approving offer: {}", agentId, offerId);
+        OfferDto offer = agentService.approveOffer(offerId, agentId);
+        return ResponseEntity.ok(GeneralResponse.success("Offer approved successfully", offer));
+    }
+
+    @Override
+    @PreAuthorize("hasRole('AGENT')")
+    @PutMapping("/offers/{offerId}/reject")
+    public ResponseEntity<GeneralResponse<OfferDto>> rejectOffer(@PathVariable Long offerId, @RequestParam UUID agentId, @RequestParam String reason) {
+        log.info("Agent {} rejecting offer: {} with reason: {}", agentId, offerId, reason);
+        OfferDto offer = agentService.rejectOffer(offerId, agentId, reason);
+        return ResponseEntity.ok(GeneralResponse.success("Offer rejected successfully", offer));
+    }
+
     // New endpoints for real agent operations
+
+    @Override
+    @PreAuthorize("hasRole('AGENT')")
+    @GetMapping("/current")
+    public ResponseEntity<GeneralResponse<AgentDto>> getCurrentAgent() {
+        log.info("Getting current agent");
+        AgentDto currentAgent = agentService.getCurrentAgent();
+        return ResponseEntity.ok(GeneralResponse.success("Current agent", currentAgent));
+    }
 
     @Override
     @PreAuthorize("hasRole('AGENT')")
@@ -92,14 +120,23 @@ public class AgentControllerImpl implements IAgentController {
 
     // Agent Statistics
 
-//    @Override
-//    @PreAuthorize("hasRole('AGENT')")
-//    @GetMapping("/statistics/customers-count/{agentId}")
-//    public ResponseEntity<GeneralResponse<Long>> getMyCustomersCount(@PathVariable UUID agentId) {
-//        log.info("Agent fetching customers count: agentId={}", agentId);
-//        Long count = agentService.getMyCustomersCount(agentId);
-//        return ResponseEntity.ok(GeneralResponse.success("Customers count", count));
-//    }
+    @Override
+    @PreAuthorize("hasRole('AGENT')")
+    @GetMapping("/statistics")
+    public ResponseEntity<GeneralResponse<AgentStatsDto>> getMyStatistics() {
+        log.info("Agent fetching statistics");
+        AgentStatsDto stats = agentService.getMyStatistics();
+        return ResponseEntity.ok(GeneralResponse.success("Agent statistics", stats));
+    }
+
+    @Override
+    @PreAuthorize("hasRole('AGENT')")
+    @GetMapping("/statistics/customers-count/{agentId}")
+    public ResponseEntity<GeneralResponse<Long>> getMyCustomersCount(@PathVariable UUID agentId) {
+        log.info("Agent fetching customers count: agentId={}", agentId);
+        Long count = agentService.getMyCustomersCount(agentId);
+        return ResponseEntity.ok(GeneralResponse.success("Customers count", count));
+    }
 
     @Override
     @PreAuthorize("hasRole('AGENT')")
@@ -118,10 +155,6 @@ public class AgentControllerImpl implements IAgentController {
         Long count = agentService.getMyPendingClaimsCount(agentId);
         return ResponseEntity.ok(GeneralResponse.success("Pending claims count", count));
     }
-
-
-
-    // Customer Management
 
     @Override
     @PreAuthorize("hasRole('AGENT')")

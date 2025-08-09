@@ -27,4 +27,8 @@ public interface ICustomerRepository extends JpaRepository<Customer, UUID> {
     boolean existsByTaxNumber(@NotBlank(message = "Tax number is required") String taxNumber);
 
     boolean existsByNationalId(@NotBlank @Size(min = 11, max = 11, message = "National ID must be 11 characters long") String nationalId);
+
+
+    @Query("SELECT COUNT(DISTINCT p.customer.id) FROM Policy p WHERE p.agent.id = :agentId")
+    Long countByAgentId(UUID agentId);
 }

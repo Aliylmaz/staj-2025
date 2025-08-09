@@ -2,6 +2,7 @@ package com.ada.insurance_app.controller.user;
 
 import com.ada.insurance_app.core.common.dto.GeneralResponse;
 import com.ada.insurance_app.dto.AgentDto;
+import com.ada.insurance_app.dto.AgentStatsDto;
 import com.ada.insurance_app.dto.CustomerDto;
 import com.ada.insurance_app.dto.OfferDto;
 import com.ada.insurance_app.dto.PolicyDto;
@@ -18,15 +19,20 @@ public interface IAgentController {
     ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyPolicies(UUID agentId);
     ResponseEntity<GeneralResponse<List<OfferDto>>> getAllOffers();
     
+    // Offer approval endpoints
+    ResponseEntity<GeneralResponse<OfferDto>> approveOffer(Long offerId, UUID agentId);
+    ResponseEntity<GeneralResponse<OfferDto>> rejectOffer(Long offerId, UUID agentId, String reason);
+    
     // New endpoints for real agent operations
+    ResponseEntity<GeneralResponse<AgentDto>> getCurrentAgent();
     ResponseEntity<GeneralResponse<AgentDto>> getAgentProfile(UUID agentId);
     ResponseEntity<GeneralResponse<AgentDto>> updateAgentProfile(UUID agentId, AgentDto agentDto);
     
     // Agent Statistics
-    //ResponseEntity<GeneralResponse<Long>> getMyCustomersCount(UUID agentId);
+    ResponseEntity<GeneralResponse<AgentStatsDto>> getMyStatistics();
+    ResponseEntity<GeneralResponse<Long>> getMyCustomersCount(UUID agentId);
     ResponseEntity<GeneralResponse<Long>> getMyActivePoliciesCount(UUID agentId);
     ResponseEntity<GeneralResponse<Long>> getMyPendingClaimsCount(UUID agentId);
-
     
     // Customer Management
     ResponseEntity<GeneralResponse<List<CustomerDto>>> getMyCustomers(UUID agentId);
