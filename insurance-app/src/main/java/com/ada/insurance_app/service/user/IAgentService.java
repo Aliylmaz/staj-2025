@@ -12,9 +12,8 @@ import java.util.UUID;
 
 public interface IAgentService {
     OfferDto updateOfferStatus(OfferUpdateRequest request);
-    List<CustomerDto> getAllCustomers();
     CustomerDto updateCustomer(UUID customerId, UpdateIndividualCustomerRequest request);
-    List<PolicyDto> getMyPolicies(UUID agentId);
+
     List<OfferDto> getAllOffers();
     
     // Offer approval methods
@@ -28,22 +27,18 @@ public interface IAgentService {
     
     // Agent Statistics
     AgentStatsDto getMyStatistics();
-    Long getMyActivePoliciesCount(UUID agentId);
-    Long getMyPendingClaimsCount(UUID agentId);
+    Long getMyActivePoliciesCount();
+    Long getMyPendingClaimsCount();
 
     
-    // Customer Management
-    List<CustomerDto> getMyCustomers(UUID agentId);
-    CustomerDto assignCustomerToAgent(UUID customerId, UUID agentId);
-    CustomerDto removeCustomerFromAgent(UUID customerId, UUID agentId);
-    Long getMyCustomersCount(UUID agentId);
+    // Customer Management (through offers/policies)
+    List<CustomerDto> getMyCustomers();
+    Long getMyCustomersCount();
     
     // Policy Management
-    List<PolicyDto> getMyActivePolicies(UUID agentId);
-    List<PolicyDto> getMyExpiredPolicies(UUID agentId);
-    PolicyDto assignPolicyToAgent(Long policyId, UUID agentId);
+    List<PolicyDto> getMyActivePolicies();
+    List<PolicyDto> getMyExpiredPolicies();
+    PolicyDto assignPolicyToAgent(Long policyId, UUID agentId); // Bu admin işlemi olduğu için agentId kalabilir
     
-    // Commission Tracking
-    Double getCommissionForPolicy(Long policyId, UUID agentId);
-    List<PolicyDto> getPoliciesForCommissionCalculation(UUID agentId, String month, String year);
+
 } 

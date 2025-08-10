@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { axiosInstance } from '../services/customerApi';
-import { setCustomerId, clearCustomerId, isCustomerIdReady } from '../utils/uuidUtils';
+import { setCustomerId, clearCustomerId } from '../utils/uuidUtils';
 
 interface User {
   id: string;
@@ -33,6 +33,7 @@ interface CustomerContextType {
   isReady: boolean;
   fetchCustomer: () => Promise<void>;
   clearCustomer: () => void;
+  refreshCustomer: () => Promise<void>;
 }
 
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
@@ -50,6 +51,8 @@ interface CustomerProviderProps {
 }
 
 export const CustomerProvider: React.FC<CustomerProviderProps> = ({ children }) => {
+  console.log('🚀 CustomerProvider - Component rendered!');
+  
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [customerId, setCustomerIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -65,7 +68,7 @@ export const CustomerProvider: React.FC<CustomerProviderProps> = ({ children }) 
     setLoading(false);
     setError(null);
     clearCustomerId();
-  }, []);
+  }, []); // Empty dependency array
 
   const fetchCustomer = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -81,21 +84,14 @@ export const CustomerProvider: React.FC<CustomerProviderProps> = ({ children }) 
       return;
     }
 
-    // Check if we already have valid customer data in localStorage
-    const storedCustomerId = localStorage.getItem('customerId');
-    if (isCustomerIdReady(storedCustomerId)) {
-      console.log('✅ CustomerContext - Valid customer ID already in localStorage, skipping fetch');
-      setCustomerIdState(storedCustomerId);
-      setIsReady(true);
-      return;
-    }
-
+    // Always fetch customer data from API, don't skip
+    console.log('🔄 CustomerContext - Always fetching customer data from API...');
     setLoading(true);
     setError(null);
 
     try {
-      console.log('🌐 CustomerContext - Making API call to /api/v1/customer/current');
-      const response = await axiosInstance.get('/api/v1/customer/current');
+      console.log('🌐 CustomerContext - Making API call to /customer/current');
+      const response = await axiosInstance.get('/customer/current');
 
       console.log('✅ CustomerContext - API call successful');
       const customerData = response.data.data;
@@ -136,27 +132,80 @@ export const CustomerProvider: React.FC<CustomerProviderProps> = ({ children }) 
     } finally {
       setLoading(false);
     }
-  }, [clearCustomer]);
+  }, []); // Removed clearCustomer dependency
+
+  // Refresh customer data (for profile updates)
+  const refreshCustomer = useCallback(async () => {
+    console.log('🔄 CustomerContext - refreshCustomer called');
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log('🌐 CustomerContext - Making API call to /customer/current');
+      const response = await axiosInstance.get('/customer/current');
+
+      console.log('✅ CustomerContext - API call successful');
+      const customerData = response.data.data;
+      
+      console.log('📊 CustomerContext - Customer data received:', customerData);
+      
+      // Validate customer data
+      if (!customerData || !customerData.id) {
+        throw new Error('Invalid customer data received from server');
+      }
+
+      // Set customer data
+      setCustomer(customerData);
+      setCustomerIdState(customerData.id);
+      
+      // Set in localStorage with validation
+      const success = setCustomerId(customerData.id);
+      if (!success) {
+        throw new Error('Failed to set customer ID in localStorage');
+      }
+      
+      setIsReady(true);
+      console.log('✅ CustomerContext - Customer data refreshed:', customerData.id);
+      
+    } catch (err: any) {
+      console.error('❌ CustomerContext - Error refreshing customer:', err);
+      
+      if (err.response?.status === 401) {
+        console.log('🔒 CustomerContext - 401 Unauthorized, clearing localStorage');
+        localStorage.removeItem('token');
+        localStorage.removeItem('userRole');
+        clearCustomer();
+        window.location.href = '/login';
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to refresh customer data');
+        setIsReady(false);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []); // Empty dependency array
 
   // Initialize customer data on mount
   useEffect(() => {
+    console.log('🚀 CustomerContext - useEffect triggered - HELLO WORLD!');
+    console.log('🚀 CustomerContext - useEffect is working!');
+    
     const token = localStorage.getItem('token');
     const userRole = localStorage.getItem('userRole');
     const storedCustomerId = localStorage.getItem('customerId');
     
-    console.log('🚀 CustomerContext - useEffect triggered');
     console.log('🚀 CustomerContext - token exists:', !!token);
     console.log('🚀 CustomerContext - userRole:', userRole);
     console.log('🚀 CustomerContext - stored customerId:', storedCustomerId);
     
     if (token && userRole === 'CUSTOMER') {
-      if (isCustomerIdReady(storedCustomerId)) {
-        console.log('✅ CustomerContext - Valid stored customer ID found, setting state');
-        setCustomerIdState(storedCustomerId);
-        setIsReady(true);
-      } else {
-        console.log('🔄 CustomerContext - No valid customer ID, fetching from API');
+      // Always fetch customer data if we don't have it
+      if (!customer) {
+        console.log('🔄 CustomerContext - No customer data, fetching from API');
         fetchCustomer();
+      } else {
+        console.log('✅ CustomerContext - Customer data already exists, setting ready');
+        setIsReady(true);
       }
     } else {
       console.log('❌ CustomerContext - No token or wrong role, clearing state');
@@ -172,7 +221,16 @@ export const CustomerProvider: React.FC<CustomerProviderProps> = ({ children }) 
     isReady,
     fetchCustomer,
     clearCustomer,
+    refreshCustomer,
   };
+
+  console.log('🔍 CustomerContext - Current state:', {
+    customer: customer,
+    customerId: customerId,
+    loading: loading,
+    error: error,
+    isReady: isReady
+  });
 
   return (
     <CustomerContext.Provider value={value}>

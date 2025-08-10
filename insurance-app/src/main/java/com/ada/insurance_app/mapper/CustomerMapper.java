@@ -10,7 +10,10 @@ import org.mapstruct.factory.Mappers;
 public interface CustomerMapper {
 
     
-    @Mapping(target = "user", source = "user")
+    @Mapping(target = "user.firstName", source = "user.firstName")
+    @Mapping(target = "user.lastName", source = "user.lastName")
+    @Mapping(target = "user.email", source = "user.email")
+    @Mapping(target = "user.phoneNumber", source = "user.phoneNumber")
     CustomerDto toDto(Customer entity);
     
     @Mapping(target = "user", ignore = true)

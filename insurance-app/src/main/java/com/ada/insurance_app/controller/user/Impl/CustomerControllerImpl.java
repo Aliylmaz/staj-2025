@@ -83,6 +83,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/current")
     public ResponseEntity<GeneralResponse<CustomerDto>> getCurrentCustomer() {
         try {

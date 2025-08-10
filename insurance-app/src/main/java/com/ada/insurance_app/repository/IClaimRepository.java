@@ -53,6 +53,9 @@ public interface IClaimRepository extends JpaRepository<Claim, UUID> {
     List<Claim> findByNotificationsEnabledAndStatus(boolean notificationsEnabled, ClaimStatus status);
 
     long countByStatus(ClaimStatus status);
+    
+    Long countByAgent_Id(UUID agentId);
+    
     @Query("SELECT c FROM Claim c WHERE c.policy.customer.id = :customerId")
     List<Claim> findByCustomerId(UUID customerId);
     @Query("SELECT c FROM Claim c ORDER BY c.createdAt DESC")

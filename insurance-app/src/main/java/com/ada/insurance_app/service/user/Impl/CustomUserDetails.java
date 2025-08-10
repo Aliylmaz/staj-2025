@@ -26,7 +26,7 @@ public class CustomUserDetails implements SecurityUtils.CustomUserDetailsInterfa
 
  @Override
  public Collection<? extends GrantedAuthority> getAuthorities() {
-     return Collections.singletonList((GrantedAuthority) () -> user.getRole().toString());
+     return Collections.singletonList((GrantedAuthority) () -> "ROLE_" + user.getRole().toString());
  }
 
     @Override public String getPassword() { return user.getPassword(); }

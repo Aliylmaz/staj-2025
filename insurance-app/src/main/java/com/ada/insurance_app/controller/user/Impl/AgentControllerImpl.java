@@ -7,6 +7,7 @@ import com.ada.insurance_app.dto.AgentStatsDto;
 import com.ada.insurance_app.dto.CustomerDto;
 import com.ada.insurance_app.dto.OfferDto;
 import com.ada.insurance_app.dto.PolicyDto;
+
 import com.ada.insurance_app.request.offer.OfferUpdateRequest;
 import com.ada.insurance_app.request.customer.UpdateIndividualCustomerRequest;
 import com.ada.insurance_app.service.user.IAgentService;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
@@ -35,14 +37,7 @@ public class AgentControllerImpl implements IAgentController {
         return ResponseEntity.ok(GeneralResponse.success("Offer status updated", updated));
     }
 
-    @Override
-    @PreAuthorize("hasRole('AGENT')")
-    @GetMapping("/customers")
-    public ResponseEntity<GeneralResponse<List<CustomerDto>>> getAllCustomers() {
-        log.info("Agent fetching all customers");
-        List<CustomerDto> customers = agentService.getAllCustomers();
-        return ResponseEntity.ok(GeneralResponse.success("Customer list", customers));
-    }
+
 
     @Override
     @PreAuthorize("hasRole('AGENT')")
@@ -53,14 +48,7 @@ public class AgentControllerImpl implements IAgentController {
         return ResponseEntity.ok(GeneralResponse.success("Customer updated", updated));
     }
 
-    @Override
-    @PreAuthorize("hasRole('AGENT')")
-    @GetMapping("/policies/{agentId}")
-    public ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyPolicies(@PathVariable UUID agentId) {
-        log.info("Agent fetching policies: agentId={}", agentId);
-        List<PolicyDto> policies = agentService.getMyPolicies(agentId);
-        return ResponseEntity.ok(GeneralResponse.success("Agent's policies", policies));
-    }
+
 
     @Override
     @PreAuthorize("hasRole('AGENT')")
@@ -131,75 +119,57 @@ public class AgentControllerImpl implements IAgentController {
 
     @Override
     @PreAuthorize("hasRole('AGENT')")
-    @GetMapping("/statistics/customers-count/{agentId}")
-    public ResponseEntity<GeneralResponse<Long>> getMyCustomersCount(@PathVariable UUID agentId) {
-        log.info("Agent fetching customers count: agentId={}", agentId);
-        Long count = agentService.getMyCustomersCount(agentId);
+    @GetMapping("/statistics/customers-count")
+    public ResponseEntity<GeneralResponse<Long>> getMyCustomersCount() {
+        log.info("Agent fetching customers count");
+        Long count = agentService.getMyCustomersCount();
         return ResponseEntity.ok(GeneralResponse.success("Customers count", count));
     }
 
     @Override
     @PreAuthorize("hasRole('AGENT')")
-    @GetMapping("/statistics/active-policies-count/{agentId}")
-    public ResponseEntity<GeneralResponse<Long>> getMyActivePoliciesCount(@PathVariable UUID agentId) {
-        log.info("Agent fetching active policies count: agentId={}", agentId);
-        Long count = agentService.getMyActivePoliciesCount(agentId);
+    @GetMapping("/statistics/active-policies-count")
+    public ResponseEntity<GeneralResponse<Long>> getMyActivePoliciesCount() {
+        log.info("Agent fetching active policies count");
+        Long count = agentService.getMyActivePoliciesCount();
         return ResponseEntity.ok(GeneralResponse.success("Active policies count", count));
     }
 
     @Override
     @PreAuthorize("hasRole('AGENT')")
-    @GetMapping("/statistics/pending-claims-count/{agentId}")
-    public ResponseEntity<GeneralResponse<Long>> getMyPendingClaimsCount(@PathVariable UUID agentId) {
-        log.info("Agent fetching pending claims count: agentId={}", agentId);
-        Long count = agentService.getMyPendingClaimsCount(agentId);
+    @GetMapping("/statistics/pending-claims-count")
+    public ResponseEntity<GeneralResponse<Long>> getMyPendingClaimsCount() {
+        log.info("Agent fetching pending claims count");
+        Long count = agentService.getMyPendingClaimsCount();
         return ResponseEntity.ok(GeneralResponse.success("Pending claims count", count));
     }
 
     @Override
     @PreAuthorize("hasRole('AGENT')")
-    @GetMapping("/my-customers/{agentId}")
-    public ResponseEntity<GeneralResponse<List<CustomerDto>>> getMyCustomers(@PathVariable UUID agentId) {
-        log.info("Agent fetching my customers: agentId={}", agentId);
-        List<CustomerDto> customers = agentService.getMyCustomers(agentId);
+    @GetMapping("/my-customers")
+    public ResponseEntity<GeneralResponse<List<CustomerDto>>> getMyCustomers() {
+        log.info("Agent fetching my customers");
+        List<CustomerDto> customers = agentService.getMyCustomers();
         return ResponseEntity.ok(GeneralResponse.success("My customers", customers));
-    }
-
-    @Override
-    @PreAuthorize("hasRole('AGENT')")
-    @PostMapping("/customers/{customerId}/assign/{agentId}")
-    public ResponseEntity<GeneralResponse<CustomerDto>> assignCustomerToAgent(@PathVariable UUID customerId, @PathVariable UUID agentId) {
-        log.info("Agent assigning customer: customerId={}, agentId={}", customerId, agentId);
-        CustomerDto assigned = agentService.assignCustomerToAgent(customerId, agentId);
-        return ResponseEntity.ok(GeneralResponse.success("Customer assigned to agent", assigned));
-    }
-
-    @Override
-    @PreAuthorize("hasRole('AGENT')")
-    @DeleteMapping("/customers/{customerId}/remove/{agentId}")
-    public ResponseEntity<GeneralResponse<CustomerDto>> removeCustomerFromAgent(@PathVariable UUID customerId, @PathVariable UUID agentId) {
-        log.info("Agent removing customer: customerId={}, agentId={}", customerId, agentId);
-        CustomerDto removed = agentService.removeCustomerFromAgent(customerId, agentId);
-        return ResponseEntity.ok(GeneralResponse.success("Customer removed from agent", removed));
     }
 
     // Policy Management
 
     @Override
     @PreAuthorize("hasRole('AGENT')")
-    @GetMapping("/active-policies/{agentId}")
-    public ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyActivePolicies(@PathVariable UUID agentId) {
-        log.info("Agent fetching active policies: agentId={}", agentId);
-        List<PolicyDto> policies = agentService.getMyActivePolicies(agentId);
+    @GetMapping("/active-policies")
+    public ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyActivePolicies() {
+        log.info("Agent fetching active policies");
+        List<PolicyDto> policies = agentService.getMyActivePolicies();
         return ResponseEntity.ok(GeneralResponse.success("Active policies", policies));
     }
 
     @Override
     @PreAuthorize("hasRole('AGENT')")
-    @GetMapping("/expired-policies/{agentId}")
-    public ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyExpiredPolicies(@PathVariable UUID agentId) {
-        log.info("Agent fetching expired policies: agentId={}", agentId);
-        List<PolicyDto> policies = agentService.getMyExpiredPolicies(agentId);
+    @GetMapping("/expired-policies")
+    public ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyExpiredPolicies() {
+        log.info("Agent fetching expired policies");
+        List<PolicyDto> policies = agentService.getMyExpiredPolicies();
         return ResponseEntity.ok(GeneralResponse.success("Expired policies", policies));
     }
 
@@ -212,26 +182,7 @@ public class AgentControllerImpl implements IAgentController {
         return ResponseEntity.ok(GeneralResponse.success("Policy assigned to agent", assigned));
     }
 
-    // Commission Tracking
 
-    @Override
-    @PreAuthorize("hasRole('AGENT')")
-    @GetMapping("/commission/policy/{policyId}/{agentId}")
-    public ResponseEntity<GeneralResponse<Double>> getCommissionForPolicy(@PathVariable Long policyId, @PathVariable UUID agentId) {
-        log.info("Agent calculating commission: policyId={}, agentId={}", policyId, agentId);
-        Double commission = agentService.getCommissionForPolicy(policyId, agentId);
-        return ResponseEntity.ok(GeneralResponse.success("Commission for policy", commission));
-    }
 
-    @Override
-    @PreAuthorize("hasRole('AGENT')")
-    @GetMapping("/commission/policies/{agentId}")
-    public ResponseEntity<GeneralResponse<List<PolicyDto>>> getPoliciesForCommissionCalculation(
-            @PathVariable UUID agentId, 
-            @RequestParam String month, 
-            @RequestParam String year) {
-        log.info("Agent fetching policies for commission: agentId={}, month={}, year={}", agentId, month, year);
-        List<PolicyDto> policies = agentService.getPoliciesForCommissionCalculation(agentId, month, year);
-        return ResponseEntity.ok(GeneralResponse.success("Policies for commission calculation", policies));
-    }
+
 } 

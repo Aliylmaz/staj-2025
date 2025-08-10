@@ -87,8 +87,7 @@ export interface AgentDto {
   postalCode?: string;
   totalCustomersServed: number;
   totalPoliciesSold: number;
-  totalCommissionEarned: number;
-  monthlyCommission: number;
+
   successRate: number;
   licenseNumber?: string;
   licenseExpiryDate?: string;
@@ -102,7 +101,7 @@ export interface AgentStatsDto {
   totalClaims: number;
   totalPayments: number;
   totalPremium: number;
-  totalCommission: number;
+
   successRate: number;
 }
 
@@ -118,39 +117,21 @@ export const updateOfferStatus = async (request: OfferUpdateRequest): Promise<Of
 };
 
 // Customer Management
-export const getAllCustomers = async (): Promise<CustomerDto[]> => {
-  const response = await axiosInstance.get('/api/v1/agent/customers');
+export const getMyCustomers = async (): Promise<CustomerDto[]> => {
+  const response = await axiosInstance.get('/api/v1/agent/my-customers');
   return response.data.data;
 };
 
-export const getMyCustomers = async (agentId: string): Promise<CustomerDto[]> => {
-  const response = await axiosInstance.get(`/api/v1/agent/my-customers/${agentId}`);
-  return response.data.data;
-};
 
-export const assignCustomerToAgent = async (customerId: string, agentId: string): Promise<CustomerDto> => {
-  const response = await axiosInstance.post(`/api/v1/agent/customers/${customerId}/assign/${agentId}`);
-  return response.data.data;
-};
-
-export const removeCustomerFromAgent = async (customerId: string, agentId: string): Promise<CustomerDto> => {
-  const response = await axiosInstance.delete(`/api/v1/agent/customers/${customerId}/remove/${agentId}`);
-  return response.data.data;
-};
 
 // Policy Management
-export const getMyPolicies = async (agentId: string): Promise<PolicyDto[]> => {
-  const response = await axiosInstance.get(`/api/v1/agent/policies/${agentId}`);
+export const getMyActivePolicies = async (): Promise<PolicyDto[]> => {
+  const response = await axiosInstance.get('/api/v1/agent/active-policies');
   return response.data.data;
 };
 
-export const getMyActivePolicies = async (agentId: string): Promise<PolicyDto[]> => {
-  const response = await axiosInstance.get(`/api/v1/agent/active-policies/${agentId}`);
-  return response.data.data;
-};
-
-export const getMyExpiredPolicies = async (agentId: string): Promise<PolicyDto[]> => {
-  const response = await axiosInstance.get(`/api/v1/agent/expired-policies/${agentId}`);
+export const getMyExpiredPolicies = async (): Promise<PolicyDto[]> => {
+  const response = await axiosInstance.get('/api/v1/agent/expired-policies');
   return response.data.data;
 };
 
@@ -171,47 +152,130 @@ export const updateAgentProfile = async (agentId: string, agentData: Partial<Age
 };
 
 // Agent Statistics
-export const getMyCustomersCount = async (agentId: string): Promise<number> => {
-  const response = await axiosInstance.get(`/api/v1/agent/statistics/customers-count/${agentId}`);
+export const getMyCustomersCount = async (): Promise<number> => {
+  const response = await axiosInstance.get('/api/v1/agent/statistics/customers-count');
   return response.data.data;
 };
 
-export const getMyActivePoliciesCount = async (agentId: string): Promise<number> => {
-  const response = await axiosInstance.get(`/api/v1/agent/statistics/active-policies-count/${agentId}`);
+export const getMyActivePoliciesCount = async (): Promise<number> => {
+  const response = await axiosInstance.get('/api/v1/agent/statistics/active-policies-count');
   return response.data.data;
 };
 
-export const getMyPendingClaimsCount = async (agentId: string): Promise<number> => {
-  const response = await axiosInstance.get(`/api/v1/agent/statistics/pending-claims-count/${agentId}`);
+export const getMyPendingClaimsCount = async (): Promise<number> => {
+  const response = await axiosInstance.get('/api/v1/agent/statistics/pending-claims-count');
   return response.data.data;
 };
 
-export const getMyMonthlyCommission = async (agentId: string): Promise<number> => {
-  const response = await axiosInstance.get(`/api/v1/agent/statistics/monthly-commission/${agentId}`);
+// Statistics
+// Get individual agent statistics (uses current authenticated agent)
+export const getMyAgentStatistics = async (): Promise<AgentStatsDto> => {
+  const response = await axiosInstance.get('/api/v1/agent/statistics');
   return response.data.data;
 };
 
-export const getMyTotalCommission = async (agentId: string): Promise<number> => {
-  const response = await axiosInstance.get(`/api/v1/agent/statistics/total-commission/${agentId}`);
-  return response.data.data;
-};
-
-// Commission Tracking
-export const getCommissionForPolicy = async (policyId: number, agentId: string): Promise<number> => {
-  const response = await axiosInstance.get(`/api/v1/agent/commission/policy/${policyId}/${agentId}`);
-  return response.data.data;
-};
-
-export const getPoliciesForCommissionCalculation = async (
-  agentId: string, 
-  month: string, 
-  year: string
-): Promise<PolicyDto[]> => {
-  const response = await axiosInstance.get(`/api/v1/agent/commission/policies/${agentId}?month=${month}&year=${year}`);
-  return response.data.data;
-}; 
-
+// Get all agent statistics (admin endpoint)
 export const getAgentStatistics = async (): Promise<AgentStatsDto[]> => {
-  const response = await axiosInstance.get('/api/v1/dashboard/agent-statistics');
+  const response = await axiosInstance.get('/api/v1/admin/agent-statistics');
+  return response.data.data;
+};
+
+// Claim Management Interfaces
+export interface ClaimDto {
+  id: string;
+  claimNumber: string;
+  status: 'PENDING' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED' | 'PAID';
+  claimAmount: number;
+  approvedAmount?: number;
+  description: string;
+  incidentDate: string;
+  createdAt: string;
+  rejectionReason?: string;
+  policy: {
+    id: number;
+    policyNumber: string;
+    insuranceType: string;
+  };
+  customer: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
+export interface PaymentDto {
+  id: number;
+  paymentNumber: string;
+  amount: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'PAID';
+  paymentDate?: string;
+  createdAt: string;
+  policy: {
+    id: number;
+    policyNumber: string;
+    insuranceType: string;
+  };
+  customer: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+}
+
+// Claims Management (using existing backend endpoints)
+export const getClaimsByAgent = async (agentId: string): Promise<ClaimDto[]> => {
+  const response = await axiosInstance.get(`/api/v1/claims/agent/${agentId}`);
+  return response.data.data;
+};
+
+export const approveClaim = async (claimId: string, agentId: string): Promise<ClaimDto> => {
+  const response = await axiosInstance.put(`/api/v1/claims/${claimId}/approve/${agentId}`);
+  return response.data.data;
+};
+
+export const rejectClaim = async (claimId: string, agentId: string, reason: string): Promise<ClaimDto> => {
+  const response = await axiosInstance.put(`/api/v1/claims/${claimId}/reject/${agentId}?reason=${encodeURIComponent(reason)}`);
+  return response.data.data;
+};
+
+// Payments Management (placeholder - endpoints may not exist yet)
+export const getPaymentsByAgent = async (agentId: string): Promise<PaymentDto[]> => {
+  try {
+    const response = await axiosInstance.get(`/api/v1/payments/agent/${agentId}`);
+    return response.data.data;
+  } catch (error) {
+    console.warn('Payment endpoints not available yet');
+    return [];
+  }
+};
+
+export const approvePayment = async (paymentId: number, agentId: string): Promise<PaymentDto> => {
+  const response = await axiosInstance.put(`/api/v1/payments/${paymentId}/approve/${agentId}`);
+  return response.data.data;
+};
+
+export const rejectPayment = async (paymentId: number, agentId: string, reason: string): Promise<PaymentDto> => {
+  const response = await axiosInstance.put(`/api/v1/payments/${paymentId}/reject/${agentId}?reason=${encodeURIComponent(reason)}`);
+  return response.data.data;
+};
+
+// Premium Revision (placeholder - endpoint may not exist yet)
+export const reviseOfferPremium = async (offerId: number, newPremium: number, note?: string): Promise<OfferDto> => {
+  try {
+    const response = await axiosInstance.put(`/api/v1/agent/offers/${offerId}/revise-premium`, {
+      newPremium,
+      note
+    });
+    return response.data.data;
+  } catch (error) {
+    console.warn('Premium revision endpoint not available yet');
+    throw error;
+  }
+};
+
+// Get current agent info from token
+export const getCurrentAgent = async (): Promise<AgentDto> => {
+  const response = await axiosInstance.get('/api/v1/agent/current');
   return response.data.data;
 }; 

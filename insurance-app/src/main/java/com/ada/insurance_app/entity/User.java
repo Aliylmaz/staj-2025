@@ -63,7 +63,7 @@ public class User {
     public Collection<? extends GrantedAuthority> getAuthorities() {
         Set<GrantedAuthority> authorities = new HashSet<>();
         if (role != null) {
-            authorities.add(() -> role.name());
+            authorities.add(() -> "ROLE_" + role.name());
         }
         return authorities;
     }

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -75,6 +76,30 @@ public class DashboardServiceImpl implements IDashboardService {
             stats.add(agentStats);
         }
         return stats;
+    }
+
+    @Override
+    public AgentStatsDto getAgentStatisticsById(UUID agentId) {
+        Agent agent = agentRepository.findById(agentId)
+                .orElseThrow(() -> new IllegalArgumentException("Agent not found with ID: " + agentId));
+
+        String agentNumber = agent.getAgentNumber();
+
+        long policyCount = policyRepository.countPoliciesByAgent_AgentNumber(agentNumber);
+        long claimCount = claimRepository.countByPolicy_Agent_AgentNumber(agentNumber);
+        long paymentCount = paymentRepository.countByPolicy_Agent_AgentNumber(agentNumber);
+        double totalPremium = policyRepository.sumTotalPremiumByAgentNumber(agentNumber);
+
+        AgentStatsDto agentStats = new AgentStatsDto();
+        agentStats.setAgentName(agent.getName());
+        agentStats.setAgentNumber(agent.getAgentNumber());
+        agentStats.setTotalPolicies(policyCount);
+        agentStats.setTotalClaims(claimCount);
+        agentStats.setTotalPayments(paymentCount);
+        agentStats.setTotalPremium(totalPremium);
+        agentStats.setSuccessRate(claimCount > 0 ? (double) paymentCount / claimCount * 100 : 0.0);
+
+        return agentStats;
     }
 
 } 

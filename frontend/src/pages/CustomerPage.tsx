@@ -8,20 +8,25 @@ import {
   getMyClaims, 
   getMyPayments, 
   getMyDocuments, 
+  getCoveragesByInsuranceType, 
+  getAllAgents, 
   requestOffer, 
-  acceptOfferAndCreatePolicy, 
   createClaim, 
   makePayment, 
   uploadDocument,
-  getAllAgents,
-  getCoveragesByInsuranceType
+  updateIndividualCustomer,
+  updateCorporateCustomer,
+  getOfferById
 } from '../services/customerApi';
 import type { AgentDto, CoverageDto } from '../services/customerApi';
 
 export default function CustomerPage() {
   const [currentModule, setCurrentModule] = useState<'dashboard' | 'offers' | 'policies' | 'claims' | 'payments' | 'documents' | 'profile'>('dashboard');
   const navigate = useNavigate();
-  const { customer, customerId, loading: contextLoading, error: contextError, isReady } = useCustomer();
+  
+  console.log('🔍 CustomerPage - About to call useCustomer hook');
+  const { customer, customerId, loading: contextLoading, error: contextError, isReady, refreshCustomer } = useCustomer();
+  console.log('🔍 CustomerPage - useCustomer hook result:', { customer, customerId, contextLoading, contextError, isReady });
 
   // Data states
   const [offers, setOffers] = useState<any[]>([]);
@@ -35,12 +40,20 @@ export default function CustomerPage() {
   const [loading, setLoading] = useState(false);
   const [coveragesLoading, setCoveragesLoading] = useState(false);
 
+  // Offer action loading states
+
+  const [offerActionError, setOfferActionError] = useState<string | null>(null);
+  const [offerActionSuccess, setOfferActionSuccess] = useState<string | null>(null);
+  const [viewingPolicy, setViewingPolicy] = useState(false);
+
   // Form states
   const [showOfferForm, setShowOfferForm] = useState(false);
   const [showClaimForm, setShowClaimForm] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   const [selectedPolicyId, setSelectedPolicyId] = useState<number | null>(null);
+  const [selectedOffer, setSelectedOffer] = useState<any>(null);
+  const [showOfferDetails, setShowOfferDetails] = useState(false);
 
   // Form data
   const [insuranceType, setInsuranceType] = useState<'VEHICLE' | 'HEALTH' | 'HOME'>('VEHICLE');
@@ -89,6 +102,18 @@ export default function CustomerPage() {
   const [claimFormData, setClaimFormData] = useState({ description: '', amount: 0 });
   const [paymentFormData, setPaymentFormData] = useState({ amount: 0 });
   const [documentFormData, setDocumentFormData] = useState({ file: null as File | null });
+
+  // Profile update form state
+  const [showProfileUpdate, setShowProfileUpdate] = useState(false);
+  const [profileFormData, setProfileFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    address: '',
+    city: '',
+    country: '',
+    postalCode: ''
+  });
 
   // Debug localStorage values on mount
   useEffect(() => {
@@ -260,13 +285,125 @@ export default function CustomerPage() {
       setHomeData({
         address: '', buildingAge: 0, squareMeters: 0, earthquakeResistance: false, floorNumber: 0, totalFloors: 0, customerId: ''
       });
+      // Refresh customer data and context
+      await refreshCustomer();
       fetchAllData();
     } catch (error) {
       console.error('Error creating offer:', error);
     }
   };
 
+  const handleOfferClick = async (offer: any) => {
+    try {
+      console.log('🔍 handleOfferClick - offer data:', offer);
+      
+      // Fetch detailed offer information from API
+      const detailedOffer = await getOfferById(offer.id);
+      console.log('🔍 handleOfferClick - detailed offer from API:', detailedOffer);
+      
+      setSelectedOffer(detailedOffer);
+      setShowOfferDetails(true);
+    } catch (error) {
+      console.error('Error fetching offer details:', error);
+      alert('Error fetching offer details. Please try again.');
+    }
+  };
 
+
+
+
+
+  const handleViewPolicy = async (policyId: number) => {
+    try {
+      setViewingPolicy(true);
+      console.log('📄 handleViewPolicy - navigating to policy:', policyId);
+      
+      // For now, we'll show a success message
+      // In a real implementation, this would navigate to a policy details page
+      setOfferActionSuccess('Navigate to policy details page\n\nThis functionality will be implemented to show detailed policy information.');
+      setTimeout(() => setOfferActionSuccess(null), 5000); // Clear success after 5 seconds
+      
+      // TODO: Implement navigation to policy details page
+      // Example: navigate(`/customer/policies/${policyId}`);
+      
+    } catch (error) {
+      console.error('Error viewing policy:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error viewing policy. Please try again.';
+      setOfferActionError(errorMessage);
+      setTimeout(() => setOfferActionError(null), 5000); // Clear error after 5 seconds
+    } finally {
+      setViewingPolicy(false);
+    }
+  };
+
+  const handleProfileUpdate = async () => {
+    try {
+      // Validate required fields
+      if (!profileFormData.firstName || !profileFormData.lastName || !profileFormData.email) {
+        alert('Please fill in all required fields (First Name, Last Name, Email)');
+        return;
+      }
+
+      if (!customer?.id) {
+        alert('Customer ID not found. Please try again.');
+        return;
+      }
+
+      // Prepare update request
+      const updateRequest = {
+        firstName: profileFormData.firstName,
+        lastName: profileFormData.lastName,
+        email: profileFormData.email,
+        address: profileFormData.address,
+        city: profileFormData.city,
+        country: profileFormData.country,
+        postalCode: profileFormData.postalCode
+      };
+
+      // Update customer information
+      if (customer.customerType === 'CORPORATE') {
+        await updateCorporateCustomer(customer.id, updateRequest);
+      } else {
+        await updateIndividualCustomer(customer.id, updateRequest);
+      }
+
+      alert('Profile updated successfully!');
+      setShowProfileUpdate(false);
+      
+      // Reset form data
+      setProfileFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        address: '',
+        city: '',
+        country: '',
+        postalCode: ''
+      });
+      
+      // Refresh customer data and context
+      await refreshCustomer();
+      fetchAllData();
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Error updating profile. Please try again.');
+    }
+  };
+
+  const openProfileUpdate = () => {
+    if (customer) {
+      setProfileFormData({
+        firstName: customer.user?.firstName || '',
+        lastName: customer.user?.lastName || '',
+        email: customer.user?.email || '',
+        address: customer.address || '',
+        city: customer.city || '',
+        country: customer.country || '',
+        postalCode: customer.postalCode || ''
+      });
+    }
+    setShowProfileUpdate(true);
+  };
 
   const handleCreateClaim = async () => {
     if (!isReady || !selectedPolicyId) {
@@ -313,7 +450,7 @@ export default function CustomerPage() {
   const handleUploadDocument = async () => {
     if (!selectedPolicyId || !documentFormData.file) return;
     try {
-      await uploadDocument(documentFormData.file, selectedPolicyId);
+      await uploadDocument(documentFormData.file);
       setShowDocumentUpload(false);
       setDocumentFormData({ file: null });
       setSelectedPolicyId(null);
@@ -329,17 +466,29 @@ export default function CustomerPage() {
     navigate('/login');
   };
 
-  const handleConvertOfferToPolicy = async (offerId: number) => {
+  const handleConvertOfferToPolicy = async (_offerId: number) => {
     if (!isReady) {
       console.log('⏳ CustomerPage - Context not ready, cannot convert offer to policy');
       return;
     }
 
     try {
-      await acceptOfferAndCreatePolicy(offerId);
-      fetchAllData();
+      // For now, we'll show a success message
+      // In a real implementation, this would call a backend endpoint to convert offer to policy
+      setOfferActionSuccess('Offer converted to policy successfully! You can now view policy details and make payments.');
+      setTimeout(() => setOfferActionSuccess(null), 5000);
+      
+      // Close the offer details modal
+      setShowOfferDetails(false);
+      setSelectedOffer(null);
+      
+      // Refresh the offers list to show updated status
+      await fetchAllData();
     } catch (error) {
       console.error('Error converting offer to policy:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error converting offer to policy. Please try again.';
+      setOfferActionError(errorMessage);
+      setTimeout(() => setOfferActionError(null), 5000);
     }
   };
 
@@ -536,7 +685,7 @@ export default function CustomerPage() {
                 Total Premium
               </div>
               <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-                ₺{policies.reduce((sum, p) => sum + p.totalPremium, 0)}
+                €{policies.reduce((sum, p) => sum + p.totalPremium, 0)}
               </div>
             </div>
             <div style={{ fontSize: '2rem' }}>💳</div>
@@ -554,11 +703,11 @@ export default function CustomerPage() {
         }}>
           Quick Actions
         </h2>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-          gap: '1rem' 
-        }}>
+                           <div style={{
+                     display: 'grid',
+                     gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                     gap: '1.5rem'
+                   }}>
           <button 
             onClick={() => setShowOfferForm(true)}
             style={{
@@ -754,8 +903,10 @@ export default function CustomerPage() {
                      padding: '1.5rem',
                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                      border: '1px solid #e5e7eb',
-                     transition: 'transform 0.2s, box-shadow 0.2s'
+                     transition: 'transform 0.2s, box-shadow 0.2s',
+                     cursor: 'pointer'
                    }}
+                   onClick={() => handleOfferClick(offer)}
                    onMouseEnter={(e) => {
                      e.currentTarget.style.transform = 'translateY(-4px)';
                      e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
@@ -784,8 +935,8 @@ export default function CustomerPage() {
                          borderRadius: '9999px',
                          fontSize: '0.75rem',
                          fontWeight: 500,
-                         background: offer.status === "PENDING" ? '#fef3c7' : offer.status === "APPROVED" ? '#dcfce7' : offer.status === "REJECTED" ? '#fee2e2' : '#e0e7ff',
-                         color: offer.status === "PENDING" ? '#92400e' : offer.status === "APPROVED" ? '#166534' : offer.status === "REJECTED" ? '#991b1b' : '#3730a3'
+                         background: offer.status === "PENDING" ? '#fef3c7' : offer.status === "ACCEPTED" ? '#dcfce7' : offer.status === "REJECTED" ? '#fee2e2' : '#e0e7ff',
+                         color: offer.status === "PENDING" ? '#92400e' : offer.status === "ACCEPTED" ? '#166534' : offer.status === "REJECTED" ? '#991b1b' : '#3730a3'
                        }}>
                          {offer.status}
                        </span>
@@ -801,11 +952,13 @@ export default function CustomerPage() {
                      <div style={{ marginBottom: '1.5rem' }}>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                          <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Insurance Type:</span>
-                         <span style={{ fontWeight: 600, color: '#1e293b' }}>{offer.insuranceType}</span>
+                         <span style={{ fontWeight: 600, color: '#1e293b' }}>
+                           {offer.insuranceType ? offer.insuranceType.charAt(0).toUpperCase() + offer.insuranceType.slice(1).toLowerCase() : 'N/A'}
+                         </span>
                        </div>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                          <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Total Premium:</span>
-                         <span style={{ fontWeight: 600, color: '#1e293b' }}>₺{offer.totalPremium}</span>
+                         <span style={{ fontWeight: 600, color: '#1e293b' }}>€{offer.totalPremium}</span>
                        </div>
                        {offer.note && (
                          <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px' }}>
@@ -815,27 +968,41 @@ export default function CustomerPage() {
                        )}
                      </div>
 
-                     {offer.status === 'APPROVED' && (
-                       <button
-                         onClick={() => handleConvertOfferToPolicy(offer.id)}
-                         style={{
-                           width: '100%',
-                           padding: '0.75rem 1rem',
-                           background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                           color: 'white',
-                           border: 'none',
-                           borderRadius: '8px',
-                           fontSize: '0.875rem',
-                           fontWeight: 600,
-                           cursor: 'pointer',
-                           transition: 'transform 0.2s'
-                         }}
-                         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                       >
-                         Convert to Policy
-                       </button>
-                     )}
+                      {offer.status === 'ACCEPTED' && (
+                        <button
+                          onClick={() => handleConvertOfferToPolicy(offer.id)}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem 1rem',
+                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                        >
+                          Convert to Policy
+                        </button>
+                      )}
+                      {offer.status === 'PENDING' && (
+                        <div style={{
+                          padding: '0.75rem 1rem',
+                          background: '#fef3c7',
+                          color: '#92400e',
+                          border: '1px solid #f59e0b',
+                          borderRadius: '8px',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          textAlign: 'center'
+                        }}>
+                          ⏳ Waiting for agent to review and select coverages
+                        </div>
+                      )}
                      {offer.status === 'REJECTED' && (
                        <button
                          onClick={() => setCurrentModule('offers')}
@@ -1053,7 +1220,7 @@ export default function CustomerPage() {
                        </div>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                          <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Total Premium:</span>
-                         <span style={{ fontWeight: 600, color: '#1e293b' }}>₺{policy.totalPremium}</span>
+                         <span style={{ fontWeight: 600, color: '#1e293b' }}>€{policy.totalPremium}</span>
                        </div>
                        <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px' }}>
                          <div style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '0.5rem' }}>Coverage Period:</div>
@@ -1285,7 +1452,7 @@ export default function CustomerPage() {
                      <div style={{ marginBottom: '1.5rem' }}>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                          <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Amount:</span>
-                         <span style={{ fontWeight: 600, color: '#1e293b' }}>₺{claim.amount}</span>
+                         <span style={{ fontWeight: 600, color: '#1e293b' }}>€{claim.amount}</span>
                        </div>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                          <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Claim Date:</span>
@@ -1429,7 +1596,7 @@ export default function CustomerPage() {
                      <div style={{ marginBottom: '1.5rem' }}>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                          <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Amount:</span>
-                         <span style={{ fontWeight: 600, color: '#1e293b' }}>₺{payment.amount}</span>
+                         <span style={{ fontWeight: 600, color: '#1e293b' }}>€{payment.amount}</span>
                        </div>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                          <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Payment Date:</span>
@@ -1627,42 +1794,67 @@ export default function CustomerPage() {
            </div>
          );
        case 'profile':
+         console.log('🔍 Profile render - customer data:', customer);
+         console.log('🔍 Profile render - customerId:', customerId);
+         console.log('🔍 Profile render - isReady:', isReady);
+         console.log('🔍 Profile render - contextLoading:', contextLoading);
+         
          return (
-           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
-             <div style={{ marginBottom: '2rem' }}>
-               <h1 style={{
-                 fontSize: '2.5rem',
-                 fontWeight: 700,
-                 color: '#1e293b',
-                 marginBottom: '0.5rem'
-               }}>
-                 My Profile
-               </h1>
-               <p style={{
-                 fontSize: '1.1rem',
-                 color: '#64748b',
-                 margin: 0
-               }}>
-                 Manage your personal information and account settings
-               </p>
-             </div>
-
-             <div style={{
-               background: 'white',
-               borderRadius: '16px',
-               padding: '2rem',
-               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-               maxWidth: '600px'
-             }}>
-               <div style={{ marginBottom: '2rem' }}>
-                 <h2 style={{
-                   fontSize: '1.5rem',
-                   fontWeight: 600,
+           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh', display: 'flex', justifyContent: 'center' }}>
+             <div style={{ maxWidth: '800px', width: '100%' }}>
+               <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+                 <h1 style={{
+                   fontSize: '2.5rem',
+                   fontWeight: 700,
                    color: '#1e293b',
-                   marginBottom: '1rem'
+                   marginBottom: '0.5rem'
                  }}>
-                   Personal Information
-                 </h2>
+                   My Profile
+                 </h1>
+                 <p style={{
+                   fontSize: '1.1rem',
+                   color: '#64748b',
+                   margin: 0
+                 }}>
+                   Manage your personal information and account settings
+                 </p>
+               </div>
+
+               <div style={{
+                 background: 'white',
+                 borderRadius: '16px',
+                 padding: '2rem',
+                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                 marginBottom: '2rem'
+               }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                   <h2 style={{
+                     fontSize: '1.5rem',
+                     fontWeight: 600,
+                     color: '#1e293b',
+                     margin: 0
+                   }}>
+                     Personal Information
+                   </h2>
+                   <button
+                     onClick={openProfileUpdate}
+                     style={{
+                       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                       color: 'white',
+                       border: 'none',
+                       borderRadius: '8px',
+                       padding: '0.75rem 1.5rem',
+                       fontSize: '0.875rem',
+                       fontWeight: 600,
+                       cursor: 'pointer',
+                       transition: 'transform 0.2s'
+                     }}
+                     onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                     onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                   >
+                     ✏️ Update Profile
+                   </button>
+                 </div>
                  <div style={{
                    display: 'grid',
                    gridTemplateColumns: '1fr 1fr',
@@ -2763,7 +2955,7 @@ export default function CustomerPage() {
                  color: '#374151',
                  marginBottom: '0.5rem'
                }}>
-                 Amount (₺)
+                 Amount (€)
                </label>
                <input
                  type="text"
@@ -2886,7 +3078,7 @@ export default function CustomerPage() {
                  <option value="">Select a policy...</option>
                  {policies.map((policy) => (
                    <option key={policy.id} value={policy.id}>
-                     {policy.policyNumber} - ₺{policy.totalPremium}
+                     {policy.policyNumber} - €{policy.totalPremium}
                    </option>
                  ))}
                </select>
@@ -2900,7 +3092,7 @@ export default function CustomerPage() {
                  color: '#374151',
                  marginBottom: '0.5rem'
                }}>
-                 Amount (₺)
+                 Amount (€)
                </label>
                <input
                  type="text"
@@ -3084,6 +3276,1346 @@ export default function CustomerPage() {
                  Upload Document
                </button>
              </div>
+           </div>
+         </div>
+       )}
+
+       {/* Offer Details Modal */}
+       {showOfferDetails && selectedOffer && (
+         <div style={{
+           position: 'fixed',
+           top: 0,
+           left: 0,
+           right: 0,
+           bottom: 0,
+           background: 'rgba(0, 0, 0, 0.5)',
+           display: 'flex',
+           alignItems: 'center',
+           justifyContent: 'center',
+           zIndex: 1000
+         }}>
+           <div style={{
+             background: 'white',
+             borderRadius: '20px',
+             padding: '2.5rem',
+             width: '90%',
+             maxWidth: '900px',
+             maxHeight: '90vh',
+             overflow: 'auto',
+             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+             border: '1px solid #e5e7eb'
+           }}>
+             <div style={{ 
+               display: 'flex', 
+               justifyContent: 'space-between', 
+               alignItems: 'center', 
+               marginBottom: '2rem',
+               paddingBottom: '1rem',
+               borderBottom: '2px solid #e5e7eb'
+             }}>
+               <h2 style={{
+                 fontSize: '1.75rem',
+                 fontWeight: 700,
+                 color: '#1e293b',
+                 margin: 0
+               }}>
+                 📋 Offer Details
+               </h2>
+               
+               {/* Offer Summary */}
+               <div style={{
+                 background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+                 border: '1px solid #cbd5e1',
+                 borderRadius: '12px',
+                 padding: '1.5rem',
+                 marginTop: '1rem',
+                 display: 'grid',
+                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                 gap: '1rem'
+               }}>
+                 <div>
+                   <div style={{
+                     fontSize: '0.75rem',
+                     fontWeight: 600,
+                     color: '#64748b',
+                     textTransform: 'uppercase',
+                     letterSpacing: '0.05em',
+                     marginBottom: '0.25rem'
+                   }}>
+                     Offer Number
+                   </div>
+                   <div style={{
+                     fontSize: '1.125rem',
+                     fontWeight: 700,
+                     color: '#1e293b',
+                     fontFamily: 'monospace'
+                   }}>
+                     {selectedOffer.offerNumber}
+                   </div>
+                 </div>
+                 
+                 <div>
+                   <div style={{
+                     fontSize: '0.75rem',
+                     fontWeight: 600,
+                     color: '#64748b',
+                     textTransform: 'uppercase',
+                     letterSpacing: '0.05em',
+                     marginBottom: '0.25rem'
+                   }}>
+                     Status
+                   </div>
+                   <div style={{
+                     fontSize: '1.125rem',
+                     fontWeight: 700,
+                     color: selectedOffer.status === 'PENDING' ? '#f59e0b' : 
+                            selectedOffer.status === 'ACCEPTED' ? '#059669' : '#dc2626',
+                     background: selectedOffer.status === 'PENDING' ? '#fef3c7' : 
+                               selectedOffer.status === 'ACCEPTED' ? '#d1fae5' : '#fee2e2',
+                     padding: '0.25rem 0.75rem',
+                     borderRadius: '6px',
+                     display: 'inline-block'
+                   }}>
+                     {selectedOffer.status}
+                   </div>
+                 </div>
+                 
+                 <div>
+                   <div style={{
+                     fontSize: '0.75rem',
+                     fontWeight: 600,
+                     color: '#64748b',
+                     textTransform: 'uppercase',
+                     letterSpacing: '0.05em',
+                     marginBottom: '0.25rem'
+                   }}>
+                     Total Premium
+                   </div>
+                   <div style={{
+                     fontSize: '1.5rem',
+                     fontWeight: 800,
+                     color: '#059669',
+                     background: '#f0fdf4',
+                     padding: '0.5rem 1rem',
+                     borderRadius: '8px',
+                     border: '2px solid #bbf7d0'
+                   }}>
+                     €{selectedOffer.totalPremium}
+                   </div>
+                 </div>
+                 
+                 <div>
+                   <div style={{
+                     fontSize: '0.75rem',
+                     fontWeight: 600,
+                     color: '#64748b',
+                     textTransform: 'uppercase',
+                     letterSpacing: '0.05em',
+                     marginBottom: '0.25rem'
+                   }}>
+                     Insurance Type
+                   </div>
+                   <div style={{
+                     fontSize: '1.125rem',
+                     fontWeight: 700,
+                     color: '#1e293b',
+                     background: '#f1f5f9',
+                     padding: '0.5rem 1rem',
+                     borderRadius: '6px',
+                     border: '1px solid #e2e8f0'
+                   }}>
+                     {selectedOffer.insuranceType ? selectedOffer.insuranceType.charAt(0).toUpperCase() + selectedOffer.insuranceType.slice(1).toLowerCase() : 'N/A'}
+                   </div>
+                 </div>
+               </div>
+             </div>
+             
+             <button
+               onClick={() => setShowOfferDetails(false)}
+               style={{
+                 position: 'absolute',
+                 top: '1.5rem',
+                 right: '1.5rem',
+                 background: '#f1f5f9',
+                 border: '1px solid #e2e8f0',
+                 borderRadius: '8px',
+                 fontSize: '1.25rem',
+                 cursor: 'pointer',
+                 color: '#64748b',
+                 width: '40px',
+                 height: '40px',
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 transition: 'all 0.2s ease-in-out'
+               }}
+               onMouseEnter={(e) => {
+                 e.currentTarget.style.background = '#e2e8f0';
+                 e.currentTarget.style.color = '#475569';
+               }}
+               onMouseLeave={(e) => {
+                 e.currentTarget.style.background = '#f1f5f9';
+                 e.currentTarget.style.color = '#64748b';
+               }}
+             >
+               ✕
+             </button>
+
+             <div style={{ marginBottom: '2rem' }}>
+               <div style={{
+                 display: 'grid',
+                 gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                 gap: '1.5rem',
+                 marginBottom: '1.5rem'
+               }}>
+                 <div>
+                   <label style={{
+                     display: 'block',
+                     fontSize: '0.875rem',
+                     fontWeight: 500,
+                     color: '#374151',
+                     marginBottom: '0.25rem'
+                   }}>Offer Number</label>
+                   <div style={{
+                     padding: '0.75rem',
+                     border: '1px solid #d1d5db',
+                     borderRadius: '8px',
+                     fontSize: '0.875rem',
+                     background: '#f9fafb',
+                     fontWeight: 600,
+                     color: '#1e293b',
+                     fontFamily: 'monospace',
+                     letterSpacing: '0.05em'
+                   }}>
+                     {selectedOffer.offerNumber}
+                   </div>
+                   <div style={{
+                     marginTop: '0.5rem',
+                     fontSize: '0.75rem',
+                     color: '#6b7280',
+                     textAlign: 'center'
+                   }}>
+                     Unique Identifier
+                   </div>
+                 </div>
+                 <div>
+                   <label style={{
+                     display: 'block',
+                     fontSize: '0.875rem',
+                     fontWeight: 500,
+                     color: '#374151',
+                     marginBottom: '0.25rem'
+                   }}>Status</label>
+                   <div style={{
+                     padding: '0.75rem',
+                     borderRadius: '8px',
+                     fontSize: '0.875rem',
+                     fontWeight: 500,
+                     textAlign: 'center',
+                     background: selectedOffer.status === "PENDING" ? '#fef3c7' : selectedOffer.status === "ACCEPTED" ? '#dcfce7' : selectedOffer.status === "REJECTED" ? '#fee2e2' : '#e0e7ff',
+                     color: selectedOffer.status === "PENDING" ? '#92400e' : selectedOffer.status === "ACCEPTED" ? '#166534' : selectedOffer.status === "REJECTED" ? '#991b1b' : '#3730a3'
+                   }}>
+                     {selectedOffer.status}
+                   </div>
+                   {selectedOffer.status === "PENDING" && (
+                     <div style={{
+                       marginTop: '0.5rem',
+                       fontSize: '0.75rem',
+                       color: '#6b7280',
+                       textAlign: 'center'
+                     }}>
+                       Waiting for your response
+                     </div>
+                   )}
+                   {selectedOffer.status === "ACCEPTED" && (
+                     <div style={{
+                       marginTop: '0.5rem',
+                       fontSize: '0.75rem',
+                       color: '#059669',
+                       textAlign: 'center',
+                       fontWeight: 500
+                     }}>
+                       ✓ Offer accepted
+                     </div>
+                   )}
+                   {selectedOffer.status === "REJECTED" && (
+                     <div style={{
+                       marginTop: '0.5rem',
+                       fontSize: '0.75rem',
+                       color: '#dc2626',
+                       textAlign: 'center',
+                       fontWeight: 500
+                     }}>
+                       ✗ Offer rejected
+                     </div>
+                   )}
+                 </div>
+                 <div>
+                   <label style={{
+                     display: 'block',
+                     fontSize: '0.875rem',
+                     fontWeight: 500,
+                     color: '#374151',
+                     marginBottom: '0.25rem'
+                   }}>Insurance Type</label>
+                   <div style={{
+                     padding: '0.75rem',
+                     border: '1px solid #d1d5db',
+                     borderRadius: '8px',
+                     fontSize: '0.875rem',
+                     background: '#f9fafb',
+                     fontWeight: 600,
+                     color: '#1e293b'
+                   }}>
+                     {selectedOffer.insuranceType ? selectedOffer.insuranceType.charAt(0).toUpperCase() + selectedOffer.insuranceType.slice(1).toLowerCase() : 'N/A'}
+                   </div>
+                   {selectedOffer.insuranceType && (
+                     <div style={{
+                       marginTop: '0.5rem',
+                       fontSize: '0.75rem',
+                       color: '#6b7280',
+                       textAlign: 'center'
+                     }}>
+                       {selectedOffer.insuranceType === 'VEHICLE' && '🚗 Vehicle Insurance'}
+                       {selectedOffer.insuranceType === 'HEALTH' && '🏥 Health Insurance'}
+                       {selectedOffer.insuranceType === 'HOME' && '🏠 Home Insurance'}
+                     </div>
+                   )}
+                 </div>
+                 <div>
+                   <label style={{
+                     display: 'block',
+                     fontSize: '0.875rem',
+                     fontWeight: 500,
+                     color: '#374151',
+                     marginBottom: '0.25rem'
+                   }}>Total Premium</label>
+                   <div style={{
+                     padding: '0.75rem',
+                     border: '1px solid #d1d5db',
+                     borderRadius: '8px',
+                     fontSize: '0.875rem',
+                     background: '#f9fafb',
+                     fontWeight: 600,
+                     color: '#059669'
+                   }}>
+                     €{selectedOffer.totalPremium}
+                   </div>
+                   <div style={{
+                     marginTop: '0.5rem',
+                     fontSize: '0.75rem',
+                     color: '#059669',
+                     textAlign: 'center',
+                     fontWeight: 500,
+                     background: '#f0fdf4',
+                     padding: '0.25rem 0.5rem',
+                     borderRadius: '4px',
+                     border: '1px solid #bbf7d0'
+                   }}>
+                     Total Amount
+                   </div>
+                 </div>
+                 {selectedOffer.agent && selectedOffer.agent.user && (
+                   <div>
+                     <label style={{
+                       display: 'block',
+                       fontSize: '0.875rem',
+                       fontWeight: 500,
+                       color: '#374151',
+                       marginBottom: '0.25rem'
+                     }}>Agent</label>
+                     <div style={{
+                       padding: '0.75rem',
+                       border: '1px solid #d1d5db',
+                       borderRadius: '8px',
+                       fontSize: '0.875rem',
+                       background: '#f9fafb',
+                       fontWeight: 600,
+                       color: '#1e293b'
+                     }}>
+                       {selectedOffer.agent.user.firstName} {selectedOffer.agent.user.lastName}
+                     </div>
+                     <div style={{
+                       marginTop: '0.5rem',
+                       fontSize: '0.75rem',
+                       color: '#6b7280',
+                       textAlign: 'center'
+                     }}>
+                       Assigned Agent
+                     </div>
+                   </div>
+                 )}
+                 {selectedOffer.policyId && (
+                   <div>
+                     <label style={{
+                       display: 'block',
+                       fontSize: '0.875rem',
+                       fontWeight: 500,
+                       color: '#374151',
+                       marginBottom: '0.25rem'
+                     }}>Policy ID</label>
+                     <div style={{
+                       padding: '0.75rem',
+                       border: '1px solid #d1d5db',
+                       borderRadius: '8px',
+                       fontSize: '0.875rem',
+                       background: '#f9fafb',
+                       fontWeight: 600,
+                       color: '#1e293b',
+                       fontFamily: 'monospace'
+                     }}>
+                       {selectedOffer.policyId}
+                     </div>
+                     <div style={{
+                       marginTop: '0.5rem',
+                       fontSize: '0.75rem',
+                       color: '#059669',
+                       textAlign: 'center',
+                       fontWeight: 500,
+                       background: '#f0fdf4',
+                       padding: '0.25rem 0.5rem',
+                       borderRadius: '4px',
+                       border: '1px solid #bbf7d0'
+                     }}>
+                       ✓ Converted to Policy
+                     </div>
+                   </div>
+                 )}
+               </div>
+
+               {/* Customer Information */}
+               {selectedOffer.customer && (
+                 <div style={{ marginBottom: '1.5rem' }}>
+                   <h3 style={{
+                     fontSize: '1.25rem',
+                     fontWeight: 600,
+                     color: '#1e293b',
+                     marginBottom: '1rem'
+                   }}>
+                     Customer Information
+                   </h3>
+                   <div style={{
+                     display: 'grid',
+                     gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                     gap: '1.5rem'
+                   }}>
+                     <div>
+                       <label style={{
+                         display: 'block',
+                         fontSize: '0.875rem',
+                         fontWeight: 500,
+                         color: '#374151',
+                         marginBottom: '0.25rem'
+                       }}>Customer Name</label>
+                       <div style={{
+                         padding: '0.75rem',
+                         border: '1px solid #d1d5db',
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: '#f9fafb'
+                       }}>
+                         {selectedOffer.customer.user?.firstName} {selectedOffer.customer.user?.lastName}
+                       </div>
+                     </div>
+                     <div>
+                       <label style={{
+                         display: 'block',
+                         fontSize: '0.875rem',
+                         fontWeight: 500,
+                         color: '#374151',
+                         marginBottom: '0.25rem'
+                       }}>Customer Type</label>
+                       <div style={{
+                         padding: '0.75rem',
+                         border: '1px solid #d1d5db',
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: '#f9fafb'
+                       }}>
+                         {selectedOffer.customer.customerType ? selectedOffer.customer.customerType.charAt(0).toUpperCase() + selectedOffer.customer.customerType.slice(1).toLowerCase() : 'N/A'}
+                       </div>
+                     </div>
+                     <div>
+                       <label style={{
+                         display: 'block',
+                         fontSize: '0.875rem',
+                         fontWeight: 500,
+                         color: '#374151',
+                         marginBottom: '0.25rem'
+                       }}>Email</label>
+                       <div style={{
+                         padding: '0.75rem',
+                         border: '1px solid #d1d5db',
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: '#f9fafb'
+                       }}>
+                         {selectedOffer.customer.user?.email || 'N/A'}
+                       </div>
+                     </div>
+                     <div>
+                       <label style={{
+                         display: 'block',
+                         fontSize: '0.875rem',
+                         fontWeight: 500,
+                         color: '#374151',
+                         marginBottom: '0.25rem'
+                       }}>Address</label>
+                       <div style={{
+                         padding: '0.75rem',
+                         border: '1px solid #d1d5db',
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: '#f9fafb'
+                       }}>
+                         {selectedOffer.customer.address || 'N/A'}
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               )}
+
+               {selectedOffer.note && (
+                 <div style={{ marginBottom: '1.5rem' }}>
+                   <h3 style={{
+                     fontSize: '1.25rem',
+                     fontWeight: 600,
+                     color: '#1e293b',
+                     marginBottom: '1rem'
+                   }}>
+                     Additional Notes
+                   </h3>
+                   <div style={{
+                     padding: '1.5rem',
+                     border: '1px solid #d1d5db',
+                     borderRadius: '8px',
+                     fontSize: '0.875rem',
+                     background: '#f9fafb',
+                     lineHeight: '1.6',
+                     color: '#374151',
+                     boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                   }}>
+                     {selectedOffer.note}
+                   </div>
+                 </div>
+               )}
+
+               <div style={{ marginBottom: '1.5rem' }}>
+                 <div style={{
+                   display: 'flex',
+                   justifyContent: 'space-between',
+                   alignItems: 'center',
+                   marginBottom: '1rem'
+                 }}>
+                   <h3 style={{
+                     fontSize: '1.25rem',
+                     fontWeight: 600,
+                     color: '#1e293b',
+                     margin: 0
+                   }}>
+                     Selected Coverages
+                   </h3>
+                   <div style={{
+                     display: 'flex',
+                     gap: '1rem',
+                     alignItems: 'center'
+                   }}>
+                     <span style={{
+                       fontSize: '0.875rem',
+                       color: '#6b7280',
+                       fontWeight: 500,
+                       background: '#f8fafc',
+                       padding: '0.25rem 0.75rem',
+                       borderRadius: '6px',
+                       border: '1px solid #e2e8f0'
+                     }}>
+                       Total: {selectedOffer.coverages ? selectedOffer.coverages.length : 0} coverage(s)
+                     </span>
+                     <span style={{
+                       fontSize: '0.875rem',
+                       color: '#059669',
+                       fontWeight: 600,
+                       background: '#f0fdf4',
+                       padding: '0.25rem 0.75rem',
+                       borderRadius: '6px',
+                       border: '1px solid #bbf7d0'
+                     }}>
+                       Total Premium: €{selectedOffer.totalPremium}
+                     </span>
+                   </div>
+                 </div>
+                 {selectedOffer.coverages && selectedOffer.coverages.length > 0 ? (
+                   <div style={{
+                     display: 'grid',
+                     gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                     gap: '1.5rem'
+                   }}>
+                     {selectedOffer.coverages.map((coverage: any) => (
+                       <div key={coverage.id} style={{
+                         background: '#f8fafc',
+                         border: '1px solid #e2e8f0',
+                         borderRadius: '8px',
+                         padding: '1rem',
+                         boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                         transition: 'all 0.2s ease-in-out'
+                       }}>
+                         <div style={{
+                           display: 'flex',
+                           justifyContent: 'space-between',
+                           alignItems: 'center',
+                           marginBottom: '0.5rem'
+                         }}>
+                           <h4 style={{
+                             fontSize: '1rem',
+                             fontWeight: 600,
+                             color: '#1e293b',
+                             margin: 0,
+                             background: '#f8fafc',
+                             padding: '0.25rem 0.5rem',
+                             borderRadius: '4px',
+                             border: '1px solid #e2e8f0'
+                           }}>
+                             {coverage.name}
+                           </h4>
+                           <span style={{
+                             fontSize: '0.875rem',
+                             fontWeight: 500,
+                             color: '#059669',
+                             background: '#f0fdf4',
+                             padding: '0.25rem 0.5rem',
+                             borderRadius: '4px',
+                             border: '1px solid #bbf7d0'
+                           }}>
+                             €{coverage.basePrice}
+                           </span>
+                         </div>
+                         <div style={{ marginBottom: '0.5rem' }}>
+                           <span style={{
+                             fontSize: '0.75rem',
+                             fontWeight: 500,
+                             color: '#6b7280',
+                             background: '#e5e7eb',
+                             padding: '0.25rem 0.5rem',
+                             borderRadius: '4px',
+                             fontFamily: 'monospace',
+                             letterSpacing: '0.05em'
+                           }}>
+                             {coverage.code}
+                           </span>
+                         </div>
+                         <p style={{
+                           fontSize: '0.875rem',
+                           color: '#64748b',
+                           margin: 0,
+                           lineHeight: '1.4',
+                           background: '#f8fafc',
+                           padding: '0.5rem',
+                           borderRadius: '4px',
+                           border: '1px solid #e2e8f0'
+                         }}>
+                           {coverage.description}
+                         </p>
+                         <div style={{
+                           marginTop: '0.75rem',
+                           paddingTop: '0.75rem',
+                           borderTop: '1px solid #e5e7eb',
+                           display: 'flex',
+                           justifyContent: 'space-between',
+                           alignItems: 'center'
+                         }}>
+                           <span style={{
+                             fontSize: '0.75rem',
+                             color: '#6b7280',
+                             background: '#f8fafc',
+                             padding: '0.25rem 0.5rem',
+                             borderRadius: '4px',
+                             border: '1px solid #e2e8f0'
+                           }}>
+                             Type: {coverage.insuranceType ? coverage.insuranceType.charAt(0).toUpperCase() + coverage.insuranceType.slice(1).toLowerCase() : 'N/A'}
+                           </span>
+                           <span style={{
+                             fontSize: '0.75rem',
+                             color: coverage.active ? '#059669' : '#dc2626',
+                             fontWeight: 500,
+                             background: coverage.active ? '#f0fdf4' : '#fef2f2',
+                             padding: '0.25rem 0.5rem',
+                             borderRadius: '4px',
+                             border: `1px solid ${coverage.active ? '#bbf7d0' : '#fecaca'}`
+                           }}>
+                             {coverage.active ? '✓ Active' : '✗ Inactive'}
+                           </span>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 ) : (
+                   <div style={{
+                     textAlign: 'center',
+                     padding: '2rem',
+                     background: '#f8fafc',
+                     borderRadius: '8px',
+                     border: '1px dashed #cbd5e1'
+                   }}>
+                     <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⏳</div>
+                     <p style={{
+                       color: '#64748b',
+                       margin: 0,
+                       fontSize: '1rem',
+                       fontWeight: 500
+                     }}>
+                       Waiting for agent to select coverages
+                     </p>
+                     <p style={{
+                       color: '#94a3b8',
+                       margin: '0.5rem 0 0 0',
+                       fontSize: '0.875rem'
+                     }}>
+                       Your agent will review your request and select appropriate coverages
+                     </p>
+                   </div>
+                 )}
+               </div>
+
+               {/* Additional Offer Information */}
+               <div style={{ marginBottom: '1.5rem' }}>
+                 <h3 style={{
+                   fontSize: '1.25rem',
+                   fontWeight: 600,
+                   color: '#1e293b',
+                   marginBottom: '1rem'
+                 }}>
+                   Offer Timeline
+                 </h3>
+                                    <div style={{
+                     display: 'grid',
+                     gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                     gap: '1.5rem'
+                   }}>
+                   <div>
+                     <label style={{
+                       display: 'block',
+                       fontSize: '0.875rem',
+                       fontWeight: 500,
+                       color: '#374151',
+                       marginBottom: '0.25rem'
+                     }}>Created Date</label>
+                     <div style={{
+                       padding: '0.75rem',
+                       border: '1px solid #d1d5db',
+                       borderRadius: '8px',
+                       fontSize: '0.875rem',
+                       background: '#f9fafb'
+                     }}>
+                       {selectedOffer.createdAt ? new Date(selectedOffer.createdAt).toLocaleDateString('tr-TR', {
+                         year: 'numeric',
+                         month: 'long',
+                         day: 'numeric',
+                         hour: '2-digit',
+                         minute: '2-digit'
+                       }) : 'N/A'}
+                     </div>
+                   </div>
+                   {selectedOffer.updatedAt && selectedOffer.updatedAt !== selectedOffer.createdAt && (
+                     <div>
+                       <label style={{
+                         display: 'block',
+                         fontSize: '0.875rem',
+                         fontWeight: 500,
+                         color: '#374151',
+                         marginBottom: '0.25rem'
+                       }}>Last Updated</label>
+                       <div style={{
+                         padding: '0.75rem',
+                         border: '1px solid #d1d5db',
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: '#f9fafb'
+                       }}>
+                         {new Date(selectedOffer.updatedAt).toLocaleDateString('tr-TR', {
+                           year: 'numeric',
+                           month: 'long',
+                           day: 'numeric',
+                           hour: '2-digit',
+                           minute: '2-digit'
+                         })}
+                       </div>
+                     </div>
+                   )}
+                   {selectedOffer.acceptedAt && (
+                     <div>
+                       <label style={{
+                         display: 'block',
+                         fontSize: '0.875rem',
+                         fontWeight: 500,
+                         color: '#374151',
+                         marginBottom: '0.25rem'
+                       }}>Accepted Date</label>
+                       <div style={{
+                         padding: '0.75rem',
+                         border: '1px solid #d1d5db',
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: '#f9fafb',
+                         color: '#059669',
+                         fontWeight: 600
+                       }}>
+                         {new Date(selectedOffer.acceptedAt).toLocaleDateString('tr-TR', {
+                           year: 'numeric',
+                           month: 'long',
+                           day: 'numeric',
+                           hour: '2-digit',
+                           minute: '2-digit'
+                         })}
+                       </div>
+                     </div>
+                   )}
+                   {selectedOffer.convertedAt && (
+                     <div>
+                       <label style={{
+                         display: 'block',
+                         fontSize: '0.875rem',
+                         fontWeight: 500,
+                         color: '#374151',
+                         marginBottom: '0.25rem'
+                       }}>Converted to Policy</label>
+                       <div style={{
+                         padding: '0.75rem',
+                         border: '1px solid #d1d5db',
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: '#f9fafb',
+                         color: '#059669',
+                         fontWeight: 600
+                       }}>
+                         {new Date(selectedOffer.convertedAt).toLocaleDateString('tr-TR', {
+                           year: 'numeric',
+                           month: 'long',
+                           day: 'numeric',
+                           hour: '2-digit',
+                           minute: '2-digit'
+                         })}
+                       </div>
+                     </div>
+                   )}
+                 </div>
+               </div>
+
+               <div style={{
+                 display: 'flex',
+                 justifyContent: 'space-between',
+                 alignItems: 'center',
+                 paddingTop: '1.5rem',
+                 borderTop: '1px solid #e5e7eb'
+               }}>
+                 <div style={{
+                   fontSize: '0.875rem',
+                   color: '#64748b'
+                 }}>
+                   Offer ID: {selectedOffer.id}
+                 </div>
+                 <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                   {/* Success Display */}
+                   {offerActionSuccess && (
+                     <div style={{
+                       width: '100%',
+                       background: '#f0fdf4',
+                       border: '1px solid #bbf7d0',
+                       borderRadius: '8px',
+                       padding: '1rem',
+                       marginBottom: '1rem',
+                       color: '#059669',
+                       fontSize: '0.875rem',
+                       display: 'flex',
+                       alignItems: 'center',
+                       gap: '0.5rem'
+                     }}>
+                       <span style={{ fontSize: '1.25rem' }}>✅</span>
+                       {offerActionSuccess}
+                     </div>
+                   )}
+                   
+                   {/* Error Display */}
+                   {offerActionError && (
+                     <div style={{
+                       width: '100%',
+                       background: '#fef2f2',
+                       border: '1px solid #fecaca',
+                       borderRadius: '8px',
+                       padding: '1rem',
+                       marginBottom: '1rem',
+                       color: '#dc2626',
+                       fontSize: '0.875rem',
+                       display: 'flex',
+                       alignItems: 'center',
+                       gap: '0.5rem'
+                     }}>
+                       <span style={{ fontSize: '1.25rem' }}>⚠️</span>
+                       {offerActionError}
+                     </div>
+                   )}
+                   
+                   {selectedOffer.status === "PENDING" && (
+                     <div style={{
+                       width: '100%',
+                       background: '#fef3c7',
+                       border: '1px solid #f59e0b',
+                       borderRadius: '8px',
+                       padding: '1rem',
+                       marginBottom: '1rem',
+                       color: '#92400e',
+                       fontSize: '0.875rem',
+                       display: 'flex',
+                       alignItems: 'center',
+                       gap: '0.5rem'
+                     }}>
+                       <span style={{ fontSize: '1.25rem' }}>⏳</span>
+                       <div>
+                         <strong>Offer Pending Agent Review</strong><br/>
+                         This offer is currently being reviewed by our agent. You will be notified once it's approved or rejected.
+                       </div>
+                     </div>
+                   )}
+                   
+                   {selectedOffer.status === "ACCEPTED" && (
+                                            <button
+                         onClick={() => handleConvertOfferToPolicy(selectedOffer.id)}
+                         style={{
+                           background: '#059669',
+                           color: 'white',
+                           border: 'none',
+                           borderRadius: '8px',
+                           padding: '0.75rem 1.5rem',
+                           fontSize: '0.875rem',
+                           fontWeight: 600,
+                           cursor: 'pointer',
+                           transition: 'all 0.2s ease-in-out',
+                           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                         }}
+                         onMouseEnter={(e) => {
+                           e.currentTarget.style.background = '#047857';
+                           e.currentTarget.style.transform = 'translateY(-1px)';
+                           e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                         }}
+                         onMouseLeave={(e) => {
+                           e.currentTarget.style.background = '#059669';
+                           e.currentTarget.style.transform = 'translateY(0)';
+                           e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
+                         }}
+                       >
+                         📋 Convert to Policy
+                       </button>
+                   )}
+                   {selectedOffer.status === "ACCEPTED" && (
+                     <>
+                       <div style={{
+                         width: '100%',
+                         background: '#d1fae5',
+                         border: '1px solid #10b981',
+                         borderRadius: '8px',
+                         padding: '1rem',
+                         marginBottom: '1rem',
+                         color: '#065f46',
+                         fontSize: '0.875rem',
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '0.5rem'
+                       }}>
+                         <span style={{ fontSize: '1.25rem' }}>✅</span>
+                         <div>
+                           <strong>Policy Created Successfully!</strong><br/>
+                           Your offer has been converted to a policy. You can now view policy details and make payments.
+                         </div>
+                       </div>
+                       
+                       <div style={{
+                         display: 'flex',
+                         gap: '1rem',
+                         flexWrap: 'wrap'
+                       }}>
+                         <button
+                           onClick={() => handleViewPolicy(0)}
+                           disabled={viewingPolicy}
+                           style={{
+                             background: viewingPolicy ? '#6b7280' : '#3b82f6',
+                             color: 'white',
+                             border: 'none',
+                             borderRadius: '8px',
+                             padding: '0.75rem 1.5rem',
+                             fontSize: '0.875rem',
+                             fontWeight: 600,
+                             cursor: viewingPolicy ? 'not-allowed' : 'pointer',
+                             transition: 'all 0.2s ease-in-out',
+                             boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                             opacity: viewingPolicy ? 0.6 : 1
+                           }}
+                           onMouseEnter={(e) => {
+                             if (!viewingPolicy) {
+                               e.currentTarget.style.background = '#2563eb';
+                               e.currentTarget.style.transform = 'translateY(-1px)';
+                               e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                             }
+                           }}
+                           onMouseLeave={(e) => {
+                             if (!viewingPolicy) {
+                               e.currentTarget.style.background = '#3b82f6';
+                               e.currentTarget.style.transform = 'translateY(0)';
+                               e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
+                             }
+                           }}
+                         >
+                           {viewingPolicy ? '⏳ Loading...' : '📄 View Policy'}
+                         </button>
+                         
+                         <button
+                           onClick={() => {
+                             setSelectedPolicyId(0);
+                             setShowPaymentForm(true);
+                           }}
+                           style={{
+                             background: '#10b981',
+                             color: 'white',
+                             border: 'none',
+                             borderRadius: '8px',
+                             padding: '0.75rem 1.5rem',
+                             fontSize: '0.875rem',
+                             fontWeight: 600,
+                             cursor: 'pointer',
+                             transition: 'all 0.2s ease-in-out',
+                             boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                           }}
+                           onMouseEnter={(e) => {
+                             e.currentTarget.style.background = '#059669';
+                             e.currentTarget.style.transform = 'translateY(-1px)';
+                             e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                           }}
+                           onMouseLeave={(e) => {
+                             e.currentTarget.style.background = '#10b981';
+                             e.currentTarget.style.transform = 'translateY(0)';
+                             e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
+                           }}
+                         >
+                           💳 Make Payment
+                         </button>
+                       </div>
+                     </>
+                   )}
+                   <button
+                     onClick={() => setShowOfferDetails(false)}
+                     style={{
+                       background: '#6b7280',
+                       color: 'white',
+                       border: 'none',
+                       borderRadius: '8px',
+                       padding: '0.75rem 1.5rem',
+                       fontSize: '0.875rem',
+                       fontWeight: 600,
+                       cursor: 'pointer',
+                       transition: 'all 0.2s ease-in-out',
+                       boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                     }}
+                     onMouseEnter={(e) => {
+                       e.currentTarget.style.background = '#4b5563';
+                       e.currentTarget.style.transform = 'translateY(-1px)';
+                       e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                     }}
+                     onMouseLeave={(e) => {
+                       e.currentTarget.style.background = '#6b7280';
+                       e.currentTarget.style.transform = 'translateY(0)';
+                       e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
+                     }}
+                   >
+                     ✕ Close
+                   </button>
+                 </div>
+               </div>
+             </div>
+           </div>
+         </div>
+       )}
+
+       {/* Profile Update Modal */}
+       {showProfileUpdate && (
+         <div style={{
+           position: 'fixed',
+           top: 0,
+           left: 0,
+           right: 0,
+           bottom: 0,
+           background: 'rgba(0, 0, 0, 0.5)',
+           display: 'flex',
+           alignItems: 'center',
+           justifyContent: 'center',
+           zIndex: 1000
+         }}>
+           <div style={{
+             background: 'white',
+             borderRadius: '16px',
+             padding: '2rem',
+             width: '90%',
+             maxWidth: '600px',
+             maxHeight: '90vh',
+             overflow: 'auto',
+             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+           }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+               <h2 style={{
+                 fontSize: '1.5rem',
+                 fontWeight: 700,
+                 color: '#1e293b',
+                 margin: 0
+               }}>
+                 Update Profile
+               </h2>
+               <button
+                 onClick={() => setShowProfileUpdate(false)}
+                 style={{
+                   background: 'none',
+                   border: 'none',
+                   fontSize: '1.5rem',
+                   cursor: 'pointer',
+                   color: '#64748b'
+                 }}
+               >
+                 ✕
+               </button>
+             </div>
+
+             <form onSubmit={(e) => { e.preventDefault(); handleProfileUpdate(); }}>
+               <div style={{ marginBottom: '1.5rem' }}>
+                 <h3 style={{
+                   fontSize: '1.25rem',
+                   fontWeight: 600,
+                   color: '#1e293b',
+                   marginBottom: '1rem'
+                 }}>
+                   Personal Information
+                 </h3>
+                 <div style={{
+                   display: 'grid',
+                   gridTemplateColumns: '1fr 1fr',
+                   gap: '1rem'
+                 }}>
+                   <div>
+                     <label style={{
+                       display: 'block',
+                       fontSize: '0.875rem',
+                       fontWeight: 500,
+                       color: '#374151',
+                       marginBottom: '0.25rem'
+                     }}>First Name *</label>
+                     <input
+                       type="text"
+                       value={profileFormData.firstName}
+                       onChange={(e) => setProfileFormData({...profileFormData, firstName: e.target.value})}
+                       style={{
+                         width: '100%',
+                         padding: '0.75rem',
+                         border: '1px solid #d1d5db',
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: 'white'
+                       }}
+                       required
+                     />
+                   </div>
+                   <div>
+                     <label style={{
+                       display: 'block',
+                       fontSize: '0.875rem',
+                       fontWeight: 500,
+                       color: '#374151',
+                       marginBottom: '0.25rem'
+                     }}>Last Name *</label>
+                     <input
+                       type="text"
+                       value={profileFormData.lastName}
+                       onChange={(e) => setProfileFormData({...profileFormData, lastName: e.target.value})}
+                       style={{
+                         width: '100%',
+                         padding: '0.75rem',
+                         border: '1px solid #d1d5db',
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: 'white'
+                       }}
+                       required
+                     />
+                   </div>
+                   <div>
+                     <label style={{
+                       display: 'block',
+                       fontSize: '0.875rem',
+                       fontWeight: 500,
+                       color: '#374151',
+                       marginBottom: '0.25rem'
+                     }}>Email *</label>
+                     <input
+                       type="email"
+                       value={profileFormData.email}
+                       onChange={(e) => setProfileFormData({...profileFormData, email: e.target.value})}
+                       style={{
+                         width: '100%',
+                         padding: '0.75rem',
+                         border: '1px solid #d1d5db',
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: 'white'
+                       }}
+                       required
+                     />
+                   </div>
+                 </div>
+               </div>
+
+               <div style={{ marginBottom: '2rem' }}>
+                 <h3 style={{
+                   fontSize: '1.25rem',
+                   fontWeight: 600,
+                   color: '#1e293b',
+                   marginBottom: '1rem'
+                 }}>
+                   Address Information
+                 </h3>
+                 <div style={{
+                   display: 'grid',
+                   gridTemplateColumns: '1fr 1fr',
+                   gap: '1rem'
+                 }}>
+                   <div style={{ gridColumn: '1 / -1' }}>
+                     <label style={{
+                       display: 'block',
+                       fontSize: '0.875rem',
+                       fontWeight: 500,
+                       color: '#374151',
+                       marginBottom: '0.25rem'
+                     }}>Address</label>
+                     <input
+                       type="text"
+                       value={profileFormData.address}
+                       onChange={(e) => setProfileFormData({...profileFormData, address: e.target.value})}
+                       style={{
+                         width: '100%',
+                         padding: '0.75rem',
+                         border: '1px solid #d1d5db',
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: 'white'
+                       }}
+                     />
+                   </div>
+                   <div>
+                     <label style={{
+                       display: 'block',
+                       fontSize: '0.875rem',
+                       fontWeight: 500,
+                       color: '#374151',
+                       marginBottom: '0.25rem'
+                     }}>City</label>
+                     <input
+                       type="text"
+                       value={profileFormData.city}
+                       onChange={(e) => setProfileFormData({...profileFormData, city: e.target.value})}
+                       style={{
+                         width: '100%',
+                         padding: '0.75rem',
+                         border: '1px solid #d1d5db',
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: 'white'
+                       }}
+                     />
+                   </div>
+                   <div>
+                     <label style={{
+                       display: 'block',
+                       fontSize: '0.875rem',
+                       fontWeight: 500,
+                       color: '#374151',
+                       marginBottom: '0.25rem'
+                     }}>Country</label>
+                     <input
+                       type="text"
+                       value={profileFormData.country}
+                       onChange={(e) => setProfileFormData({...profileFormData, country: e.target.value})}
+                       style={{
+                         width: '100%',
+                         padding: '0.75rem',
+                         border: '1px solid #d1d5db',
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: 'white'
+                       }}
+                     />
+                   </div>
+                   <div>
+                     <label style={{
+                       display: 'block',
+                       fontSize: '0.875rem',
+                       fontWeight: 500,
+                       color: '#374151',
+                       marginBottom: '0.25rem'
+                     }}>Postal Code</label>
+                     <input
+                       type="text"
+                       value={profileFormData.postalCode}
+                       onChange={(e) => setProfileFormData({...profileFormData, postalCode: e.target.value})}
+                       style={{
+                         width: '100%',
+                         padding: '0.75rem',
+                         border: '1px solid #d1d5db',
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: 'white'
+                       }}
+                     />
+                   </div>
+                 </div>
+               </div>
+
+               <div style={{
+                 display: 'flex',
+                 justifyContent: 'flex-end',
+                 gap: '1rem'
+               }}>
+                 <button
+                   type="button"
+                   onClick={() => setShowProfileUpdate(false)}
+                   style={{
+                     background: '#6b7280',
+                     color: 'white',
+                     border: 'none',
+                     borderRadius: '8px',
+                     padding: '0.75rem 1.5rem',
+                     fontSize: '0.875rem',
+                     fontWeight: 600,
+                     cursor: 'pointer',
+                     transition: 'background 0.2s'
+                   }}
+                   onMouseEnter={(e) => e.currentTarget.style.background = '#4b5563'}
+                   onMouseLeave={(e) => e.currentTarget.style.background = '#6b7280'}
+                 >
+                   Cancel
+                 </button>
+                 <button
+                   type="submit"
+                   style={{
+                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                     color: 'white',
+                     border: 'none',
+                     borderRadius: '8px',
+                     padding: '0.75rem 1.5rem',
+                     fontSize: '0.875rem',
+                     fontWeight: 600,
+                     cursor: 'pointer',
+                     transition: 'transform 0.2s'
+                   }}
+                   onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                   onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                 >
+                   Update Profile
+                 </button>
+               </div>
+             </form>
            </div>
          </div>
        )}

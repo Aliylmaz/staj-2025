@@ -39,6 +39,8 @@ public interface IPolicyRepository extends JpaRepository<Policy, Long> {
 
     @Query("SELECT COALESCE(SUM(p.premium),0) FROM Policy p WHERE p.customer.id = :customerId")
     BigDecimal sumPremiumByCustomerId(UUID customerId);
+    
+    Long countByAgentId(UUID agentId);
 }
 
 

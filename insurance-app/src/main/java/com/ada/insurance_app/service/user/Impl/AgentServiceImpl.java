@@ -17,10 +17,11 @@ import com.ada.insurance_app.mapper.PolicyMapper;
 import com.ada.insurance_app.repository.*;
 import com.ada.insurance_app.request.offer.OfferUpdateRequest;
 import com.ada.insurance_app.request.customer.UpdateIndividualCustomerRequest;
+import com.ada.insurance_app.service.dashboard.IDashboardService;
 import com.ada.insurance_app.service.user.IAgentService;
+import com.ada.insurance_app.service.user.helper.AgentServiceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -35,11 +36,12 @@ public class AgentServiceImpl implements IAgentService {
     private final IPolicyRepository policyRepository;
     private final IAgentRepository agentRepository;
     private final IClaimRepository claimRepository;
-    private final IPaymentRepository paymentRepository;
     private final OfferMapper offerMapper;
     private final CustomerMapper customerMapper;
     private final PolicyMapper policyMapper;
     private final AgentMapper agentMapper;
+    private final IDashboardService dashboardService;
+    private final AgentServiceHelper agentHelper;
 
     @Override
     @Transactional
@@ -53,11 +55,17 @@ public class AgentServiceImpl implements IAgentService {
         return offerMapper.toDto(offer);
     }
 
+    /**
+     * Agent can only see customers who have offers/policies processed by this agent
+     * Optimized with single query instead of multiple findAll calls
+     */
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     @PreAuthorize("hasRole('AGENT')")
-    public List<CustomerDto> getAllCustomers() {
-        return customerRepository.findAll().stream()
+    public List<CustomerDto> getMyCustomers() {
+        Agent currentAgent = agentHelper.getCurrentAuthenticatedAgent();
+        
+        return customerRepository.findCustomersByAgentId(currentAgent.getId()).stream()
                 .map(customerMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -78,19 +86,17 @@ public class AgentServiceImpl implements IAgentService {
         return customerMapper.toDto(customer);
     }
 
-    @Override
-    @Transactional
-    @PreAuthorize("hasRole('AGENT')")
-    public List<PolicyDto> getMyPolicies(UUID agentId) {
-        return policyRepository.findByAgentId(agentId).stream()
-                .map(policyMapper::toDto)
-                .collect(Collectors.toList());
-    }
+
 
     @Override
+    @Transactional(readOnly = true)
     public List<OfferDto> getAllOffers() {
         // Only return PENDING offers for agents to review
-        return offerRepository.findByStatus(OfferStatus.PENDING).stream()
+        List<Offer> offers = offerRepository.findByStatus(OfferStatus.PENDING);
+
+
+
+        return offers.stream()
                 .map(offerMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -108,8 +114,7 @@ public class AgentServiceImpl implements IAgentService {
         }
         
         // Set agent and update status
-        Agent agent = agentRepository.findById(agentId)
-                .orElseThrow(() -> new RuntimeException("Agent not found: " + agentId));
+        Agent agent = agentHelper.getAgentById(agentId);
         
         offer.setAgent(agent);
         offer.setStatus(OfferStatus.APPROVED);
@@ -132,8 +137,7 @@ public class AgentServiceImpl implements IAgentService {
         }
         
         // Set agent and update status
-        Agent agent = agentRepository.findById(agentId)
-                .orElseThrow(() -> new RuntimeException("Agent not found: " + agentId));
+        Agent agent = agentHelper.getAgentById(agentId);
         
         offer.setAgent(agent);
         offer.setStatus(OfferStatus.REJECTED);
@@ -145,29 +149,20 @@ public class AgentServiceImpl implements IAgentService {
 
     @Override
     public AgentDto getCurrentAgent() {
-        // Get current agent from security context
-        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        
-        // Try to find by username first, then by email
-        Agent agent = agentRepository.findAll().stream()
-                .filter(a -> a.getUser().getUsername().equals(currentUsername) || a.getUser().getEmail().equals(currentUsername))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Current agent not found with username/email: " + currentUsername));
-        
+        Agent agent = agentHelper.getCurrentAuthenticatedAgent();
         return agentMapper.toDto(agent);
     }
 
     @Override
     public AgentDto getAgentProfile(UUID agentId) {
-        Agent agent = agentRepository.findById(agentId)
-                .orElseThrow(() -> new RuntimeException("Agent not found: " + agentId));
+        Agent agent = agentHelper.getAgentById(agentId);
         return agentMapper.toDto(agent);
     }
 
     @Override
+    @Transactional
     public AgentDto updateAgentProfile(UUID agentId, AgentDto agentDto) {
-        Agent agent = agentRepository.findById(agentId)
-                .orElseThrow(() -> new RuntimeException("Agent not found: " + agentId));
+        Agent agent = agentHelper.getAgentById(agentId);
 
         // Update agent details
         agent.setName(agentDto.getName());
@@ -186,105 +181,76 @@ public class AgentServiceImpl implements IAgentService {
 
     @Override
     public AgentStatsDto getMyStatistics() {
-        // Get current agent directly from repository
-        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        
-        Agent agent = agentRepository.findAll().stream()
-                .filter(a -> a.getUser().getUsername().equals(currentUsername) || a.getUser().getEmail().equals(currentUsername))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Current agent not found with username/email: " + currentUsername));
-
-        String agentNumber = agent.getAgentNumber();
-
-        long policyCount = policyRepository.countPoliciesByAgent_AgentNumber(agentNumber);
-        long claimCount = claimRepository.countByPolicy_Agent_AgentNumber(agentNumber);
-        long paymentCount = paymentRepository.countByPolicy_Agent_AgentNumber(agentNumber);
-        double totalPremium = policyRepository.sumTotalPremiumByAgentNumber(agentNumber);
-
-        AgentStatsDto agentStats = new AgentStatsDto();
-        agentStats.setAgentName(agent.getName());
-        agentStats.setAgentNumber(agent.getAgentNumber());
-        agentStats.setTotalPolicies(policyCount);
-        agentStats.setTotalClaims(claimCount);
-        agentStats.setTotalPayments(paymentCount);
-        agentStats.setTotalPremium(totalPremium);
-        agentStats.setSuccessRate(claimCount > 0 ? (double) paymentCount / claimCount * 100 : 0.0);
-
-        return agentStats;
-    }
-
-    @Override
-    public Long getMyActivePoliciesCount(UUID agentId) {
-        //return policyRepository.countByAgentIdAndStatus(agentId, com.ada.insurance_app.core.enums.PolicyStatus.ACTIVE);
-        return  null;
-    }
-
-    @Override
-    public Long getMyPendingClaimsCount(UUID agentId) {
-        //return claimRepository.countByAgentIdAndStatus(agentId, com.ada.insurance_app.core.enums.ClaimStatus.PENDING);
-        return null;
-    }
-
-
-
-    @Override
-    public List<CustomerDto> getMyCustomers(UUID agentId) {
-        return List.of();
-    }
-
-    @Override
-    public CustomerDto assignCustomerToAgent(UUID customerId, UUID agentId) {
-        return null;
-    }
-
-    @Override
-    public CustomerDto removeCustomerFromAgent(UUID customerId, UUID agentId) {
-        return null;
+        Agent currentAgent = agentHelper.getCurrentAuthenticatedAgent();
+        return dashboardService.getAgentStatisticsById(currentAgent.getId());
     }
 
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("hasRole('AGENT')")
-    public Long getMyCustomersCount(UUID agentId) {
-        if (agentId == null) {
-            throw new IllegalArgumentException("agentId must not be null");
-        }
-
-        // Ensure the agent exists to avoid returning counts for non-existent principals
-        boolean agentExists = agentRepository.existsById(agentId);
-        if (!agentExists) {
-            throw new RuntimeException("Agent not found: " + agentId);
-        }
-
-        // Count distinct customers who have policies assigned to this agent
-        Long count = customerRepository.countByAgentId(agentId);
-        return count != null ? count : 0L;
+    public Long getMyActivePoliciesCount() {
+        Agent currentAgent = agentHelper.getCurrentAuthenticatedAgent();
+        return policyRepository.countByAgentId(currentAgent.getId());
     }
 
     @Override
-    public List<PolicyDto> getMyActivePolicies(UUID agentId) {
-        return List.of();
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('AGENT')")
+    public Long getMyPendingClaimsCount() {
+        Agent currentAgent = agentHelper.getCurrentAuthenticatedAgent();
+        return claimRepository.countByAgent_Id(currentAgent.getId());
+    }
+
+
+
+
+
+    @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('AGENT')")
+    public Long getMyCustomersCount() {
+        Agent currentAgent = agentHelper.getCurrentAuthenticatedAgent();
+        return customerRepository.countCustomersByAgentId(currentAgent.getId());
     }
 
     @Override
-    public List<PolicyDto> getMyExpiredPolicies(UUID agentId) {
-        return List.of();
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('AGENT')")
+    public List<PolicyDto> getMyActivePolicies() {
+        Agent currentAgent = agentHelper.getCurrentAuthenticatedAgent();
+        return policyRepository.findByAgentId(currentAgent.getId()).stream()
+                .filter(policy -> "ACTIVE".equals(policy.getStatus())) // Assuming you have status field
+                .map(policyMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('AGENT')")
+    public List<PolicyDto> getMyExpiredPolicies() {
+        Agent currentAgent = agentHelper.getCurrentAuthenticatedAgent();
+        return policyRepository.findByAgentId(currentAgent.getId()).stream()
+                .filter(policy -> "EXPIRED".equals(policy.getStatus())) // Assuming you have status field
+                .map(policyMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    @PreAuthorize("hasRole('AGENT')")
     public PolicyDto assignPolicyToAgent(Long policyId, UUID agentId) {
-        return null;
+        Policy policy = policyRepository.findById(policyId)
+                .orElseThrow(() -> new RuntimeException("Policy not found: " + policyId));
+        
+        Agent agent = agentHelper.getAgentById(agentId);
+        
+        policy.setAgent(agent);
+        policyRepository.save(policy);
+        
+        return policyMapper.toDto(policy);
     }
 
-    @Override
-    public Double getCommissionForPolicy(Long policyId, UUID agentId) {
-        return 0.0;
-    }
 
-    @Override
-    public List<PolicyDto> getPoliciesForCommissionCalculation(UUID agentId, String month, String year) {
-        return List.of();
-    }
 
 
 } 

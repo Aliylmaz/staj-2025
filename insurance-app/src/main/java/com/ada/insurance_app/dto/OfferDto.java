@@ -1,5 +1,6 @@
 package com.ada.insurance_app.dto;
 
+import com.ada.insurance_app.core.enums.InsuranceType;
 import com.ada.insurance_app.core.enums.OfferStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -20,5 +21,8 @@ public class OfferDto {
     private String note;
     private Set<CoverageDto> coverages;
     private Long policyId;
+    private AgentDto agent;
+    private InsuranceType insuranceType;
+
 
 }

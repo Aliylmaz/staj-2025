@@ -3,7 +3,7 @@ import { getValidCustomerId } from '../utils/uuidUtils';
 
 // Create axios instance with proper configuration
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: 'http://localhost:8080/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -152,6 +152,25 @@ export interface CreateOfferRequest {
   homeDetailRequest?: CreateHomeInsuranceDetailRequest;
 }
 
+export interface UpdateIndividualCustomerRequest {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  postalCode?: string;
+}
+
+export interface UpdateCorporateCustomerRequest {
+  companyName?: string;
+  taxNumber?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  postalCode?: string;
+}
+
 export interface CoverageDto {
   id: number;
   code: string;
@@ -177,13 +196,17 @@ export interface PolicyDto {
 export interface OfferDto {
   id: number;
   offerNumber: string;
-  customerId: string;
-  insuranceType: string;
   totalPremium: number;
   status: string;
+  customer?: any;
+  agent?: any;
   note?: string;
-  createdAt: string;
-  updatedAt: string;
+  coverages?: CoverageDto[];
+  insuranceType?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  acceptedAt?: string;
+  convertedAt?: string;
 }
 
 export interface ClaimDto {
@@ -259,7 +282,7 @@ export const getMyPolicies = async (): Promise<PolicyDto[]> => {
     throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
   }
   console.log('getMyPolicies - customerId:', customerId);
-  const response = await axiosInstance.get(`/api/v1/customer/${customerId}/policies`);
+  const response = await axiosInstance.get(`/customer/${customerId}/policies`);
   return response.data.data;
 };
 
@@ -268,7 +291,7 @@ export const getPolicyById = async (policyId: number): Promise<PolicyDto> => {
   if (!customerId) {
     throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
   }
-  const response = await axiosInstance.get(`/api/v1/customer/${customerId}/policies/${policyId}`);
+  const response = await axiosInstance.get(`/customer/${customerId}/policies/${policyId}`);
   return response.data.data;
 };
 
@@ -279,7 +302,7 @@ export const getMyClaims = async (): Promise<ClaimDto[]> => {
     throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
   }
   console.log('getMyClaims - customerId:', customerId);
-  const response = await axiosInstance.get(`/api/v1/customer/${customerId}/claims`);
+  const response = await axiosInstance.get(`/customer/${customerId}/claims`);
   return response.data.data;
 };
 
@@ -288,7 +311,7 @@ export const getClaimById = async (claimId: string): Promise<ClaimDto> => {
   if (!customerId) {
     throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
   }
-  const response = await axiosInstance.get(`/api/v1/customer/${customerId}/claims/${claimId}`);
+  const response = await axiosInstance.get(`/customer/${customerId}/claims/${claimId}`);
   return response.data.data;
 };
 
@@ -297,7 +320,7 @@ export const createClaim = async (request: CreateClaimRequest): Promise<ClaimDto
   if (!customerId) {
     throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
   }
-  const response = await axiosInstance.post(`/api/v1/customer/${customerId}/create-claim`, request);
+  const response = await axiosInstance.post(`/customer/${customerId}/create-claim`, request);
   return response.data.data;
 };
 
@@ -308,7 +331,7 @@ export const getMyOffers = async (): Promise<OfferDto[]> => {
     throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
   }
   console.log('getMyOffers - customerId:', customerId);
-  const response = await axiosInstance.get(`/api/v1/customer/${customerId}/get-offers`);
+  const response = await axiosInstance.get(`/customer/${customerId}/get-offers`);
   return response.data.data;
 };
 
@@ -318,7 +341,7 @@ export const requestOffer = async (requestData: CreateOfferRequest): Promise<Off
     throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
   }
   
-  const url = `/api/v1/customer/${customerId}/create-offer`;
+  const url = `/customer/${customerId}/create-offer`;
   
   console.log('🔍 requestOffer - customerId from localStorage:', customerId);
   console.log('🔍 requestOffer - requestData:', requestData);
@@ -327,10 +350,6 @@ export const requestOffer = async (requestData: CreateOfferRequest): Promise<Off
   console.log('🔍 requestOffer - Request method: POST');
   
   const response = await axiosInstance.post(url, requestData);
-  
-  console.log('🔍 requestOffer - response status:', response.status);
-  console.log('🔍 requestOffer - response data:', response.data);
-  
   return response.data.data;
 };
 
@@ -339,18 +358,15 @@ export const getOfferById = async (offerId: number): Promise<OfferDto> => {
   if (!customerId) {
     throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
   }
-  const response = await axiosInstance.get(`/api/v1/customer/${customerId}/offers/${offerId}`);
+  
+  // Use the customer-specific endpoint that includes customer ID validation
+  const response = await axiosInstance.get(`/customer/${customerId}/offers/${offerId}`);
   return response.data.data;
 };
 
-export const acceptOfferAndCreatePolicy = async (offerId: number): Promise<PolicyDto> => {
-  const customerId = getValidCustomerId();
-  if (!customerId) {
-    throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
-  }
-  const response = await axiosInstance.post(`/api/v1/customer/${customerId}/offers/${offerId}/accept`);
-  return response.data.data;
-};
+
+
+
 
 // Payments
 export const getMyPayments = async (): Promise<PaymentDto[]> => {
@@ -358,8 +374,7 @@ export const getMyPayments = async (): Promise<PaymentDto[]> => {
   if (!customerId) {
     throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
   }
-  console.log('getMyPayments - customerId:', customerId);
-  const response = await axiosInstance.get(`/api/v1/customer/${customerId}/payments`);
+  const response = await axiosInstance.get(`/customer/${customerId}/payments`);
   return response.data.data;
 };
 
@@ -368,7 +383,7 @@ export const getPaymentById = async (paymentId: string): Promise<PaymentDto> => 
   if (!customerId) {
     throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
   }
-  const response = await axiosInstance.get(`/api/v1/customer/${customerId}/payments/${paymentId}`);
+  const response = await axiosInstance.get(`/customer/${customerId}/payments/${paymentId}`);
   return response.data.data;
 };
 
@@ -380,7 +395,7 @@ export const makePayment = async (
   if (!customerId) {
     throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
   }
-  const response = await axiosInstance.post(`/api/v1/customer/${customerId}/policies/${policyId}/make-payment`, request);
+  const response = await axiosInstance.post(`/customer/${customerId}/policies/${policyId}/make-payment`, request);
   return response.data.data;
 };
 
@@ -390,34 +405,24 @@ export const getMyDocuments = async (): Promise<DocumentDto[]> => {
   if (!customerId) {
     throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
   }
-  console.log('getMyDocuments - customerId:', customerId);
-  const response = await axiosInstance.get(`/api/v1/customer/${customerId}/documents`);
+  const response = await axiosInstance.get(`/customer/${customerId}/documents`);
   return response.data.data;
 };
 
-export const uploadDocument = async (file: File, policyId?: number, claimId?: string): Promise<DocumentDto> => {
+export const uploadDocument = async (file: File): Promise<DocumentDto> => {
   const customerId = getValidCustomerId();
   if (!customerId) {
     throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
   }
-  
+
   const formData = new FormData();
   formData.append('file', file);
-  
-  if (policyId) {
-    formData.append('policyId', policyId.toString());
-  }
-  
-  if (claimId) {
-    formData.append('claimId', claimId);
-  }
-  
-  const response = await axiosInstance.post(`/api/v1/customer/${customerId}/documents`, formData, {
+
+  const response = await axiosInstance.post(`/customer/${customerId}/documents`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   });
-  
   return response.data.data;
 };
 
@@ -426,31 +431,52 @@ export const downloadDocument = async (documentId: number): Promise<Blob> => {
   if (!customerId) {
     throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
   }
-  const response = await axiosInstance.get(`/api/v1/customer/${customerId}/documents/${documentId}/download`, {
+  const response = await axiosInstance.get(`/customer/${customerId}/documents/${documentId}`, {
     responseType: 'blob',
   });
   return response.data;
 };
 
 // Coverages
-export const getCoverages = async (): Promise<CoverageDto[]> => {
-  const response = await axiosInstance.get(`/api/v1/coverages/get-all`);
-  return response.data.data;
-};
-
 export const getCoveragesByInsuranceType = async (insuranceType: keyof typeof InsuranceType): Promise<CoverageDto[]> => {
-  const response = await axiosInstance.get(`/api/v1/coverages/by-insurance-type?type=${insuranceType}`);
+  const response = await axiosInstance.get(`/coverages/type/${insuranceType}`);
   return response.data.data;
 };
 
 // Agents
 export const getAllAgents = async (): Promise<AgentDto[]> => {
-  const customerId = getValidCustomerId();
-  if (!customerId) {
-    throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
+  try {
+    const customerId = getValidCustomerId();
+    if (!customerId) {
+      throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
+    }
+    const response = await axiosInstance.get(`/customer/${customerId}/agents`);
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching agents:', error);
+    throw error;
   }
-  const response = await axiosInstance.get(`/api/v1/customer/${customerId}/agents`);
-  return response.data.data;
+};
+
+// Update customer functions
+export const updateIndividualCustomer = async (customerId: string, request: UpdateIndividualCustomerRequest): Promise<any> => {
+  try {
+    const response = await axiosInstance.put(`/customer/${customerId}/individual`, request);
+    return response.data.data;
+  } catch (error) {
+    console.error('Error updating individual customer:', error);
+    throw error;
+  }
+};
+
+export const updateCorporateCustomer = async (customerId: string, request: UpdateCorporateCustomerRequest): Promise<any> => {
+  try {
+    const response = await axiosInstance.put(`/customer/${customerId}/corporate`, request);
+    return response.data.data;
+  } catch (error) {
+    console.error('Error updating corporate customer:', error);
+    throw error;
+  }
 };
 
 // Export the axios instance for use in other components

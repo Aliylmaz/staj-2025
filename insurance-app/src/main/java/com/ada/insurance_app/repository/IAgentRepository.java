@@ -20,7 +20,8 @@ public interface IAgentRepository extends JpaRepository<Agent, UUID> {
     List<Agent> findAllByUserRole(@Param("role") Role role);
 
     Optional<Agent> findByUser_Email(String email);
-
-
+    
+    @Query("SELECT a FROM Agent a WHERE a.user.username = :username OR a.user.email = :username")
+    Optional<Agent> findByUsernameOrEmail(@Param("username") String username);
 
 } 

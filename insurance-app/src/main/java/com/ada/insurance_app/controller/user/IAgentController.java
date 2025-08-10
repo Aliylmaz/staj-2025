@@ -14,9 +14,8 @@ import java.util.UUID;
 
 public interface IAgentController {
     ResponseEntity<GeneralResponse<OfferDto>> updateOfferStatus(OfferUpdateRequest request);
-    ResponseEntity<GeneralResponse<List<CustomerDto>>> getAllCustomers();
     ResponseEntity<GeneralResponse<CustomerDto>> updateCustomer(UUID customerId, UpdateIndividualCustomerRequest request);
-    ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyPolicies(UUID agentId);
+
     ResponseEntity<GeneralResponse<List<OfferDto>>> getAllOffers();
     
     // Offer approval endpoints
@@ -30,21 +29,17 @@ public interface IAgentController {
     
     // Agent Statistics
     ResponseEntity<GeneralResponse<AgentStatsDto>> getMyStatistics();
-    ResponseEntity<GeneralResponse<Long>> getMyCustomersCount(UUID agentId);
-    ResponseEntity<GeneralResponse<Long>> getMyActivePoliciesCount(UUID agentId);
-    ResponseEntity<GeneralResponse<Long>> getMyPendingClaimsCount(UUID agentId);
+    ResponseEntity<GeneralResponse<Long>> getMyCustomersCount();
+    ResponseEntity<GeneralResponse<Long>> getMyActivePoliciesCount();
+    ResponseEntity<GeneralResponse<Long>> getMyPendingClaimsCount();
     
-    // Customer Management
-    ResponseEntity<GeneralResponse<List<CustomerDto>>> getMyCustomers(UUID agentId);
-    ResponseEntity<GeneralResponse<CustomerDto>> assignCustomerToAgent(UUID customerId, UUID agentId);
-    ResponseEntity<GeneralResponse<CustomerDto>> removeCustomerFromAgent(UUID customerId, UUID agentId);
+    // Customer Management (through offers/policies)
+    ResponseEntity<GeneralResponse<List<CustomerDto>>> getMyCustomers();
     
     // Policy Management
-    ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyActivePolicies(UUID agentId);
-    ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyExpiredPolicies(UUID agentId);
+    ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyActivePolicies();
+    ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyExpiredPolicies();
     ResponseEntity<GeneralResponse<PolicyDto>> assignPolicyToAgent(Long policyId, UUID agentId);
     
-    // Commission Tracking
-    ResponseEntity<GeneralResponse<Double>> getCommissionForPolicy(Long policyId, UUID agentId);
-    ResponseEntity<GeneralResponse<List<PolicyDto>>> getPoliciesForCommissionCalculation(UUID agentId, String month, String year);
+
 } 
