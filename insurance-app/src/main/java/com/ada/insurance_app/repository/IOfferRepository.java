@@ -5,6 +5,7 @@ import com.ada.insurance_app.core.enums.OfferStatus;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,7 +18,8 @@ public interface IOfferRepository extends JpaRepository<Offer, Long> {
         @EntityGraph(attributePaths = {"coverages", "customer", "policy"})
         List<Offer> findByCustomer_Id(UUID customerId);
 
-
+    @Query("SELECT o FROM Offer o LEFT JOIN FETCH o.coverages LEFT JOIN FETCH o.customer LEFT JOIN FETCH o.policy LEFT JOIN FETCH o.agent WHERE o.id = :id")
+    Optional<Offer> findByIdWithDetails(@Param("id") Long id);
 
     List<Offer> findByAgent_Id(UUID agentId);
 

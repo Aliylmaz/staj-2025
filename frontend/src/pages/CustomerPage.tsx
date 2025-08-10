@@ -703,11 +703,11 @@ export default function CustomerPage() {
         }}>
           Quick Actions
         </h2>
-                           <div style={{
-                     display: 'grid',
+        <div style={{ 
+          display: 'grid', 
                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
                      gap: '1.5rem'
-                   }}>
+        }}>
           <button 
             onClick={() => setShowOfferForm(true)}
             style={{
@@ -3430,9 +3430,9 @@ export default function CustomerPage() {
                </div>
              </div>
              
-             <button
-               onClick={() => setShowOfferDetails(false)}
-               style={{
+               <button
+                 onClick={() => setShowOfferDetails(false)}
+                 style={{
                  position: 'absolute',
                  top: '1.5rem',
                  right: '1.5rem',
@@ -3440,7 +3440,7 @@ export default function CustomerPage() {
                  border: '1px solid #e2e8f0',
                  borderRadius: '8px',
                  fontSize: '1.25rem',
-                 cursor: 'pointer',
+                   cursor: 'pointer',
                  color: '#64748b',
                  width: '40px',
                  height: '40px',
@@ -3456,10 +3456,10 @@ export default function CustomerPage() {
                onMouseLeave={(e) => {
                  e.currentTarget.style.background = '#f1f5f9';
                  e.currentTarget.style.color = '#64748b';
-               }}
-             >
-               ✕
-             </button>
+                 }}
+               >
+                 ✕
+               </button>
 
              <div style={{ marginBottom: '2rem' }}>
                <div style={{
@@ -3613,7 +3613,7 @@ export default function CustomerPage() {
                      border: '1px solid #bbf7d0'
                    }}>
                      Total Amount
-                   </div>
+                 </div>
                  </div>
                  {selectedOffer.agent && selectedOffer.agent.user && (
                    <div>
@@ -3700,20 +3700,20 @@ export default function CustomerPage() {
                      gap: '1.5rem'
                    }}>
                      <div>
-                       <label style={{
-                         display: 'block',
-                         fontSize: '0.875rem',
-                         fontWeight: 500,
-                         color: '#374151',
-                         marginBottom: '0.25rem'
+                   <label style={{
+                     display: 'block',
+                     fontSize: '0.875rem',
+                     fontWeight: 500,
+                     color: '#374151',
+                     marginBottom: '0.25rem'
                        }}>Customer Name</label>
-                       <div style={{
-                         padding: '0.75rem',
-                         border: '1px solid #d1d5db',
-                         borderRadius: '8px',
-                         fontSize: '0.875rem',
-                         background: '#f9fafb'
-                       }}>
+                   <div style={{
+                     padding: '0.75rem',
+                     border: '1px solid #d1d5db',
+                     borderRadius: '8px',
+                     fontSize: '0.875rem',
+                     background: '#f9fafb'
+                   }}>
                          {selectedOffer.customer.user?.firstName} {selectedOffer.customer.user?.lastName}
                        </div>
                      </div>
@@ -3776,12 +3776,12 @@ export default function CustomerPage() {
                )}
 
                {selectedOffer.note && (
-                 <div style={{ marginBottom: '1.5rem' }}>
-                   <h3 style={{
-                     fontSize: '1.25rem',
-                     fontWeight: 600,
-                     color: '#1e293b',
-                     marginBottom: '1rem'
+               <div style={{ marginBottom: '1.5rem' }}>
+                 <h3 style={{
+                   fontSize: '1.25rem',
+                   fontWeight: 600,
+                   color: '#1e293b',
+                   marginBottom: '1rem'
                    }}>
                      Additional Notes
                    </h3>
@@ -3812,9 +3812,9 @@ export default function CustomerPage() {
                      fontWeight: 600,
                      color: '#1e293b',
                      margin: 0
-                   }}>
-                     Selected Coverages
-                   </h3>
+                 }}>
+                   Selected Coverages
+                 </h3>
                    <div style={{
                      display: 'flex',
                      gap: '1rem',

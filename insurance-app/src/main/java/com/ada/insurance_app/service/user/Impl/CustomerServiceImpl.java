@@ -118,7 +118,7 @@ public class CustomerServiceImpl implements ICustomerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
         Offer offer = new Offer();
-        offer.setOfferNumber(UUID.randomUUID().toString());
+        offer.setOfferNumber("OFF-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         offer.setCustomer(customer);
         offer.setInsuranceType(request.getInsuranceType());
         
@@ -204,15 +204,19 @@ public class CustomerServiceImpl implements ICustomerService {
         }
 
         Offer saved = offerRepository.save(offer);
-        return offerMapper.toDto(saved);
+        // Fetch the saved offer with all associations loaded to avoid lazy loading issues
+        Offer offerWithDetails = offerRepository.findByIdWithDetails(saved.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Failed to retrieve saved offer"));
+        return offerMapper.toDto(offerWithDetails);
     }
     
 
 
 
     @Override
+    @Transactional(readOnly = true)
     public OfferDto getOfferById(Long offerId, UUID customerId) {
-        Offer offer = offerRepository.findById(offerId)
+        Offer offer = offerRepository.findByIdWithDetails(offerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Offer not found"));
 
         if (!offer.getCustomer().getId().equals(customerId)) {
@@ -227,7 +231,7 @@ public class CustomerServiceImpl implements ICustomerService {
     @Transactional
     public PolicyDto acceptOfferAndCreatePolicy(Long offerId, UUID customerId) {
         // Teklifi getir
-        Offer offer = offerRepository.findById(offerId)
+        Offer offer = offerRepository.findByIdWithDetails(offerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Offer not found with ID: " + offerId));
 
         // Teklifi oluşturan müşteriyle şu anki müşteri aynı mı?

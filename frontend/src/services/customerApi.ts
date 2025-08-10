@@ -439,7 +439,7 @@ export const downloadDocument = async (documentId: number): Promise<Blob> => {
 
 // Coverages
 export const getCoveragesByInsuranceType = async (insuranceType: keyof typeof InsuranceType): Promise<CoverageDto[]> => {
-  const response = await axiosInstance.get(`/coverages/type/${insuranceType}`);
+  const response = await axiosInstance.get(`/coverages/by-insurance-type?type=${insuranceType}`);
   return response.data.data;
 };
 

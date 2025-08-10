@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,6 +29,7 @@ public class CoverageControllerImpl implements ICoverageController {
 
     @Override
     @PostMapping("/create")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<GeneralResponse<CoverageDto>> create(CreateCoverageRequest request) {
         try {
             CoverageDto createdCoverage = coverageService.create(request);
@@ -40,6 +42,7 @@ public class CoverageControllerImpl implements ICoverageController {
 
     @Override
     @PutMapping("/update/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<GeneralResponse<CoverageDto>> update(Long id, UpdateCoverageRequest request) {
         try {
             CoverageDto updatedCoverage = coverageService.update(id, request);
@@ -52,6 +55,7 @@ public class CoverageControllerImpl implements ICoverageController {
 
     @Override
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<GeneralResponse<Void>> delete(Long id) {
         try {
             coverageService.delete(id);
@@ -64,6 +68,7 @@ public class CoverageControllerImpl implements ICoverageController {
 
     @Override
     @GetMapping("/get/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
     public ResponseEntity<GeneralResponse<CoverageDto>> getById(Long id) {
         try {
             CoverageDto coverage = coverageService.getById(id);
@@ -76,6 +81,7 @@ public class CoverageControllerImpl implements ICoverageController {
 
     @Override
     @GetMapping("/get-all")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
     public ResponseEntity<GeneralResponse<List<CoverageDto>>> getAll() {
         try {
             List<CoverageDto> coverages = coverageService.getAll();
@@ -88,6 +94,7 @@ public class CoverageControllerImpl implements ICoverageController {
 
     @Override
     @GetMapping("/by-insurance-type")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
     public ResponseEntity<GeneralResponse<List<CoverageDto>>> getCoveragesByInsuranceType(@RequestParam InsuranceType type) {
         try {
             List<CoverageDto> coverages = coverageService.getCoveragesByInsuranceType(type);

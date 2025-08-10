@@ -32,6 +32,7 @@ public class CustomerControllerImpl implements ICustomerController {
     private final ICustomerService customerService;
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PutMapping("/{customerId}/individual")
     public ResponseEntity<GeneralResponse<CustomerDto>> updateIndividualCustomer(@PathVariable UUID customerId, @RequestBody UpdateIndividualCustomerRequest request) {
         try {
@@ -48,6 +49,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PutMapping("/{customerId}/corporate")
     public ResponseEntity<GeneralResponse<CustomerDto>> updateCorporateCustomer(@PathVariable UUID customerId, @RequestBody UpdateCorporateCustomerRequest request) {
         try {
@@ -65,6 +67,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/{customerId}/get")
     public ResponseEntity<GeneralResponse<CustomerDto>> getCustomer(@PathVariable UUID customerId) {
         try {
@@ -101,9 +104,10 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
 
- @Override
- @DeleteMapping("/{customerId}/delete")
- public ResponseEntity<GeneralResponse<Void>> deleteCustomer(@PathVariable UUID customerId) {
+     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @DeleteMapping("/{customerId}/delete")
+    public ResponseEntity<GeneralResponse<Void>> deleteCustomer(@PathVariable UUID customerId) {
      try {
          log.info("Deleting customer: {}", customerId);
          customerService.deleteCustomer(customerId);
@@ -116,6 +120,7 @@ public class CustomerControllerImpl implements ICustomerController {
  }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/{customerId}/dashboard")
     public ResponseEntity<GeneralResponse<CustomerDashboardDto>> getCustomerDashboard(@PathVariable UUID customerId) {
         try {
@@ -175,6 +180,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/{customerId}/policies/{policyId}")
     public ResponseEntity<GeneralResponse<PolicyDto>> getPolicyById(@PathVariable Long policyId, @PathVariable UUID customerId) {
 
@@ -190,6 +196,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/{customerId}/documents/{documentId}")
     public ResponseEntity<GeneralResponse<DocumentDto>> getDocumentById(@PathVariable Long documentId, @PathVariable UUID customerId) {
 
@@ -207,6 +214,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/{customerId}/documents")
     public ResponseEntity<GeneralResponse<DocumentDto>> uploadDocument(@RequestParam("file") MultipartFile file, @PathVariable UUID customerId) {
         try {
@@ -222,8 +230,8 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/{customerId}/claims/{claimId}")
-
     public ResponseEntity<GeneralResponse<ClaimDto>> getClaimById(@PathVariable UUID claimId, @PathVariable UUID customerId) {
         try {
             log.info("Getting claim by ID: {} for customer: {}", claimId, customerId);
@@ -237,6 +245,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/{customerId}/create-claim")
     public ResponseEntity<GeneralResponse<ClaimDto>> createClaim(@RequestBody  CreateClaimRequest request,@PathVariable UUID customerId) {
         try {
@@ -252,6 +261,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/{customerId}/create-offer")
     public ResponseEntity<GeneralResponse<OfferDto>> requestOffer(@RequestBody CreateOfferRequest request, @PathVariable UUID customerId) {
         try {
@@ -282,6 +292,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/{customerId}/offers/{offerId}")
     public ResponseEntity<GeneralResponse<OfferDto>> getOfferById(@PathVariable Long offerId, @PathVariable UUID customerId) {
         try {
@@ -296,6 +307,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/{customerId}/offers/{offerId}/accept")
     public ResponseEntity<GeneralResponse<PolicyDto>> acceptOfferAndCreatePolicy(@PathVariable Long offerId, @PathVariable UUID customerId) {
         try {
@@ -341,6 +353,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/{customerId}/payments/{paymentId}")
     public ResponseEntity<GeneralResponse<PaymentDto>> getPaymentById(@PathVariable UUID paymentId, @PathVariable UUID customerId) {
         try {
@@ -355,6 +368,7 @@ public class CustomerControllerImpl implements ICustomerController {
     }
 
     @Override
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/{customerId}/policies/{policyId}/make-payment")
     public ResponseEntity<GeneralResponse<PaymentDto>> makePayment(@PathVariable Long policyId, @RequestBody CreatePaymentRequest request, @PathVariable UUID customerId) {
 
