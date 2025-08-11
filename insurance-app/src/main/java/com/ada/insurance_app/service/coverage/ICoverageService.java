@@ -22,4 +22,6 @@ public interface ICoverageService {
     List<CoverageDto> getCoveragesByPolicy(Long policyId);
 
     List<CoverageDto> getCoveragesByInsuranceType(InsuranceType insuranceType);
+    
+    List<CoverageDto> getCoveragesByOfferId(Long offerId);
 }

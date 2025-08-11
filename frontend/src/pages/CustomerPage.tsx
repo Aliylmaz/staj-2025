@@ -16,7 +16,8 @@ import {
   uploadDocument,
   updateIndividualCustomer,
   updateCorporateCustomer,
-  getOfferById
+  getOfferById,
+  getCoveragesByOfferId
 } from '../services/customerApi';
 import type { AgentDto, CoverageDto } from '../services/customerApi';
 
@@ -301,7 +302,17 @@ export default function CustomerPage() {
       const detailedOffer = await getOfferById(offer.id);
       console.log('🔍 handleOfferClick - detailed offer from API:', detailedOffer);
       
-      setSelectedOffer(detailedOffer);
+      // Fetch coverages for this offer separately
+      const offerCoverages = await getCoveragesByOfferId(offer.id);
+      console.log('🔍 handleOfferClick - offer coverages:', offerCoverages);
+      
+      // Merge coverages with the detailed offer
+      const offerWithCoverages = {
+        ...detailedOffer,
+        coverages: offerCoverages
+      };
+      
+      setSelectedOffer(offerWithCoverages);
       setShowOfferDetails(true);
     } catch (error) {
       console.error('Error fetching offer details:', error);
@@ -3963,14 +3974,14 @@ export default function CustomerPage() {
                        fontSize: '1rem',
                        fontWeight: 500
                      }}>
-                       Waiting for agent to select coverages
+                                               No coverages selected
                      </p>
                      <p style={{
                        color: '#94a3b8',
                        margin: '0.5rem 0 0 0',
                        fontSize: '0.875rem'
                      }}>
-                       Your agent will review your request and select appropriate coverages
+                                               Please select coverages when creating your offer
                      </p>
                    </div>
                  )}
@@ -4006,7 +4017,7 @@ export default function CustomerPage() {
                        fontSize: '0.875rem',
                        background: '#f9fafb'
                      }}>
-                       {selectedOffer.createdAt ? new Date(selectedOffer.createdAt).toLocaleDateString('tr-TR', {
+                                               {selectedOffer.createdAt ? new Date(selectedOffer.createdAt).toLocaleDateString('en-US', {
                          year: 'numeric',
                          month: 'long',
                          day: 'numeric',
@@ -4031,7 +4042,7 @@ export default function CustomerPage() {
                          fontSize: '0.875rem',
                          background: '#f9fafb'
                        }}>
-                         {new Date(selectedOffer.updatedAt).toLocaleDateString('tr-TR', {
+                                                   {new Date(selectedOffer.updatedAt).toLocaleDateString('en-US', {
                            year: 'numeric',
                            month: 'long',
                            day: 'numeric',

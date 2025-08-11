@@ -443,6 +443,11 @@ export const getCoveragesByInsuranceType = async (insuranceType: keyof typeof In
   return response.data.data;
 };
 
+export const getCoveragesByOfferId = async (offerId: number): Promise<CoverageDto[]> => {
+  const response = await axiosInstance.get(`/coverages/by-offer/${offerId}`);
+  return response.data.data;
+};
+
 // Agents
 export const getAllAgents = async (): Promise<AgentDto[]> => {
   try {

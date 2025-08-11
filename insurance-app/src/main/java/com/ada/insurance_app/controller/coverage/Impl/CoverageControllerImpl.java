@@ -104,4 +104,16 @@ public class CoverageControllerImpl implements ICoverageController {
                     "Failed to retrieve coverages by insurance type: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
         }
     }
+
+    @GetMapping("/by-offer/{offerId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
+    public ResponseEntity<GeneralResponse<List<CoverageDto>>> getCoveragesByOfferId(@PathVariable Long offerId) {
+        try {
+            List<CoverageDto> coverages = coverageService.getCoveragesByOfferId(offerId);
+            return ResponseEntity.ok(GeneralResponse.success("Coverages retrieved successfully for offer", coverages));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(GeneralResponse.error(
+                    "Failed to retrieve coverages for offer: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
 }

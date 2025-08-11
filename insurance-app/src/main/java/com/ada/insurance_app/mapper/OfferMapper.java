@@ -13,6 +13,10 @@ public interface OfferMapper {
     @Mapping(target = "coverages", expression = "java(mapCoverages(offer.getCoverages()))")
     @Mapping(target="offerNumber", expression = "java(offer.getOfferNumber() != null ? offer.getOfferNumber() : \"\")")
     @Mapping(target = "policyId", expression = "java(offer.getPolicy() != null ? offer.getPolicy().getId() : null)")
+    @Mapping(target = "createdAt", expression = "java(offer.getCreatedAt() != null ? offer.getCreatedAt().toString() : null)")
+    @Mapping(target = "updatedAt", expression = "java(offer.getUpdatedAt() != null ? offer.getUpdatedAt().toString() : null)")
+    @Mapping(target = "acceptedAt", expression = "java(offer.getAcceptedAt() != null ? offer.getAcceptedAt().toString() : null)")
+    @Mapping(target = "convertedAt", expression = "java(offer.getConvertedAt() != null ? offer.getConvertedAt().toString() : null)")
     OfferDto toDto(Offer offer);
 
     // PRE-SIZE YOK, SNAPSHOT ÜZERİNDEN DÖN

@@ -14,9 +14,8 @@ public interface IOfferRepository extends JpaRepository<Offer, Long> {
     Optional<Offer> findByOfferNumber(String offerNumber);
     List<Offer> findByStatus(OfferStatus status);
 
-
-        @EntityGraph(attributePaths = {"coverages", "customer", "policy"})
-        List<Offer> findByCustomer_Id(UUID customerId);
+    @EntityGraph(attributePaths = {"coverages", "customer", "policy"})
+    List<Offer> findByCustomer_Id(UUID customerId);
 
     @Query("SELECT o FROM Offer o LEFT JOIN FETCH o.coverages LEFT JOIN FETCH o.customer LEFT JOIN FETCH o.policy LEFT JOIN FETCH o.agent WHERE o.id = :id")
     Optional<Offer> findByIdWithDetails(@Param("id") Long id);
@@ -24,9 +23,12 @@ public interface IOfferRepository extends JpaRepository<Offer, Long> {
     List<Offer> findByAgent_Id(UUID agentId);
 
     List<Offer> findByPolicy_Id(Long policyİd);
+    
     @Query("SELECT o FROM Offer o WHERE o.customer.id = :customerId AND o.status = :status")
     List<Offer> findByCustomerIdAndStatus(UUID customerId, OfferStatus status);
+    
     long countByStatus(OfferStatus status);
+    
     @Query("SELECT o FROM Offer o ORDER BY o.createdAt DESC")
     List<Offer> findTop5ByOrderByCreatedAtDesc();
 }

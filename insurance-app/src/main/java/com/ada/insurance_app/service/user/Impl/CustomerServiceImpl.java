@@ -130,14 +130,21 @@ public class CustomerServiceImpl implements ICustomerService {
         }
 
         if (request.getCoverageIds() != null && !request.getCoverageIds().isEmpty()) {
+            log.info("Received coverage IDs: {}", request.getCoverageIds());
             Set<Coverage> coverages = new HashSet<>(coverageRepository.findAllById(request.getCoverageIds()));
+            log.info("Found {} coverages in database", coverages.size());
             offer.setCoverages(coverages);
+            log.info("Setting {} coverages for offer: {}", coverages.size(), coverages.stream().map(Coverage::getName).collect(Collectors.joining(", ")));
 
             // Calculate premium based on selected coverages
             BigDecimal calculatedPremium = coverages.stream()
                     .map(Coverage::getBasePrice)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             offer.setTotalPremium(calculatedPremium);
+            log.info("Calculated total premium: {} for offer with {} coverages", calculatedPremium, coverages.size());
+        } else {
+            log.info("No coverage IDs received in request");
+            offer.setCoverages(new HashSet<>());
         }
 
 
@@ -220,7 +227,24 @@ public class CustomerServiceImpl implements ICustomerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Offer not found"));
 
         if (!offer.getCustomer().getId().equals(customerId)) {
-            throw new UnauthorizedAccessException("Offer does not belong to this customer");
+            throw new UnauthorizedAccessException("Offer not belong to this customer");
+        }
+
+        log.info("Offer {} loaded with {} coverages, createdAt: {}, customer: {}", 
+                offerId, 
+                offer.getCoverages() != null ? offer.getCoverages().size() : 0,
+                offer.getCreatedAt(),
+                offer.getCustomer().getUser().getFirstName() + " " + offer.getCustomer().getUser().getLastName());
+        
+        // Debug: Log coverage details
+        if (offer.getCoverages() != null && !offer.getCoverages().isEmpty()) {
+            log.info("Coverages found: {}", offer.getCoverages().stream()
+                    .map(c -> c.getName() + " (ID: " + c.getId() + ")")
+                    .collect(Collectors.joining(", ")));
+        } else {
+            log.warn("No coverages found for offer {}", offerId);
+            // Additional debug: Check if offer has any coverages at all
+            log.warn("Offer entity coverages field: {}", offer.getCoverages());
         }
 
         return offerMapper.toDto(offer);

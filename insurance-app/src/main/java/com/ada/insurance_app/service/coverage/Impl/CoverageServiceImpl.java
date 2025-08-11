@@ -121,6 +121,20 @@ public class CoverageServiceImpl implements ICoverageService {
 
     }
 
+    @Override
+    public List<CoverageDto> getCoveragesByOfferId(Long offerId) {
+        if (offerId == null) {
+            throw new IllegalArgumentException("Offer ID cannot be null");
+        }
+
+        List<Coverage> coverages = coverageRepository.findCoveragesByOfferId(offerId);
+        log.info("Found {} coverages for offer ID: {}", coverages.size(), offerId);
+        
+        return coverages.stream()
+                .map(mapper::toDto)
+                .toList();
+    }
+
     // PRIVATE VALIDATION
     private void validateRequest(CreateCoverageRequest request) {
         if (request == null)

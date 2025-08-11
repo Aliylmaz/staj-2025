@@ -23,6 +23,10 @@ public class OfferDto {
     private Long policyId;
     private AgentDto agent;
     private InsuranceType insuranceType;
+    private String createdAt;
+    private String updatedAt;
+    private String acceptedAt;
+    private String convertedAt;
 
 
 }
