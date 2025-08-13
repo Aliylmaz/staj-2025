@@ -265,8 +265,10 @@ export interface AgentDto {
 export interface CreateClaimRequest {
   policyId: number;
   description: string;
-  claimDate: string;
-  amount: number;
+  incidentDate: string;
+  estimatedAmount?: number;
+  notificationsEnabled?: boolean;
+  documentUrl?: string;
 }
 
 export interface CreatePaymentRequest {
@@ -413,7 +415,13 @@ export const getMyDocuments = async (): Promise<DocumentDto[]> => {
   return response.data.data;
 };
 
-export const uploadDocument = async (file: File): Promise<DocumentDto> => {
+export const uploadDocument = async (
+  file: File, 
+  policyId?: number, 
+  claimId?: string, 
+  documentType?: string,
+  description?: string
+): Promise<DocumentDto> => {
   const customerId = getValidCustomerId();
   if (!customerId) {
     throw new Error('Valid Customer ID not found. Please ensure you are logged in and customer data is loaded.');
@@ -421,6 +429,10 @@ export const uploadDocument = async (file: File): Promise<DocumentDto> => {
 
   const formData = new FormData();
   formData.append('file', file);
+  if (policyId) formData.append('policyId', policyId.toString());
+  if (claimId) formData.append('claimId', claimId);
+  if (documentType) formData.append('documentType', documentType);
+  if (description) formData.append('description', description);
 
   const response = await axiosInstance.post(`/customer/${customerId}/documents`, formData, {
     headers: {

@@ -30,6 +30,7 @@ public class CreateOfferRequest {
     private List<Long> coverageIds;
 
     // Agent who will handle this offer
+    @NotNull(message = "Agent ID is required")
     private UUID agentId;
 
     // Detaylar sadece seçilen insuranceType'a göre zorunlu olur

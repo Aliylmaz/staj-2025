@@ -32,7 +32,7 @@ public interface ICustomerService {
     ClaimDto getClaimById(UUID claimId, UUID customerId);
     PaymentDto getPaymentById(UUID paymentId, UUID customerId);
 
-    DocumentDto uploadDocument(MultipartFile file, UUID customerId);
+    DocumentDto uploadDocument(MultipartFile file, UUID customerId, Long policyId, String claimId, String documentType, String description);
 
     CustomerDto updateIndividualCustomer(UUID customerId, UpdateIndividualCustomerRequest request);
     CustomerDto updateCorporateCustomer(UUID customerId, UpdateCorporateCustomerRequest request);

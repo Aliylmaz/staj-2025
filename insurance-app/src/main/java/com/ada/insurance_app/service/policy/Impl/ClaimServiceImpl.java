@@ -62,6 +62,8 @@ public class ClaimServiceImpl implements IClaimService {
         claim.setPolicy(policy);
         claim.setCreatedAt(LocalDateTime.now());
         claim.setStatus(ClaimStatus.SUBMITTED);
+        // 8 haneli
+        claim.setClaimNumber("CLM-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         
         Claim savedClaim = claimRepository.save(claim);
         log.info("Claim created successfully: {} for policy: {}", savedClaim.getId(), policyId);
@@ -169,10 +171,10 @@ public class ClaimServiceImpl implements IClaimService {
         claim.setPolicy(policy);
         claim.setIncidentDate(request.getIncidentDate());
         claim.setDescription(request.getDescription());
-        claim.setStatus(com.ada.insurance_app.core.enums.ClaimStatus.valueOf(request.getStatus().toUpperCase()));
+        claim.setStatus(com.ada.insurance_app.core.enums.ClaimStatus.valueOf(String.valueOf(request.getStatus())));
         claim.setCreatedAt(LocalDateTime.now());
-        
-        claim.setClaimNumber(UUID.randomUUID().toString()); // Generate unique claim number
+
+        claim.setClaimNumber("CLM-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         
         Claim savedClaim = claimRepository.save(claim);
         log.info("Claim created from request successfully: {} for policy: {}", savedClaim.getId(), request.getPolicyId());
@@ -266,13 +268,13 @@ public class ClaimServiceImpl implements IClaimService {
             throw new IllegalArgumentException("Claim description is required");
         }
         
-        if (!StringUtils.hasText(request.getStatus())) {
+        if (!StringUtils.hasText(String.valueOf(request.getStatus()))) {
             throw new IllegalArgumentException("Claim status is required");
         }
         
         // Validate status enum
         try {
-            com.ada.insurance_app.core.enums.ClaimStatus.valueOf(request.getStatus().toUpperCase());
+            com.ada.insurance_app.core.enums.ClaimStatus.valueOf(String.valueOf(request.getStatus()));
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid claim status: " + request.getStatus());
         }
@@ -307,7 +309,7 @@ public class ClaimServiceImpl implements IClaimService {
                 .orElseThrow(() -> new ClaimNotFoundException("Claim not found: " + claimId));
         
         // Business rule: Can only approve PENDING or IN_REVIEW claims
-        if (claim.getStatus() != ClaimStatus.PENDING && claim.getStatus() != ClaimStatus.IN_REVIEW) {
+        if (claim.getStatus() != ClaimStatus.SUBMITTED && claim.getStatus() != ClaimStatus.IN_REVIEW) {
             throw new IllegalArgumentException("Can only approve PENDING or IN_REVIEW claims. Current status: " + claim.getStatus());
         }
         
@@ -332,7 +334,7 @@ public class ClaimServiceImpl implements IClaimService {
                 .orElseThrow(() -> new ClaimNotFoundException("Claim not found: " + claimId));
         
         // Business rule: Can only reject PENDING or IN_REVIEW claims
-        if (claim.getStatus() != ClaimStatus.PENDING && claim.getStatus() != ClaimStatus.IN_REVIEW) {
+        if (claim.getStatus() != ClaimStatus.SUBMITTED && claim.getStatus() != ClaimStatus.IN_REVIEW) {
             throw new IllegalArgumentException("Can only reject PENDING or IN_REVIEW claims. Current status: " + claim.getStatus());
         }
         

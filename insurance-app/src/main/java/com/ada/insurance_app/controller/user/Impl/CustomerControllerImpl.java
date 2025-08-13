@@ -216,10 +216,17 @@ public class CustomerControllerImpl implements ICustomerController {
     @Override
     @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/{customerId}/documents")
-    public ResponseEntity<GeneralResponse<DocumentDto>> uploadDocument(@RequestParam("file") MultipartFile file, @PathVariable UUID customerId) {
+    public ResponseEntity<GeneralResponse<DocumentDto>> uploadDocument(
+            @RequestParam("file") MultipartFile file,
+            @PathVariable UUID customerId,
+            @RequestParam(value = "policyId", required = false) Long policyId,
+            @RequestParam(value = "claimId", required = false) String claimId,
+            @RequestParam(value = "documentType", required = false) String documentType,
+            @RequestParam(value = "description", required = false) String description) {
         try {
-            log.info("Uploading document for customer: {}", customerId);
-            DocumentDto document = customerService.uploadDocument(file, customerId);
+            log.info("Uploading document for customer: {} with policyId: {}, claimId: {}, documentType: {}, description: {}",
+                    customerId, policyId, claimId, documentType, description);
+            DocumentDto document = customerService.uploadDocument(file, customerId, policyId, claimId, documentType, description);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(GeneralResponse.success("Document uploaded successfully", document));
         } catch (Exception e) {

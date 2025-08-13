@@ -1685,8 +1685,8 @@ export default function AgentPage() {
                         borderRadius: '9999px',
                         fontSize: '0.75rem',
                         fontWeight: 500,
-                        background: claim.status === "PENDING" ? '#fef3c7' : claim.status === "APPROVED" ? '#dcfce7' : claim.status === "REJECTED" ? '#fee2e2' : '#e0e7ff',
-                        color: claim.status === "PENDING" ? '#92400e' : claim.status === "APPROVED" ? '#166534' : claim.status === "REJECTED" ? '#991b1b' : '#3730a3'
+                                background: claim.status === "SUBMITTED" ? '#fef3c7' : claim.status === "APPROVED" ? '#dcfce7' : claim.status === "REJECTED" ? '#fee2e2' : '#e0e7ff',
+        color: claim.status === "SUBMITTED" ? '#92400e' : claim.status === "APPROVED" ? '#166534' : claim.status === "REJECTED" ? '#991b1b' : '#3730a3'
                       }}>
                         {claim.status}
                       </span>
@@ -1732,7 +1732,7 @@ export default function AgentPage() {
                       )}
                     </div>
 
-                    {(claim.status === 'PENDING' || claim.status === 'IN_REVIEW') && (
+                    {(claim.status === 'SUBMITTED' || claim.status === 'IN_REVIEW' || claim.status === 'ADDITIONAL_INFO_REQUIRED') && (
                       <div style={{ display: 'flex', gap: '1rem' }}>
                         <button
                           onClick={() => handleApproveClaim(claim.id)}

@@ -256,7 +256,7 @@ export const getAgentStatistics = async (): Promise<AgentStatsDto[]> => {
 export interface ClaimDto {
   id: string;
   claimNumber: string;
-  status: 'PENDING' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED' | 'PAID';
+  status: 'SUBMITTED' | 'IN_REVIEW' | 'ADDITIONAL_INFO_REQUIRED' | 'APPROVED' | 'REJECTED' | 'PAID' | 'CLOSED';
   claimAmount: number;
   approvedAmount?: number;
   description: string;

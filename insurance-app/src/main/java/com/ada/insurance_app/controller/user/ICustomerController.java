@@ -32,7 +32,7 @@ public interface ICustomerController {
     // ----------- Document İşlemleri -----------
     ResponseEntity<GeneralResponse<List<DocumentDto>>> getMyDocuments(UUID customerId);
     ResponseEntity<GeneralResponse<DocumentDto>> getDocumentById(Long documentId, UUID customerId);
-    ResponseEntity<GeneralResponse<DocumentDto>> uploadDocument(MultipartFile file, UUID customerId);
+    ResponseEntity<GeneralResponse<DocumentDto>> uploadDocument(MultipartFile file, UUID customerId, Long policyId, String claimId, String documentType, String description);
 
     // ----------- Claim İşlemleri -----------
     ResponseEntity<GeneralResponse<List<ClaimDto>>> getMyClaims(UUID customerId);

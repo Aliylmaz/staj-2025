@@ -356,16 +356,25 @@ public class CustomerServiceImpl implements ICustomerService {
         claim.setIncidentDate(request.getIncidentDate());
         claim.setDescription(request.getDescription());
         claim.setStatus(ClaimStatus.SUBMITTED);
+        claim.setClaimNumber("CLM-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
 
-        Document document = new Document();
-        document.setFilePath(request.getDocumentUrl());
-        document.setCreatedAt(LocalDateTime.now());
-        document.setPolicy(policy);
 
-        Set<Document> documents = new HashSet<>();
-        documents.add(document);
+        // Only create document if documentUrl is provided
+        if (request.getDocumentUrl() != null && !request.getDocumentUrl().trim().isEmpty()) {
+            Document document = new Document();
+            document.setFilePath(request.getDocumentUrl());
+            document.setCreatedAt(LocalDateTime.now());
+            document.setPolicy(policy);
+            document.setDocumentType(com.ada.insurance_app.core.enums.DocumentType.CLAIM_DOCUMENT);
+            document.setFileName("claim_document");
+            document.setOriginalFileName("claim_document");
+            document.setContentType("application/pdf");
+            document.setFileSize(0L); // Default size since we don't have actual file
 
-        claim.setDocuments(documents);
+            Set<Document> documents = new HashSet<>();
+            documents.add(document);
+            claim.setDocuments(documents);
+        }
 
 
         // Kaydet
@@ -376,8 +385,7 @@ public class CustomerServiceImpl implements ICustomerService {
 
     @Override
     public PaymentDto makePayment(Long policyId, CreatePaymentRequest request, UUID customerId) {
-        log.info("makePayment: Starting payment process for policy: {}, customer: {}", policyId, customerId);
-        log.info("makePayment: Payment request details: {}", request);
+
         
         // Poliçeyi bul ve doğrula
         Policy policy = policyRepository.findById(policyId)
@@ -387,32 +395,26 @@ public class CustomerServiceImpl implements ICustomerService {
             throw new UnauthorizedAccessException("Policy does not belong to this customer");
         }
 
-        log.info("makePayment: Policy found: {}, premium: {}", policy.getPolicyNumber(), policy.getPremium());
 
         // Check if payment already exists for this policy
         List<Payment> existingPayments = paymentRepository.findByPolicy_Id(policyId);
         Payment payment;
         
         if (!existingPayments.isEmpty()) {
-            log.info("makePayment: Payment already exists for policy: {}, updating existing payment", policyId);
             payment = existingPayments.get(0); // Get the first (most recent) payment
-            
-            // Log existing payment details
-            log.info("makePayment: Existing payment ID: {}, status: {}, amount: {}", 
-                    payment.getId(), payment.getStatus(), payment.getAmount());
+
             
             // Check if there's already a successful payment - only prevent if SUCCESS
             if (payment.getStatus() == PaymentStatus.SUCCESS) {
-                log.warn("makePayment: Policy {} already has a successful payment", policyId);
                 throw new RuntimeException("A successful payment has already been made for this policy. No further payments are required.");
             }
             
             // If payment is FAILED, we can retry it
             if (payment.getStatus() == PaymentStatus.FAILED) {
-                log.info("makePayment: Retrying failed payment for policy: {}", policyId);
+                payment.setStatus(PaymentStatus.FAILED);
+                throw new RuntimeException("Payment for this policy has been failed. Please try again.");
             }
         } else {
-            log.info("makePayment: Creating new payment for policy: {}", policyId);
             payment = new Payment();
             payment.setPolicy(policy);
             payment.setCustomer(policy.getCustomer());
@@ -422,7 +424,7 @@ public class CustomerServiceImpl implements ICustomerService {
         // Update payment details
         payment.setAmount(policy.getPremium());
         payment.setPaymentDate(LocalDateTime.now());
-        payment.setTransactionReference(UUID.randomUUID().toString());
+        payment.setTransactionReference("TRX-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         
         boolean paymentSuccess = simulateCardPayment(request);
         payment.setStatus(paymentSuccess ? PaymentStatus.SUCCESS : PaymentStatus.FAILED);
@@ -517,7 +519,7 @@ public class CustomerServiceImpl implements ICustomerService {
     }
 
     @Override
-    public DocumentDto uploadDocument(MultipartFile file, UUID customerId) {
+    public DocumentDto uploadDocument(MultipartFile file, UUID customerId, Long policyId, String claimId, String documentType, String description) {
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException("Customer not found with id: " + customerId));
 
@@ -525,11 +527,19 @@ public class CustomerServiceImpl implements ICustomerService {
             throw new IllegalArgumentException("Uploaded file is empty or filename is missing");
         }
 
-        // Create DocumentDto with required fields
+        // Create DocumentDto with provided fields
         DocumentDto documentDto = new DocumentDto();
         documentDto.setCustomerId(customerId);
-        documentDto.setDocumentType(DocumentType.OTHER); // Default document type
-        documentDto.setDescription("Customer uploaded document");
+        documentDto.setDocumentType(DocumentType.valueOf(documentType != null ? documentType.toUpperCase() : "OTHER"));
+        documentDto.setDescription(description != null ? description : "Customer uploaded document");
+
+        // Set policy and claim IDs if provided
+        if (policyId != null) {
+            documentDto.setPolicyId(policyId);
+        }
+        if (claimId != null) {
+            documentDto.setClaimId(UUID.fromString(claimId));
+        }
         
         // Use DocumentService for proper document handling
         return documentService.uploadDocument(documentDto, file);

@@ -1,9 +1,11 @@
 package com.ada.insurance_app.request.claim;
 
+import com.ada.insurance_app.core.enums.ClaimStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Data
@@ -18,8 +20,11 @@ public class CreateClaimRequest {
     @NotBlank(message = "Claim description must not be blank")
     private String description;
 
-    @NotBlank(message = "Claim status must not be blank")
-    private String status;
+    private BigDecimal estimatedAmount; // Optional: customer can provide estimated amount
+
+    private boolean notificationsEnabled = true; // Optional: default to true
 
     private String documentUrl; // Optional: document path or URL
+
+    private ClaimStatus status = ClaimStatus.SUBMITTED;
 }

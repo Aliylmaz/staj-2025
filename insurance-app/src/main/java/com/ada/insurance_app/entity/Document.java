@@ -30,7 +30,7 @@ public class Document {
     @Column(nullable = false)
     private String contentType;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private Long fileSize;
 
     @Column(nullable = false)

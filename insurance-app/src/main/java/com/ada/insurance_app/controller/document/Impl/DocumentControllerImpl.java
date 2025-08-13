@@ -35,6 +35,23 @@ public class DocumentControllerImpl {
                 file.getOriginalFilename(), policyId, claimId, customerId);
 
         try {
+            // Smart validation based on document type
+            if (documentType == DocumentType.POLICY_DOCUMENT && policyId == null) {
+                return ResponseEntity.badRequest()
+                        .body(GeneralResponse.error("Policy ID is required for POLICY_DOCUMENT", HttpStatus.BAD_REQUEST));
+            }
+            
+            if (documentType == DocumentType.CLAIM_DOCUMENT) {
+                if (policyId == null) {
+                    return ResponseEntity.badRequest()
+                            .body(GeneralResponse.error("Policy ID is required for CLAIM_DOCUMENT", HttpStatus.BAD_REQUEST));
+                }
+                if (claimId == null) {
+                    return ResponseEntity.badRequest()
+                            .body(GeneralResponse.error("Claim ID is required for CLAIM_DOCUMENT", HttpStatus.BAD_REQUEST));
+                }
+            }
+
             DocumentDto dto = new DocumentDto();
             dto.setPolicyId(policyId);
             dto.setClaimId(claimId);
