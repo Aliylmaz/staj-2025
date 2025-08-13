@@ -9,6 +9,7 @@ import com.ada.insurance_app.repository.IAgentRepository;
 import com.ada.insurance_app.repository.auth.User.IUserRepository;
 import com.ada.insurance_app.service.dashboard.IDashboardService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DashboardServiceImpl implements IDashboardService {
     private final IPolicyRepository policyRepository;
     private final IClaimRepository claimRepository;
@@ -71,7 +73,9 @@ public class DashboardServiceImpl implements IDashboardService {
             agentStats.setTotalClaims(claimCount);
             agentStats.setTotalPayments(paymentCount);
             agentStats.setTotalPremium(totalPremium);
-            agentStats.setSuccessRate(claimCount > 0 ? (double) paymentCount / claimCount * 100 : 0.0);
+            // Success rate: Policies that have payments / Total policies * 100
+            double successRate = policyCount > 0 ? (double) paymentCount / policyCount * 100 : 0.0;
+            agentStats.setSuccessRate(successRate);
 
             stats.add(agentStats);
         }
@@ -84,11 +88,16 @@ public class DashboardServiceImpl implements IDashboardService {
                 .orElseThrow(() -> new IllegalArgumentException("Agent not found with ID: " + agentId));
 
         String agentNumber = agent.getAgentNumber();
+        log.info("=== getAgentStatisticsById Debug ===");
+        log.info("Agent ID: {}, Agent Number: {}, Agent Name: {}", agentId, agentNumber, agent.getName());
 
         long policyCount = policyRepository.countPoliciesByAgent_AgentNumber(agentNumber);
         long claimCount = claimRepository.countByPolicy_Agent_AgentNumber(agentNumber);
         long paymentCount = paymentRepository.countByPolicy_Agent_AgentNumber(agentNumber);
         double totalPremium = policyRepository.sumTotalPremiumByAgentNumber(agentNumber);
+
+        log.info("Policy Count: {}, Claim Count: {}, Payment Count: {}, Total Premium: {}", 
+                policyCount, claimCount, paymentCount, totalPremium);
 
         AgentStatsDto agentStats = new AgentStatsDto();
         agentStats.setAgentName(agent.getName());
@@ -97,7 +106,12 @@ public class DashboardServiceImpl implements IDashboardService {
         agentStats.setTotalClaims(claimCount);
         agentStats.setTotalPayments(paymentCount);
         agentStats.setTotalPremium(totalPremium);
-        agentStats.setSuccessRate(claimCount > 0 ? (double) paymentCount / claimCount * 100 : 0.0);
+        // Success rate: Policies that have payments / Total policies * 100
+        double successRate = policyCount > 0 ? (double) paymentCount / policyCount * 100 : 0.0;
+        agentStats.setSuccessRate(successRate);
+
+        log.info("Success Rate: {}%", agentStats.getSuccessRate());
+        log.info("=== End getAgentStatisticsById Debug ===");
 
         return agentStats;
     }

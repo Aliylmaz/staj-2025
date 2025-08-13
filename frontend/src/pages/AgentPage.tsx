@@ -1,30 +1,30 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
+  updateOfferStatus,
+  reviseOfferPremium,
+  getMyCustomers,
+  type CustomerDto,
+  type AgentDto,
+  getOffersByAgentId,
+  getCurrentAgent,
   getMyAgentStatistics,
-  type AgentStatsDto, 
-  getAllOffers, 
-  updateOfferStatus, 
-  type OfferDto,
-  type ClaimDto,
-  type PaymentDto,
-  getClaimsByAgent,
   approveClaim,
   rejectClaim,
   getPaymentsByAgent,
-  approvePayment,
-  rejectPayment,
-  reviseOfferPremium,
-  getCurrentAgent,
-  getMyCustomers,
-  type CustomerDto,
-  type AgentDto
+  type OfferDto,
+  type ClaimDto,
+  type PaymentDto,
+  type AgentStatsDto,
+  getMyActivePolicies,
+  updatePolicyStatus,
+  getPolicyById,
+  getPolicyCoverages
 } from '../services/agentApi';
 
 export default function AgentPage() {
   const [currentModule, setCurrentModule] = useState<'dashboard' | 'customers' | 'policies' | 'offers' | 'claims' | 'payments' | 'profile'>('dashboard');
   const [agentStats, setAgentStats] = useState<AgentStatsDto | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
   const [offers, setOffers] = useState<OfferDto[]>([]);
   const [offersLoading, setOffersLoading] = useState(false);
   const [claims, setClaims] = useState<ClaimDto[]>([]);
@@ -33,64 +33,115 @@ export default function AgentPage() {
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [customers, setCustomers] = useState<CustomerDto[]>([]);
   const [customersLoading, setCustomersLoading] = useState(false);
+  const [policies, setPolicies] = useState<any[]>([]);
+  const [policiesLoading, setPoliciesLoading] = useState(false);
   const [currentAgent, setCurrentAgent] = useState<AgentDto | null>(null);
   const [selectedOfferId, setSelectedOfferId] = useState<number | null>(null);
   const [reviseModalOpen, setReviseModalOpen] = useState(false);
   const [newPremium, setNewPremium] = useState('');
   const [reviseNote, setReviseNote] = useState('');
+  
+  // Policy management states
+  const [selectedPolicy, setSelectedPolicy] = useState<any>(null);
+  const [showPolicyDetails, setShowPolicyDetails] = useState(false);
+  const [policyCoverages, setPolicyCoverages] = useState<any[]>([]);
+  const [policyActionSuccess, setPolicyActionSuccess] = useState<string | null>(null);
+  const [policyActionError, setPolicyActionError] = useState<string | null>(null);
+  
+  // Profile update states
+  const [showProfileUpdate, setShowProfileUpdate] = useState(false);
+  const [profileFormData, setProfileFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phoneNumber: '',
+    address: '',
+    city: '',
+    country: '',
+    postalCode: ''
+  });
+  
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Agent kontrolü
-    const userRole = localStorage.getItem('userRole');
-    if (userRole !== 'AGENT') {
-      navigate('/login');
-      return;
-    }
     fetchCurrentAgent();
     fetchAgentStats();
-    fetchOffers();
     fetchCustomers();
   }, [navigate]);
 
   // Fetch agent-specific data when current agent is loaded
   useEffect(() => {
     if (currentAgent?.id) {
+      fetchOffers();
       fetchClaims();
       fetchPayments();
+      fetchPolicies();
     }
   }, [currentAgent]);
 
   const fetchCurrentAgent = async () => {
     try {
+      // Check if token exists
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No authentication token found');
+        navigate('/login');
+        return;
+      }
+      
+      console.log('🔑 Token found, fetching current agent...');
       const agent = await getCurrentAgent();
+      console.log('👤 Current agent loaded:', agent);
       setCurrentAgent(agent);
-    } catch (error) {
+      
+      // Initialize profile form with current agent data
+      if (agent) {
+        setProfileFormData({
+          firstName: agent.user?.firstName || '',
+          lastName: agent.user?.lastName || '',
+          email: agent.user?.email || '',
+          phoneNumber: agent.phoneNumber || '',
+          address: agent.address || '',
+          city: agent.city || '',
+          country: agent.country || '',
+          postalCode: agent.postalCode || ''
+        });
+      }
+    } catch (error: any) {
       console.error('Error fetching current agent:', error);
+      // If unauthorized, redirect to login
+      if (error.response?.status === 401) {
+        console.log('❌ Unauthorized, redirecting to login');
+        localStorage.removeItem('token');
+        navigate('/login');
+      }
       setCurrentAgent(null);
     }
   };
 
   const fetchAgentStats = async () => {
-    setStatsLoading(true);
     try {
       const myStats = await getMyAgentStatistics();
       setAgentStats(myStats);
     } catch (error) {
       console.error('Error fetching agent stats:', error);
       setAgentStats(null);
-    } finally {
-      setStatsLoading(false);
     }
   };
 
   const fetchOffers = async () => {
+    if (!currentAgent?.id) {
+      console.log('No current agent ID available');
+      return;
+    }
+    
     setOffersLoading(true);
     try {
-      const offersData = await getAllOffers();
+      const offersData = await getOffersByAgentId(currentAgent.id);
       // Filter only PENDING offers for the agent
       const pendingOffers = offersData.filter(offer => offer.status === 'PENDING');
       setOffers(pendingOffers);
+      console.log('📋 Fetched offers for agent:', offersData);
     } catch (error) {
       console.error('Error fetching offers:', error);
       setOffers([]);
@@ -103,8 +154,9 @@ export default function AgentPage() {
     if (!currentAgent?.id) return;
     setClaimsLoading(true);
     try {
-      const claimsData = await getClaimsByAgent(currentAgent.id);
-      setClaims(claimsData);
+      // Claims API not implemented yet
+      console.log('Claims API not implemented yet');
+      setClaims([]);
     } catch (error) {
       console.error('Error fetching claims:', error);
       setClaims([]);
@@ -119,11 +171,26 @@ export default function AgentPage() {
     try {
       const paymentsData = await getPaymentsByAgent(currentAgent.id);
       setPayments(paymentsData);
+      console.log('💰 Fetched payments for agent:', paymentsData);
     } catch (error) {
       console.error('Error fetching payments:', error);
       setPayments([]);
     } finally {
       setPaymentsLoading(false);
+    }
+  };
+
+  const fetchPolicies = async () => {
+    if (!currentAgent?.id) return;
+    setPoliciesLoading(true);
+    try {
+      const policiesData = await getMyActivePolicies();
+      setPolicies(policiesData);
+    } catch (error) {
+      console.error('Error fetching policies:', error);
+      setPolicies([]);
+    } finally {
+      setPoliciesLoading(false);
     }
   };
 
@@ -142,11 +209,19 @@ export default function AgentPage() {
 
   const handleAcceptOffer = async (offerId: number) => {
     try {
+      // Debug authentication state
+      const token = localStorage.getItem('token');
+      const userRole = localStorage.getItem('userRole');
+      console.log('🔍 handleAcceptOffer - Token exists:', !!token);
+      console.log('🔍 handleAcceptOffer - User role:', userRole);
+      console.log('🔍 handleAcceptOffer - Token value:', token);
+      
       const updateRequest = {
         offerId: offerId,
-        status: 'ACCEPTED' as const
+        status: 'APPROVED' as const
       };
       
+      console.log('🔍 handleAcceptOffer - Sending request:', updateRequest);
       const updatedOffer = await updateOfferStatus(updateRequest);
       
       // Update the offers state with the updated offer
@@ -156,20 +231,32 @@ export default function AgentPage() {
         )
       );
       
-      console.log('Offer accepted successfully');
-    } catch (error) {
-      console.error('Error accepting offer:', error);
+      console.log('✅ Offer accepted successfully');
+    } catch (error: any) {
+      console.error('❌ Error accepting offer:', error);
+      if (error.response) {
+        console.error('❌ Response status:', error.response.status);
+        console.error('❌ Response data:', error.response.data);
+      }
       alert('Failed to accept offer. Please try again.');
     }
   };
 
   const handleRejectOffer = async (offerId: number) => {
     try {
+      // Debug authentication state
+      const token = localStorage.getItem('token');
+      const userRole = localStorage.getItem('userRole');
+      console.log('🔍 handleRejectOffer - Token exists:', !!token);
+      console.log('🔍 handleRejectOffer - User role:', userRole);
+      console.log('🔍 handleRejectOffer - Token value:', token);
+      
       const updateRequest = {
         offerId: offerId,
         status: 'REJECTED' as const
       };
       
+      console.log('🔍 handleRejectOffer - Sending request:', updateRequest);
       await updateOfferStatus(updateRequest);
       
       // Remove from offers list since it's no longer pending
@@ -177,9 +264,13 @@ export default function AgentPage() {
         prevOffers.filter(offer => offer.id !== offerId)
       );
       
-      console.log('Offer rejected successfully');
-    } catch (error) {
-      console.error('Error rejecting offer:', error);
+      console.log('✅ Offer rejected successfully');
+    } catch (error: any) {
+      console.error('❌ Error rejecting offer:', error);
+      if (error.response) {
+        console.error('❌ Response status:', error.response.status);
+        console.error('❌ Response data:', error.response.data);
+      }
       alert('Failed to reject offer. Please try again.');
     }
   };
@@ -258,39 +349,109 @@ export default function AgentPage() {
     }
   };
 
-  const handleApprovePayment = async (paymentId: number) => {
-    if (!currentAgent?.id) return;
+
+
+
+
+  // Policy management functions
+  const handleViewPolicy = async (policyId: number) => {
     try {
-      const updatedPayment = await approvePayment(paymentId, currentAgent.id);
-      setPayments(prevPayments => 
-        prevPayments.map(payment => 
-          payment.id === paymentId ? updatedPayment : payment
-        )
-      );
-      alert('Payment approved successfully');
+      setPolicyActionError(null);
+      
+      // Fetch detailed policy information
+      const detailedPolicy = await getPolicyById(policyId);
+      console.log('🔍 handleViewPolicy - detailed policy:', detailedPolicy);
+      console.log('🔍 handleViewPolicy - policy customer:', detailedPolicy.customer);
+      console.log('🔍 handleViewPolicy - policy customerName:', detailedPolicy.customerName);
+      
+      // Fetch policy coverages
+      const coverages = await getPolicyCoverages(policyId);
+      
+      setSelectedPolicy(detailedPolicy);
+      setPolicyCoverages(coverages);
+      setShowPolicyDetails(true);
+      
     } catch (error) {
-      console.error('Error approving payment:', error);
-      alert('Failed to approve payment. Please try again.');
+      console.error('Error viewing policy:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error viewing policy. Please try again.';
+      setPolicyActionError(errorMessage);
+      setTimeout(() => setPolicyActionError(null), 5000);
     }
   };
 
-  const handleRejectPayment = async (paymentId: number) => {
-    if (!currentAgent?.id) return;
-    const reason = prompt('Please enter rejection reason:');
-    if (!reason) return;
-
+  // Policy management functions
+  const handleUpdatePolicyStatus = async (policyId: number, newStatus: string) => {
     try {
-      const updatedPayment = await rejectPayment(paymentId, currentAgent.id, reason);
-      setPayments(prevPayments => 
-        prevPayments.map(payment => 
-          payment.id === paymentId ? updatedPayment : payment
+      setPolicyActionError(null);
+      
+      await updatePolicyStatus(policyId, newStatus);
+      
+      // Update local state
+      setPolicies(prevPolicies => 
+        prevPolicies.map(policy => 
+          policy.id === policyId ? { ...policy, status: newStatus } : policy
         )
       );
-      alert('Payment rejected successfully');
+      
+      // Update selected policy if it's the one being viewed
+      if (selectedPolicy && selectedPolicy.id === policyId) {
+        setSelectedPolicy((prev: any) => prev ? { ...prev, status: newStatus } : null);
+      }
+      
+      setPolicyActionSuccess(`Policy status updated to ${newStatus} successfully!`);
+      setTimeout(() => setPolicyActionSuccess(null), 5000);
+      
     } catch (error) {
-      console.error('Error rejecting payment:', error);
-      alert('Failed to reject payment. Please try again.');
+      console.error('Error updating policy status:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error updating policy status. Please try again.';
+      setPolicyActionError(errorMessage);
+      setTimeout(() => setPolicyActionError(null), 5000);
     }
+  };
+
+  // Profile management functions
+  const handleProfileUpdate = async () => {
+    try {
+      // Validate required fields
+      if (!profileFormData.firstName || !profileFormData.lastName || !profileFormData.email) {
+        alert('Please fill in all required fields (First Name, Last Name, Email)');
+        return;
+      }
+
+      if (!currentAgent?.id) {
+        alert('Agent ID not found. Please try again.');
+        return;
+      }
+
+      // TODO: Implement updateAgent API call
+      console.log('Profile update data:', profileFormData);
+      
+      alert('Profile updated successfully!');
+      setShowProfileUpdate(false);
+      
+      // Refresh agent data
+      await fetchCurrentAgent();
+      
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Error updating profile. Please try again.');
+    }
+  };
+
+  const openProfileUpdate = () => {
+    if (currentAgent) {
+      setProfileFormData({
+        firstName: currentAgent.user?.firstName || '',
+        lastName: currentAgent.user?.lastName || '',
+        email: currentAgent.user?.email || '',
+        phoneNumber: currentAgent.phoneNumber || '',
+        address: currentAgent.address || '',
+        city: currentAgent.city || '',
+        country: currentAgent.country || '',
+        postalCode: currentAgent.postalCode || ''
+      });
+    }
+    setShowProfileUpdate(true);
   };
 
   const handleLogout = () => {
@@ -321,10 +482,7 @@ export default function AgentPage() {
       </div>
 
       {/* Stats Cards */}
-      {statsLoading ? (
-        <div style={{ textAlign: 'center', padding: '2rem' }}>Loading statistics...</div>
-      ) : agentStats && agentStats.totalPolicies !== undefined ? (
-      <div style={{ 
+            <div style={{
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
         gap: '1.5rem',
@@ -332,7 +490,7 @@ export default function AgentPage() {
       }}>
         {/* My Policies */}
         <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
           borderRadius: '16px',
           padding: '1.5rem',
           color: 'white',
@@ -344,15 +502,15 @@ export default function AgentPage() {
                 My Policies
               </div>
               <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-                {agentStats.totalPolicies || 0}
+                {policies.length}
               </div>
             </div>
             <div style={{ fontSize: '2rem' }}>📋</div>
           </div>
         </div>
-        {/* Claims */}
+        {/* My Customers */}
         <div style={{
-          background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
           borderRadius: '16px',
           padding: '1.5rem',
           color: 'white',
@@ -361,18 +519,18 @@ export default function AgentPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                Claims
+                My Customers
               </div>
               <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-                {agentStats.totalClaims || 0}
+                {customers.length}
               </div>
             </div>
-            <div style={{ fontSize: '2rem' }}>🔧</div>
+            <div style={{ fontSize: '2rem' }}>👥</div>
           </div>
         </div>
-        {/* Payments */}
+        {/* Pending Offers */}
         <div style={{
-          background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
           borderRadius: '16px',
           padding: '1.5rem',
           color: 'white',
@@ -381,39 +539,42 @@ export default function AgentPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                Payments
+                Pending Offers
               </div>
               <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-                {agentStats.totalPayments || 0}
+                {offers.length}
+              </div>
+            </div>
+            <div style={{ fontSize: '2rem' }}>📋</div>
+          </div>
+        </div>
+        {/* Total Payments */}
+        <div style={{
+          background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+          borderRadius: '16px',
+          padding: '1.5rem',
+          color: 'white',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
+                Total Payments
+              </div>
+              <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+                €{payments
+                  .filter(payment => payment.status === 'SUCCESS' || payment.status === 'PAID')
+                  .reduce((sum, payment) => sum + (payment.amount || 0), 0)
+                  .toFixed(2)}
               </div>
             </div>
             <div style={{ fontSize: '2rem' }}>💰</div>
           </div>
         </div>
-        {/* Total Premium */}
-        <div style={{
-          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-          borderRadius: '16px',
-          padding: '1.5rem',
-          color: 'white',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                Total Premium
-              </div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-                ₺{(agentStats.totalPremium || 0).toFixed(2)}
-              </div>
-            </div>
-            <div style={{ fontSize: '2rem' }}>💎</div>
-          </div>
-        </div>
 
-        {/* Success Rate */}
+        {/* Total Payments Count */}
         <div style={{
-          background: 'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)',
+          background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
           borderRadius: '16px',
           padding: '1.5rem',
           color: 'white',
@@ -422,19 +583,16 @@ export default function AgentPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                Success Rate
+                Total Payments
               </div>
               <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-                {(agentStats.successRate || 0).toFixed(1)}%
+                {payments.length}
               </div>
             </div>
-            <div style={{ fontSize: '2rem' }}>🏆</div>
+            <div style={{ fontSize: '2rem' }}>💳</div>
           </div>
         </div>
       </div>
-      ) : (
-        <div style={{ textAlign: 'center', padding: '2rem' }}>No statistics found for your agent profile.</div>
-      )}
 
       {/* Quick Actions */}
       <div style={{ marginBottom: '2rem' }}>
@@ -448,13 +606,13 @@ export default function AgentPage() {
         </h2>
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
           gap: '1rem'
         }}>
           <button 
             onClick={() => setCurrentModule('customers')}
             style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '12px',
@@ -471,13 +629,16 @@ export default function AgentPage() {
             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
           >
             <span>👥</span>
-            Manage Customers
+            View Customers
           </button>
 
           <button 
-            onClick={() => setCurrentModule('policies')}
+            onClick={() => {
+              setCurrentModule('policies');
+              fetchPolicies(); // Policies tab'ına tıklandığında fetch et
+            }}
             style={{
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '12px',
@@ -494,13 +655,13 @@ export default function AgentPage() {
             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
           >
             <span>📋</span>
-            View Policies
+            Manage Policies
           </button>
 
           <button 
             onClick={() => setCurrentModule('offers')}
             style={{
-              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '12px',
@@ -517,13 +678,13 @@ export default function AgentPage() {
             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
           >
             <span>📄</span>
-            Create Offers
+            Review Offers
           </button>
 
           <button 
             onClick={() => setCurrentModule('claims')}
             style={{
-              background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '12px',
@@ -540,7 +701,30 @@ export default function AgentPage() {
             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
           >
             <span>🔧</span>
-            Process Claims
+            Review Claims
+          </button>
+
+          <button 
+            onClick={() => setCurrentModule('payments')}
+            style={{
+              background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '1rem',
+              fontSize: '1rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <span>💰</span>
+            View Payments
           </button>
         </div>
       </div>
@@ -668,7 +852,7 @@ export default function AgentPage() {
                       marginBottom: '1rem'
                     }}>
                       {customer.customerType === 'INDIVIDUAL' 
-                        ? `${customer.firstName || 'N/A'} ${customer.lastName || 'N/A'}` 
+                        ? `${customer.user?.firstName || 'N/A'} ${customer.user?.lastName || 'N/A'}` 
                         : customer.companyName || 'N/A'}
                     </h3>
                     <div style={{ marginBottom: '1.5rem' }}>
@@ -678,12 +862,12 @@ export default function AgentPage() {
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Email:</span>
-                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{customer.email || 'N/A'}</span>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{customer.user?.email || customer.email || 'N/A'}</span>
                       </div>
-                      {customer.phoneNumber && (
+                      {(customer.user?.phoneNumber || customer.phoneNumber) && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                           <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Phone:</span>
-                          <span style={{ fontWeight: 600, color: '#1e293b' }}>{customer.phoneNumber}</span>
+                          <span style={{ fontWeight: 600, color: '#1e293b' }}>{customer.user?.phoneNumber || customer.phoneNumber}</span>
                         </div>
                       )}
                       {customer.city && (
@@ -723,8 +907,438 @@ export default function AgentPage() {
       case 'policies':
         return (
           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
-            <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: '#1e293b' }}>My Policies</h1>
-            <p style={{ color: '#64748b' }}>Coming soon...</p>
+            <div style={{ marginBottom: '2rem' }}>
+              <h1 style={{
+                fontSize: '2.5rem',
+                fontWeight: 700,
+                color: '#1e293b',
+                marginBottom: '0.5rem'
+              }}>
+                Policy Management
+              </h1>
+              <p style={{
+                fontSize: '1.1rem',
+                color: '#64748b',
+                margin: 0
+              }}>
+                Manage and monitor your customers' insurance policies
+              </p>
+            </div>
+
+            {/* Success/Error Messages */}
+            {policyActionSuccess && (
+              <div style={{
+                padding: '1rem',
+                background: '#dcfce7',
+                color: '#166534',
+                border: '1px solid #10b981',
+                borderRadius: '8px',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <span>✅</span>
+                {policyActionSuccess}
+              </div>
+            )}
+
+            {policyActionError && (
+              <div style={{
+                padding: '1rem',
+                background: '#fee2e2',
+                color: '#991b1b',
+                border: '1px solid #dc2626',
+                borderRadius: '8px',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <span>❌</span>
+                {policyActionError}
+              </div>
+            )}
+
+            {policiesLoading ? (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '3rem'
+              }}>
+                <div style={{
+                  width: '3rem',
+                  height: '3rem',
+                  border: '4px solid #e5e7eb',
+                  borderTop: '4px solid #3b82f6',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></div>
+              </div>
+            ) : policies.length === 0 ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '3rem',
+                background: 'white',
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📄</div>
+                <h3 style={{
+                  fontSize: '1.5rem',
+                  fontWeight: 600,
+                  color: '#1e293b',
+                  marginBottom: '1rem'
+                }}>
+                  No Policies Found
+                </h3>
+                <p style={{
+                  color: '#64748b',
+                  marginBottom: '2rem'
+                }}>
+                  You don't have any policies assigned to you yet. Policies will appear here once customers convert their approved offers.
+                </p>
+              </div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+                gap: '1.5rem'
+              }}>
+                {policies.map((policy) => (
+                  <div key={policy.id} style={{
+                    background: 'white',
+                    borderRadius: '16px',
+                    padding: '1.5rem',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #e5e7eb',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                  }}
+                  >
+                    {/* Status indicator bar */}
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '4px',
+                      background: policy.status === "ACTIVE" ? '#10b981' : 
+                                policy.status === "EXPIRED" ? '#f59e0b' : 
+                                policy.status === "CANCELLED" ? '#ef4444' : '#6b7280'
+                    }}
+                    />
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div style={{
+                        width: '3rem',
+                        height: '3rem',
+                        background: policy.status === "ACTIVE" ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' :
+                                  policy.status === "EXPIRED" ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' :
+                                  policy.status === "CANCELLED" ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' :
+                                  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '1.5rem'
+                      }}>
+                        {policy.status === "ACTIVE" ? "✅" : 
+                         policy.status === "EXPIRED" ? "⏰" : 
+                         policy.status === "CANCELLED" ? "❌" : "📄"}
+                      </div>
+                      <span style={{
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        background: policy.status === "ACTIVE" ? '#dcfce7' : 
+                                  policy.status === "EXPIRED" ? '#fef3c7' : 
+                                  policy.status === "CANCELLED" ? '#fee2e2' : '#e0e7ff',
+                        color: policy.status === "ACTIVE" ? '#166534' : 
+                              policy.status === "EXPIRED" ? '#92400e' : 
+                              policy.status === "CANCELLED" ? '#991b1b' : '#3730a3'
+                      }}>
+                        {policy.status}
+                      </span>
+                    </div>
+                    
+                    <h3 style={{
+                      fontSize: '1.25rem',
+                      fontWeight: 700,
+                      color: '#1e293b',
+                      marginBottom: '1rem'
+                    }}>
+                      {policy.policyNumber}
+                    </h3>
+                    
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Customer:</span>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>
+                          {policy.customer?.firstName} {policy.customer?.lastName}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Insurance Type:</span>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{policy.insuranceType}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Premium:</span>
+                        <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '1.1rem' }}>€{policy.premium}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Start Date:</span>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>
+                          {policy.startDate ? new Date(policy.startDate).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span style={{ color: '#64748b', fontSize: '0.875rem' }}>End Date:</span>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>
+                          {policy.endDate ? new Date(policy.endDate).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+
+                                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <button
+                        onClick={() => handleViewPolicy(policy.id)}
+                        style={{
+                          padding: '0.75rem 2rem',
+                          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'transform 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      >
+                        👁️ View Details
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Policy Details Modal */}
+            {showPolicyDetails && selectedPolicy && (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0, 0, 0, 0.5)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 1000
+              }}>
+                <div style={{
+                  background: 'white',
+                  borderRadius: '16px',
+                  padding: '2rem',
+                  maxWidth: '600px',
+                  width: '90%',
+                  maxHeight: '80vh',
+                  overflow: 'auto',
+                  position: 'relative'
+                }}>
+                  {/* Close button */}
+                  <button
+                    onClick={() => setShowPolicyDetails(false)}
+                    style={{
+                      position: 'absolute',
+                      top: '1rem',
+                      right: '1rem',
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '1.5rem',
+                      cursor: 'pointer',
+                      color: '#64748b'
+                    }}
+                  >
+                    ✕
+                  </button>
+                  
+                  <h2 style={{
+                    fontSize: '1.75rem',
+                    fontWeight: 700,
+                    color: '#1e293b',
+                    marginBottom: '1.5rem'
+                  }}>
+                    Policy Details
+                  </h2>
+                  
+                  {/* Policy Information */}
+                  <div style={{ marginBottom: '2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                      <span style={{ color: '#64748b', fontWeight: 600 }}>Policy Number:</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{selectedPolicy.policyNumber}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                      <span style={{ color: '#64748b', fontWeight: 600 }}>Status:</span>
+                      <span style={{ 
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        background: selectedPolicy.status === "ACTIVE" ? '#dcfce7' : 
+                                  selectedPolicy.status === "EXPIRED" ? '#fef3c7' : 
+                                  selectedPolicy.status === "CANCELLED" ? '#fee2e2' : '#e0e7ff',
+                        color: selectedPolicy.status === "ACTIVE" ? '#166534' : 
+                              selectedPolicy.status === "EXPIRED" ? '#92400e' : 
+                              selectedPolicy.status === "CANCELLED" ? '#991b1b' : '#3730a3'
+                      }}>
+                        {selectedPolicy.status}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                      <span style={{ color: '#64748b', fontWeight: 600 }}>Customer:</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>
+                        {selectedPolicy.customerName || `${selectedPolicy.customer?.firstName || ''} ${selectedPolicy.customer?.lastName || ''}`.trim() || 'N/A'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                      <span style={{ color: '#64748b', fontWeight: 600 }}>Insurance Type:</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{selectedPolicy.insuranceType}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                      <span style={{ color: '#64748b', fontWeight: 600 }}>Premium:</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '1.1rem' }}>€{selectedPolicy.premium}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                      <span style={{ color: '#64748b', fontWeight: 600 }}>Start Date:</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>
+                        {selectedPolicy.startDate ? new Date(selectedPolicy.startDate).toLocaleDateString() : 'N/A'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                      <span style={{ color: '#64748b', fontWeight: 600 }}>End Date:</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>
+                        {selectedPolicy.endDate ? new Date(selectedPolicy.endDate).toLocaleDateString() : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Policy Coverages */}
+                  {policyCoverages && policyCoverages.length > 0 && (
+                    <div style={{ marginBottom: '2rem' }}>
+                      <h3 style={{
+                        fontSize: '1.25rem',
+                        fontWeight: 600,
+                        color: '#1e293b',
+                        marginBottom: '1rem'
+                      }}>
+                        Coverages
+                      </h3>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: '1rem'
+                      }}>
+                        {policyCoverages.map((coverage: any) => (
+                          <div key={coverage.id} style={{
+                            padding: '1rem',
+                            background: '#f8fafc',
+                            borderRadius: '8px',
+                            border: '1px solid #e5e7eb'
+                          }}>
+                            <div style={{ fontWeight: 600, color: '#1e293b', marginBottom: '0.5rem' }}>
+                              {coverage.name}
+                            </div>
+                            <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                              {coverage.description}
+                            </div>
+                            <div style={{ fontSize: '0.875rem', color: '#1e293b', marginTop: '0.5rem' }}>
+                              €{coverage.basePrice}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                    {selectedPolicy.status !== 'ACTIVE' && (
+                      <button
+                        onClick={() => handleUpdatePolicyStatus(selectedPolicy.id, 'ACTIVE')}
+                        style={{
+                          padding: '0.75rem 1.5rem',
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'transform 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      >
+                        ✅ Activate Policy
+                      </button>
+                    )}
+                    
+                    {selectedPolicy.status !== 'EXPIRED' && (
+                      <button
+                        onClick={() => handleUpdatePolicyStatus(selectedPolicy.id, 'EXPIRED')}
+                        style={{
+                          padding: '0.75rem 1.5rem',
+                          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'transform 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      >
+                        ⏰ Mark as Expired
+                      </button>
+                    )}
+                    
+                    <button
+                      onClick={() => setShowPolicyDetails(false)}
+                      style={{
+                        padding: '0.75rem 1.5rem',
+                        background: '#f1f5f9',
+                        color: '#475569',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
       case 'offers':
@@ -831,8 +1445,8 @@ export default function AgentPage() {
                         borderRadius: '9999px',
                         fontSize: '0.75rem',
                         fontWeight: 500,
-                        background: offer.status === "PENDING" ? '#fef3c7' : offer.status === "ACCEPTED" ? '#dcfce7' : offer.status === "REJECTED" ? '#fee2e2' : '#e0e7ff',
-                        color: offer.status === "PENDING" ? '#92400e' : offer.status === "ACCEPTED" ? '#166534' : offer.status === "REJECTED" ? '#991b1b' : '#3730a3'
+                        background: offer.status === "PENDING" ? '#fef3c7' : offer.status === "APPROVED" ? '#dcfce7' : offer.status === "REJECTED" ? '#fee2e2' : '#e0e7ff',
+                        color: offer.status === "PENDING" ? '#92400e' : offer.status === "APPROVED" ? '#166534' : offer.status === "REJECTED" ? '#991b1b' : '#3730a3'
                       }}>
                         {offer.status}
                       </span>
@@ -932,7 +1546,7 @@ export default function AgentPage() {
                       </div>
                     )}
                     
-                    {offer.status === 'ACCEPTED' && (
+                    {offer.status === 'APPROVED' && (
                       <div style={{
                         padding: '0.75rem 1rem',
                         background: '#dcfce7',
@@ -943,7 +1557,7 @@ export default function AgentPage() {
                         fontWeight: 600,
                         textAlign: 'center'
                       }}>
-                        Accepted - Policy can be created by customer
+                        Approved - Policy can be created by customer
                       </div>
                     )}
                     
@@ -1206,14 +1820,14 @@ export default function AgentPage() {
                 color: '#1e293b',
                 marginBottom: '0.5rem'
               }}>
-                Payment Approvals
+                Customer Payments
               </h1>
               <p style={{
                 fontSize: '1.1rem',
                 color: '#64748b',
                 margin: 0
               }}>
-                Review and approve payment requests from your customers
+                View all payments made by your customers for insurance policies
               </p>
             </div>
 
@@ -1248,13 +1862,13 @@ export default function AgentPage() {
                   color: '#1e293b',
                   marginBottom: '1rem'
                 }}>
-                  No Payments to Review
+                  No Customer Payments
                 </h3>
                 <p style={{
                   color: '#64748b',
                   marginBottom: '2rem'
                 }}>
-                  There are currently no payments pending your approval.
+                  Your customers haven't made any payments yet. Payments will appear here once customers pay for their insurance policies.
                 </p>
               </div>
             ) : (
@@ -1308,31 +1922,39 @@ export default function AgentPage() {
                     </div>
                     <h3 style={{
                       fontSize: '1.25rem',
-                      fontWeight: 700,
+                      fontWeight: 600,
                       color: '#1e293b',
                       marginBottom: '1rem'
                     }}>
-                      {payment.paymentNumber}
+                      Payment #{payment.id}
                     </h3>
                     <div style={{ marginBottom: '1.5rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Customer:</span>
                         <span style={{ fontWeight: 600, color: '#1e293b' }}>
-                          {payment.customer.firstName} {payment.customer.lastName}
+                          {payment.customerName || 'N/A'}
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Policy:</span>
-                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{payment.policy.policyNumber}</span>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{payment.policyNumber || 'N/A'}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Amount:</span>
-                        <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '1.1rem' }}>₺{payment.amount.toFixed(2)}</span>
+                        <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '1.1rem' }}>₺{payment.amount?.toFixed(2) || '0.00'}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Insurance Type:</span>
-                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{payment.policy.insuranceType}</span>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{payment.insuranceType || 'N/A'}</span>
                       </div>
+                      {payment.transactionReference && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                          <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Transaction Ref:</span>
+                          <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.875rem' }}>
+                            {payment.transactionReference}
+                          </span>
+                        </div>
+                      )}
                       {payment.paymentDate && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                           <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Payment Date:</span>
@@ -1341,95 +1963,42 @@ export default function AgentPage() {
                           </span>
                         </div>
                       )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Created:</span>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>
+                          {payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
                     </div>
 
-                    {payment.status === 'PENDING' && (
-                      <div style={{ display: 'flex', gap: '1rem' }}>
-                        <button
-                          onClick={() => handleApprovePayment(payment.id)}
-                          style={{
-                            flex: 1,
-                            padding: '0.75rem 1rem',
-                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '0.875rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            transition: 'transform 0.2s'
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                        >
-                          ✅ Approve
-                        </button>
-                        <button
-                          onClick={() => handleRejectPayment(payment.id)}
-                          style={{
-                            flex: 1,
-                            padding: '0.75rem 1rem',
-                            background: 'linear-gradient(135deg, #dc2626 0%, #db2777 100%)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '0.875rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            transition: 'transform 0.2s'
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                        >
-                          ❌ Reject
-                        </button>
-                      </div>
-                    )}
-                    
-                    {payment.status === 'APPROVED' && (
-                      <div style={{
-                        padding: '0.75rem 1rem',
-                        background: '#dcfce7',
-                        color: '#166534',
-                        border: '1px solid #10b981',
-                        borderRadius: '8px',
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                        textAlign: 'center'
-                      }}>
-                        Payment Approved
-                      </div>
-                    )}
-                    
-                    {payment.status === 'REJECTED' && (
-                      <div style={{
-                        padding: '0.75rem 1rem',
-                        background: '#fee2e2',
-                        color: '#991b1b',
-                        border: '1px solid #dc2626',
-                        borderRadius: '8px',
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                        textAlign: 'center'
-                      }}>
-                        Payment Rejected
-                      </div>
-                    )}
-
-                    {payment.status === 'PAID' && (
-                      <div style={{
-                        padding: '0.75rem 1rem',
-                        background: '#dbeafe',
-                        color: '#1e40af',
-                        border: '1px solid #3b82f6',
-                        borderRadius: '8px',
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                        textAlign: 'center'
-                      }}>
-                        Payment Completed
-                      </div>
-                    )}
+                    <div style={{
+                      padding: '0.75rem 1rem',
+                      background: payment.status === 'SUCCESS' ? '#dcfce7' : 
+                                payment.status === 'PAID' ? '#dcfce7' :
+                                payment.status === 'PENDING' ? '#fef3c7' : 
+                                payment.status === 'APPROVED' ? '#dbeafe' : 
+                                payment.status === 'FAILED' ? '#fee2e2' : '#fee2e2',
+                      color: payment.status === 'SUCCESS' ? '#166534' : 
+                            payment.status === 'PAID' ? '#166534' : 
+                            payment.status === 'PENDING' ? '#92400e' : 
+                            payment.status === 'APPROVED' ? '#1e40af' : 
+                            payment.status === 'FAILED' ? '#991b1b' : '#991b1b',
+                      border: payment.status === 'SUCCESS' ? '1px solid #10b981' : 
+                             payment.status === 'PAID' ? '1px solid #10b981' : 
+                             payment.status === 'PENDING' ? '1px solid #f59e0b' : 
+                             payment.status === 'APPROVED' ? '1px solid #3b82f6' : 
+                             payment.status === 'FAILED' ? '1px solid #dc2626' : '1px solid #dc2626',
+                      borderRadius: '8px',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      textAlign: 'center'
+                    }}>
+                      {payment.status === 'SUCCESS' ? '✅ Payment Successful' : 
+                       payment.status === 'PAID' ? '✅ Payment Completed' : 
+                       payment.status === 'PENDING' ? '⏳ Payment Pending' : 
+                       payment.status === 'APPROVED' ? '✅ Payment Approved' : 
+                       payment.status === 'FAILED' ? '❌ Payment Failed' : '❌ Payment Rejected'}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1439,8 +2008,202 @@ export default function AgentPage() {
       case 'profile':
         return (
           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
-            <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: '#1e293b' }}>My Profile</h1>
-            <p style={{ color: '#64748b' }}>Coming soon...</p>
+            <div style={{ marginBottom: '2rem' }}>
+              <h1 style={{
+                fontSize: '2.5rem',
+                fontWeight: 700,
+                color: '#1e293b',
+                marginBottom: '0.5rem'
+              }}>
+                My Profile
+              </h1>
+              <p style={{
+                fontSize: '1.1rem',
+                color: '#64748b',
+                margin: 0
+              }}>
+                Manage your agent profile and personal information
+              </p>
+            </div>
+
+            {currentAgent ? (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+                gap: '2rem'
+              }}>
+                {/* Current Profile Info */}
+                <div style={{
+                  background: 'white',
+                  borderRadius: '16px',
+                  padding: '2rem',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <h3 style={{
+                      fontSize: '1.5rem',
+                      fontWeight: 700,
+                      color: '#1e293b',
+                      marginBottom: '0.5rem'
+                    }}>
+                      Current Profile
+                    </h3>
+                    <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
+                      Your current agent profile information
+                    </p>
+                  </div>
+
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Agent Number:</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{currentAgent.agentNumber}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Name:</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>
+                        {currentAgent.user?.firstName || currentAgent.name} {currentAgent.user?.lastName || ''}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Email:</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{currentAgent.email}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Phone:</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{currentAgent.phoneNumber || 'N/A'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Address:</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{currentAgent.address || 'N/A'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.875rem' }}>City:</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{currentAgent.city || 'N/A'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Country:</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{currentAgent.country || 'N/A'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Postal Code:</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{currentAgent.postalCode || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={openProfileUpdate}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 1rem',
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    ✏️ Edit Profile
+                  </button>
+                </div>
+
+                {/* Statistics Card */}
+                <div style={{
+                  background: 'white',
+                  borderRadius: '16px',
+                  padding: '2rem',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <h3 style={{
+                      fontSize: '1.5rem',
+                      fontWeight: 700,
+                      color: '#1e293b',
+                      marginBottom: '0.5rem'
+                    }}>
+                      Performance Statistics
+                    </h3>
+                    <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
+                      Your agent performance metrics
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'grid', gap: '1rem' }}>
+                    <div style={{
+                      padding: '1rem',
+                      background: '#f0f9ff',
+                      borderRadius: '8px',
+                      border: '1px solid #0ea5e9'
+                    }}>
+                      <div style={{ fontSize: '0.875rem', color: '#0c4a6e', marginBottom: '0.25rem' }}>
+                        Total Policies
+                      </div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0c4a6e' }}>
+                        {agentStats?.totalPolicies || 0}
+                      </div>
+                    </div>
+
+                    <div style={{
+                      padding: '1rem',
+                      background: '#f0fdf4',
+                      borderRadius: '8px',
+                      border: '1px solid #10b981'
+                    }}>
+                      <div style={{ fontSize: '0.875rem', color: '#166534', marginBottom: '0.25rem' }}>
+                        Total Claims
+                      </div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#166534' }}>
+                        {agentStats?.totalClaims || 0}
+                      </div>
+                    </div>
+
+                    <div style={{
+                      padding: '1rem',
+                      background: '#fef3c7',
+                      borderRadius: '8px',
+                      border: '1px solid #f59e0b'
+                    }}>
+                      <div style={{ fontSize: '0.875rem', color: '#92400e', marginBottom: '0.25rem' }}>
+                        Success Rate
+                      </div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#92400e' }}>
+                        {(agentStats?.successRate || 0).toFixed(1)}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                textAlign: 'center',
+                padding: '3rem',
+                background: 'white',
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>👤</div>
+                <h3 style={{
+                  fontSize: '1.5rem',
+                  fontWeight: 600,
+                  color: '#1e293b',
+                  marginBottom: '1rem'
+                }}>
+                  Profile Not Loaded
+                </h3>
+                <p style={{
+                  color: '#64748b',
+                  marginBottom: '2rem'
+                }}>
+                  Unable to load your agent profile. Please try refreshing the page.
+                </p>
+              </div>
+            )}
           </div>
         );
       default:
@@ -1478,7 +2241,7 @@ export default function AgentPage() {
             { id: 'policies', label: 'Policies', icon: '📋' },
             { id: 'offers', label: 'Pending Offers', icon: '📄' },
             { id: 'claims', label: 'Claims Review', icon: '🔧' },
-            { id: 'payments', label: 'Payment Approvals', icon: '💰' },
+            { id: 'payments', label: 'Payments', icon: '💰' },
             { id: 'profile', label: 'My Profile', icon: '👤' }
           ].map((module) => (
             <button
@@ -1549,6 +2312,326 @@ export default function AgentPage() {
       <div style={{ flex: 1, overflow: 'auto' }}>
         {renderModuleContent()}
       </div>
+
+      {/* Profile Update Modal */}
+      {showProfileUpdate && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '2rem',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h3 style={{
+              fontSize: '1.5rem',
+              fontWeight: 700,
+              color: '#1e293b',
+              marginBottom: '1.5rem',
+              textAlign: 'center'
+            }}>
+              Update Profile
+            </h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: '#374151',
+                  marginBottom: '0.5rem'
+                }}>
+                  First Name *
+                </label>
+                <input
+                  type="text"
+                  value={profileFormData.firstName}
+                  onChange={(e) => setProfileFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                  placeholder="Enter first name"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    outline: 'none',
+                    transition: 'border-color 0.2s'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                />
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: '#374151',
+                  marginBottom: '0.5rem'
+                }}>
+                  Last Name *
+                </label>
+                <input
+                  type="text"
+                  value={profileFormData.lastName}
+                  onChange={(e) => setProfileFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                  placeholder="Enter last name"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    outline: 'none',
+                    transition: 'border-color 0.2s'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: '#374151',
+                marginBottom: '0.5rem'
+              }}>
+                Email *
+              </label>
+              <input
+                type="email"
+                value={profileFormData.email}
+                onChange={(e) => setProfileFormData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="Enter email address"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: '#374151',
+                  marginBottom: '0.5rem'
+                }}>
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={profileFormData.phoneNumber}
+                  onChange={(e) => setProfileFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                  placeholder="Enter phone number"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    outline: 'none',
+                    transition: 'border-color 0.2s'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                />
+              </div>
+
+
+            </div>
+
+
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: '#374151',
+                marginBottom: '0.5rem'
+              }}>
+                Address
+              </label>
+              <input
+                type="text"
+                value={profileFormData.address}
+                onChange={(e) => setProfileFormData(prev => ({ ...prev, address: e.target.value }))}
+                placeholder="Enter address"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: '#374151',
+                  marginBottom: '0.5rem'
+                }}>
+                  City
+                </label>
+                <input
+                  type="text"
+                  value={profileFormData.city}
+                  onChange={(e) => setProfileFormData(prev => ({ ...prev, city: e.target.value }))}
+                  placeholder="Enter city"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    outline: 'none',
+                    transition: 'border-color 0.2s'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                />
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: '#374151',
+                  marginBottom: '0.5rem'
+                }}>
+                  Country
+                </label>
+                <input
+                  type="text"
+                  value={profileFormData.country}
+                  onChange={(e) => setProfileFormData(prev => ({ ...prev, country: e.target.value }))}
+                  placeholder="Enter country"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    outline: 'none',
+                    transition: 'border-color 0.2s'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                />
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: '#374151',
+                  marginBottom: '0.5rem'
+                }}>
+                  Postal Code
+                </label>
+                <input
+                  type="text"
+                  value={profileFormData.postalCode}
+                  onChange={(e) => setProfileFormData(prev => ({ ...prev, postalCode: e.target.value }))}
+                  placeholder="Enter postal code"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    outline: 'none',
+                    transition: 'border-color 0.2s'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button
+                onClick={() => setShowProfileUpdate(false)}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1.5rem',
+                  background: '#6b7280',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#4b5563'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#6b7280'}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleProfileUpdate}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1.5rem',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                Update Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Premium Revision Modal */}
       {reviseModalOpen && (

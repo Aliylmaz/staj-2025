@@ -33,7 +33,7 @@ export interface OfferDto {
   id: number;
   offerNumber: string;
   totalPremium: number;
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
   customer: { id: string; firstName: string; lastName: string; email: string; };
   insuranceType: string;
   note?: string;
@@ -41,9 +41,43 @@ export interface OfferDto {
   updatedAt: string;
 }
 
+// Extended offer details for agent view
+export interface OfferDetailsDto {
+  id: number;
+  offerNumber: string;
+  totalPremium: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  customer: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber?: string;
+    address?: string;
+    city?: string;
+    country?: string;
+    postalCode?: string;
+  };
+  insuranceType: string;
+  coverages?: Array<{
+    id: number;
+    name: string;
+    description: string;
+    basePrice: number;
+  }>;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+  agent?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
 export interface OfferUpdateRequest {
   offerId: number;
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
   note?: string;
 }
 
@@ -61,6 +95,12 @@ export interface CustomerDto {
   country?: string;
   postalCode?: string;
   assignedAgentId?: string;
+  user?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber?: string;
+  };
 }
 
 export interface PolicyDto {
@@ -87,11 +127,16 @@ export interface AgentDto {
   postalCode?: string;
   totalCustomersServed: number;
   totalPoliciesSold: number;
-
   successRate: number;
   licenseNumber?: string;
   licenseExpiryDate?: string;
   isActive: boolean;
+  user?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  experience?: number;
 }
 
 export interface AgentStatsDto {
@@ -106,8 +151,13 @@ export interface AgentStatsDto {
 }
 
 // Offer Management
-export const getAllOffers = async (): Promise<OfferDto[]> => {
-  const response = await axiosInstance.get('/api/v1/agent/offers');
+export const getOffersByAgentId = async (agentId: string): Promise<OfferDto[]> => {
+  const response = await axiosInstance.get(`/api/v1/agent/offers/agent/${agentId}`);
+  return response.data.data;
+};
+
+export const getOfferDetails = async (offerId: number): Promise<OfferDetailsDto> => {
+  const response = await axiosInstance.get(`/api/v1/agent/offers/${offerId}`);
   return response.data.data;
 };
 
@@ -132,6 +182,28 @@ export const getMyActivePolicies = async (): Promise<PolicyDto[]> => {
 
 export const getMyExpiredPolicies = async (): Promise<PolicyDto[]> => {
   const response = await axiosInstance.get('/api/v1/agent/expired-policies');
+  return response.data.data;
+};
+
+export const getPoliciesByAgentId = async (agentId: string): Promise<PolicyDto[]> => {
+  const response = await axiosInstance.get(`/api/v1/agent/policies/agent/${agentId}`);
+  return response.data.data;
+};
+
+export const getPolicyById = async (policyId: number): Promise<any> => {
+  const response = await axiosInstance.get(`/api/v1/agent/policies/${policyId}`);
+  return response.data.data;
+};
+
+export const getPolicyCoverages = async (policyId: number): Promise<any[]> => {
+  const response = await axiosInstance.get(`/api/v1/agent/policies/${policyId}/coverages`);
+  return response.data.data;
+};
+
+export const updatePolicyStatus = async (policyId: number, newStatus: string): Promise<any> => {
+  const response = await axiosInstance.put(`/api/v1/agent/policies/${policyId}/status`, {
+    status: newStatus
+  });
   return response.data.data;
 };
 
@@ -206,21 +278,18 @@ export interface ClaimDto {
 
 export interface PaymentDto {
   id: number;
-  paymentNumber: string;
   amount: number;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'PAID';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'PAID' | 'SUCCESS' | 'FAILED';
   paymentDate?: string;
   createdAt: string;
-  policy: {
-    id: number;
-    policyNumber: string;
-    insuranceType: string;
-  };
-  customer: {
-    id: string;
-    firstName: string;
-    lastName: string;
-  };
+  transactionReference?: string;
+  
+  // Basic policy info
+  policyNumber: string;
+  insuranceType: string;
+  
+  // Basic customer info
+  customerName: string;
 }
 
 // Claims Management (using existing backend endpoints)
@@ -239,10 +308,10 @@ export const rejectClaim = async (claimId: string, agentId: string, reason: stri
   return response.data.data;
 };
 
-// Payments Management (placeholder - endpoints may not exist yet)
+// Payments Management
 export const getPaymentsByAgent = async (agentId: string): Promise<PaymentDto[]> => {
   try {
-    const response = await axiosInstance.get(`/api/v1/payments/agent/${agentId}`);
+    const response = await axiosInstance.get(`/api/v1/agent/payments/${agentId}`);
     return response.data.data;
   } catch (error) {
     console.warn('Payment endpoints not available yet');

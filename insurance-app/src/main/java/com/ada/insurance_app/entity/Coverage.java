@@ -3,8 +3,9 @@ package com.ada.insurance_app.entity;
 import com.ada.insurance_app.core.enums.InsuranceType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -15,7 +16,8 @@ import java.util.Set;
 
 @Entity
 @Table(name = "coverages")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Coverage {

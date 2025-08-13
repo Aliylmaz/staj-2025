@@ -52,4 +52,10 @@ public interface IPaymentRepository extends JpaRepository<Payment, UUID> {
     long countByPolicy_Agent_AgentNumber(String policyAgentAgentNumber);
 
     int countByPolicy_Customer_Id(UUID policyCustomerId);
+
+    @Query("SELECT p FROM Payment p WHERE p.policy.customer.id = :customerId")
+    List<Payment> findByCustomerId(@Param("customerId") UUID customerId);
+
+    @Query("SELECT p FROM Payment p WHERE p.policy.agent.id = :agentId ORDER BY p.createdAt DESC")
+    List<Payment> findByAgentId(@Param("agentId") UUID agentId);
 }

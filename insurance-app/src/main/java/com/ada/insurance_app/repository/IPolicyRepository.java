@@ -26,18 +26,17 @@ public interface IPolicyRepository extends JpaRepository<Policy, Long> {
     @Query("SELECT p FROM Policy p JOIN p.coverages c WHERE c = :coverage")
     List<Policy> findByCoveragesContaining(com.ada.insurance_app.entity.Coverage coverage);
 
-    @Query("SELECT COALESCE(SUM(p.premium), 0) FROM Policy p")
+    @Query("SELECT COALESCE(SUM(p.premium), 0) FROM Policy p JOIN p.payment pay WHERE pay.status = 'SUCCESS'")
     double sumTotalPremium();
 
     long countPoliciesByAgent_AgentNumber(String agentAgentNumber);
 
-
-    @Query("SELECT COALESCE(SUM(p.premium), 0) FROM Policy p WHERE p.agent.agentNumber = :agentNumber")
+    @Query("SELECT COALESCE(SUM(p.premium), 0) FROM Policy p JOIN p.payment pay WHERE p.agent.agentNumber = :agentNumber AND pay.status = 'SUCCESS'")
     double sumTotalPremiumByAgentNumber(@Param("agentNumber") String agentNumber);
 
     int countByCustomer_Id(UUID customerId);
 
-    @Query("SELECT COALESCE(SUM(p.premium),0) FROM Policy p WHERE p.customer.id = :customerId")
+    @Query("SELECT COALESCE(SUM(p.premium),0) FROM Policy p JOIN p.payment pay WHERE p.customer.id = :customerId AND pay.status = 'SUCCESS'")
     BigDecimal sumPremiumByCustomerId(UUID customerId);
     
     Long countByAgentId(UUID agentId);

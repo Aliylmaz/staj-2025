@@ -14,6 +14,12 @@ public interface CustomerMapper {
     @Mapping(target = "user.lastName", source = "user.lastName")
     @Mapping(target = "user.email", source = "user.email")
     @Mapping(target = "user.phoneNumber", source = "user.phoneNumber")
+    
+    // Convenience fields mapping
+    @Mapping(target = "firstName", source = "user.firstName")
+    @Mapping(target = "lastName", source = "user.lastName")
+    @Mapping(target = "email", source = "user.email")
+    @Mapping(target = "phoneNumber", source = "user.phoneNumber")
     CustomerDto toDto(Customer entity);
     
     @Mapping(target = "user", ignore = true)

@@ -10,7 +10,7 @@ import org.mapstruct.factory.Mappers;
 public interface OfferMapper {
 
     @Mapping(target = "customer", source = "customer")
-    @Mapping(target = "coverages", expression = "java(mapCoverages(offer.getCoverages()))")
+    @Mapping(target = "coverages", source = "coverages")
     @Mapping(target="offerNumber", expression = "java(offer.getOfferNumber() != null ? offer.getOfferNumber() : \"\")")
     @Mapping(target = "policyId", expression = "java(offer.getPolicy() != null ? offer.getPolicy().getId() : null)")
     @Mapping(target = "createdAt", expression = "java(offer.getCreatedAt() != null ? offer.getCreatedAt().toString() : null)")
@@ -18,20 +18,6 @@ public interface OfferMapper {
     @Mapping(target = "acceptedAt", expression = "java(offer.getAcceptedAt() != null ? offer.getAcceptedAt().toString() : null)")
     @Mapping(target = "convertedAt", expression = "java(offer.getConvertedAt() != null ? offer.getConvertedAt().toString() : null)")
     OfferDto toDto(Offer offer);
-
-    // PRE-SIZE YOK, SNAPSHOT ÜZERİNDEN DÖN
-    default java.util.Set<com.ada.insurance_app.dto.CoverageDto> mapCoverages(java.util.Set<com.ada.insurance_app.entity.Coverage> entities) {
-        if (entities == null) return java.util.Collections.emptySet();
-        java.util.Set<com.ada.insurance_app.dto.CoverageDto> out = new java.util.LinkedHashSet<>();
-        // Snapshot: initialization bitmeden aynı koleksiyonda gezinmeyelim
-        for (com.ada.insurance_app.entity.Coverage c : new java.util.ArrayList<>(entities)) {
-            out.add(coverageToDto(c));
-        }
-        return out;
-    }
-
-    // CoverageMapper.toDto’yu çağırabilmek için bir köprü
-    com.ada.insurance_app.dto.CoverageDto coverageToDto(com.ada.insurance_app.entity.Coverage coverage);
 
     @Mapping(target = "customer", ignore = true)
     @Mapping(target = "coverages", ignore = true)

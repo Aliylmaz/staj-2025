@@ -31,6 +31,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.ada.insurance_app.repository.IAgentRepository;
+import com.ada.insurance_app.service.document.IDocumentService;
 
 @Slf4j
 @Service
@@ -44,7 +45,7 @@ public class CustomerServiceImpl implements ICustomerService {
     private final IVehicleRepository vehicleRepository;
     private final IHealthInsuranceDetailRepository healthInsuranceDetailRepository;
     private final IHomeInsuranceDetailRepository homeInsuranceDetailRepository;
-    private final IPaymentRepository PaymentRepository;
+    private final IPaymentRepository paymentRepository;
     private final ICoverageRepository coverageRepository;
     private final IAgentRepository agentRepository;
     private final PolicyMapper policyMapper;
@@ -55,6 +56,7 @@ public class CustomerServiceImpl implements ICustomerService {
     private final OfferMapper offerMapper;
     private final PaymentMapper paymentMapper;
     private final IUserRepository userRepository;
+    private final IDocumentService documentService;
 
     @Override
     public List<PolicyDto> getMyPolicies(UUID customerId) {
@@ -101,11 +103,19 @@ public class CustomerServiceImpl implements ICustomerService {
     @Override
     public List<PaymentDto> getMyPayments(UUID customerId) {
         validateCustomerExists(customerId);
-        List<Policy> policies = policyRepository.findByCustomer_Id(customerId);
-
-        return policies.stream()
-                .map(Policy::getPayment)
-                .filter(Objects::nonNull)
+        log.info("getMyPayments: Fetching payments for customer: {}", customerId);
+        
+        // Fetch payments by customer ID using the new repository method
+        List<Payment> payments = paymentRepository.findByCustomerId(customerId);
+        log.info("getMyPayments: Found {} payments for customer: {}", payments.size(), customerId);
+        
+        // Log each payment for debugging
+        payments.forEach(payment -> {
+            log.info("getMyPayments: Payment ID: {}, Policy ID: {}, Status: {}, Amount: {}", 
+                    payment.getId(), payment.getPolicy().getId(), payment.getStatus(), payment.getAmount());
+        });
+        
+        return payments.stream()
                 .map(paymentMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -258,6 +268,20 @@ public class CustomerServiceImpl implements ICustomerService {
         Offer offer = offerRepository.findByIdWithDetails(offerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Offer not found with ID: " + offerId));
 
+        // Debug logging for agent assignment
+        log.info("=== Converting Offer to Policy ===");
+        log.info("Offer ID: {}", offerId);
+        log.info("Offer Status: {}", offer.getStatus());
+        log.info("Offer Agent: {}", offer.getAgent() != null ? offer.getAgent().getId() : "NULL");
+        if (offer.getAgent() != null) {
+            log.info("Agent Name: {}", offer.getAgent().getName());
+            log.info("Agent Email: {}", offer.getAgent().getEmail());
+        }
+        log.info("Customer ID: {}", offer.getCustomer().getId());
+        log.info("Customer Name: {} {}", 
+                offer.getCustomer().getUser() != null ? offer.getCustomer().getUser().getFirstName() : "null",
+                offer.getCustomer().getUser() != null ? offer.getCustomer().getUser().getLastName() : "null");
+
         // Teklifi oluşturan müşteriyle şu anki müşteri aynı mı?
         if (!offer.getCustomer().getId().equals(customerId)) {
             throw new UnauthorizedAccessException("You are not authorized to convert this offer");
@@ -278,6 +302,8 @@ public class CustomerServiceImpl implements ICustomerService {
         policy.setEndDate(LocalDate.now().plusYears(1));
         policy.setPremium(offer.getTotalPremium());
         policy.setInsuranceType(offer.getInsuranceType());
+        
+
 
         // Detayları InsuranceType'a göre ayarla
         switch (offer.getInsuranceType()) {
@@ -296,16 +322,19 @@ public class CustomerServiceImpl implements ICustomerService {
         }
 
         // Kaydet
-        policyRepository.save(policy);
+        Policy savedPolicy = policyRepository.save(policy);
+
 
         // Teklifi CONVERTED durumuna güncelle
         offer.setStatus(OfferStatus.CONVERTED);
         offer.setConvertedAt(LocalDateTime.now());
-        offer.setPolicy(policy);
+        offer.setPolicy(savedPolicy);
         offerRepository.save(offer);
 
-        log.info("Offer {} converted to policy {} for customer {}", offerId, policy.getId(), customerId);
-        return policyMapper.toDto(policy);
+
+        
+        PolicyDto policyDto = policyMapper.toDto(savedPolicy);
+        return policyDto;
     }
 
 
@@ -347,6 +376,9 @@ public class CustomerServiceImpl implements ICustomerService {
 
     @Override
     public PaymentDto makePayment(Long policyId, CreatePaymentRequest request, UUID customerId) {
+        log.info("makePayment: Starting payment process for policy: {}, customer: {}", policyId, customerId);
+        log.info("makePayment: Payment request details: {}", request);
+        
         // Poliçeyi bul ve doğrula
         Policy policy = policyRepository.findById(policyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Policy not found with ID: " + policyId));
@@ -355,36 +387,84 @@ public class CustomerServiceImpl implements ICustomerService {
             throw new UnauthorizedAccessException("Policy does not belong to this customer");
         }
 
+        log.info("makePayment: Policy found: {}, premium: {}", policy.getPolicyNumber(), policy.getPremium());
 
-        Payment payment = new Payment();
-        payment.setPolicy(policy);
-        payment.setCustomer(policy.getCustomer());
+        // Check if payment already exists for this policy
+        List<Payment> existingPayments = paymentRepository.findByPolicy_Id(policyId);
+        Payment payment;
+        
+        if (!existingPayments.isEmpty()) {
+            log.info("makePayment: Payment already exists for policy: {}, updating existing payment", policyId);
+            payment = existingPayments.get(0); // Get the first (most recent) payment
+            
+            // Log existing payment details
+            log.info("makePayment: Existing payment ID: {}, status: {}, amount: {}", 
+                    payment.getId(), payment.getStatus(), payment.getAmount());
+            
+            // Check if there's already a successful payment - only prevent if SUCCESS
+            if (payment.getStatus() == PaymentStatus.SUCCESS) {
+                log.warn("makePayment: Policy {} already has a successful payment", policyId);
+                throw new RuntimeException("A successful payment has already been made for this policy. No further payments are required.");
+            }
+            
+            // If payment is FAILED, we can retry it
+            if (payment.getStatus() == PaymentStatus.FAILED) {
+                log.info("makePayment: Retrying failed payment for policy: {}", policyId);
+            }
+        } else {
+            log.info("makePayment: Creating new payment for policy: {}", policyId);
+            payment = new Payment();
+            payment.setPolicy(policy);
+            payment.setCustomer(policy.getCustomer());
+            payment.setId(UUID.randomUUID()); // Generate new UUID for new payment
+        }
+        
+        // Update payment details
         payment.setAmount(policy.getPremium());
         payment.setPaymentDate(LocalDateTime.now());
         payment.setTransactionReference(UUID.randomUUID().toString());
-        payment.setStatus(simulateCardPayment(request) ? PaymentStatus.SUCCESS : PaymentStatus.FAILED);
+        
+        boolean paymentSuccess = simulateCardPayment(request);
+        payment.setStatus(paymentSuccess ? PaymentStatus.SUCCESS : PaymentStatus.FAILED);
         payment.setCreatedAt(LocalDateTime.now());
+        payment.setUpdatedAt(LocalDateTime.now());
+        
+        log.info("makePayment: Payment simulation result: {}, status: {}", paymentSuccess, payment.getStatus());
 
         if (payment.getStatus() == PaymentStatus.SUCCESS
                 && policy.getStatus() != PolicyStatus.ACTIVE) {
             policy.setStatus(PolicyStatus.ACTIVE);
             policy.setUpdatedAt(LocalDateTime.now());
             policyRepository.save(policy);
+            log.info("makePayment: Policy status updated to ACTIVE");
         }
 
-
-
-        PaymentRepository.save(payment);
+        try {
+            paymentRepository.save(payment);
+            log.info("makePayment: Payment saved with ID: {}", payment.getId());
+        } catch (Exception e) {
+            log.error("makePayment: Error saving payment: {}", e.getMessage());
+            if (e.getMessage().contains("duplicate key") || e.getMessage().contains("constraint")) {
+                throw new RuntimeException("Payment already exists for this policy. Please contact support if you need to update payment details.");
+            }
+            throw e;
+        }
 
         return paymentMapper.toDto(payment);
-
     }
 
     private boolean simulateCardPayment(CreatePaymentRequest request) {
-        return isNotBlank(request.getCardNumber()) &&
+        log.info("simulateCardPayment: Validating card details");
+        log.info("simulateCardPayment: Card number: {}, Card holder: {}, Expiry: {}, CVV: {}", 
+                request.getCardNumber(), request.getCardHolder(), request.getExpiryDate(), request.getCvv());
+        
+        boolean isValid = isNotBlank(request.getCardNumber()) &&
                 isNotBlank(request.getCardHolder()) &&
                 isNotBlank(request.getExpiryDate()) &&
                 isNotBlank(request.getCvv());
+        
+        log.info("simulateCardPayment: Card validation result: {}", isValid);
+        return isValid;
     }
 
     private boolean isNotBlank(String value) {
@@ -430,7 +510,7 @@ public class CustomerServiceImpl implements ICustomerService {
         // Validate customer exists
         validateCustomerExists(customerId);
 
-        Payment payment = PaymentRepository.findByIdAndPolicy_Customer_Id(paymentId, customerId)
+        Payment payment = paymentRepository.findByIdAndPolicy_Customer_Id(paymentId, customerId)
                 .orElseThrow(() -> new PaymentNotFoundException("Payment not found for customer: " + customerId));
 
         return paymentMapper.toDto(payment);
@@ -438,26 +518,21 @@ public class CustomerServiceImpl implements ICustomerService {
 
     @Override
     public DocumentDto uploadDocument(MultipartFile file, UUID customerId) {
-
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException("Customer not found with id: " + customerId));
-
 
         if (file.isEmpty() || file.getOriginalFilename() == null) {
             throw new IllegalArgumentException("Uploaded file is empty or filename is missing");
         }
 
-
-        Document document = new Document();
-        document.setFilePath(file.getOriginalFilename());
-        document.setCustomer(customer);
-        document.setCreatedAt(LocalDateTime.now());
-
-
-        Document savedDocument = documentRepository.save(document);
-        log.info("Document uploaded successfully for customer: {}", customerId);
-
-        return documentMapper.toDto(savedDocument);
+        // Create DocumentDto with required fields
+        DocumentDto documentDto = new DocumentDto();
+        documentDto.setCustomerId(customerId);
+        documentDto.setDocumentType(DocumentType.OTHER); // Default document type
+        documentDto.setDescription("Customer uploaded document");
+        
+        // Use DocumentService for proper document handling
+        return documentService.uploadDocument(documentDto, file);
     }
 
 
@@ -601,7 +676,7 @@ public class CustomerServiceImpl implements ICustomerService {
 
         dto.setTotalPolicies(policyRepository.countByCustomer_Id(customerId));
         dto.setTotalClaims(claimRepository.countByPolicy_Customer_Id(customerId));
-        dto.setTotalPayments(PaymentRepository.countByPolicy_Customer_Id(customerId));
+        dto.setTotalPayments(paymentRepository.countByPolicy_Customer_Id(customerId));
         dto.setTotalPremium(policyRepository.sumPremiumByCustomerId(customerId));
 
         return dto;

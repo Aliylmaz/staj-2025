@@ -27,6 +27,7 @@ public class PolicyDto {
 
     private UUID customerId;
     private String customerName;
+    private CustomerDto customer;
 
     private VehicleDto vehicleDto;
 

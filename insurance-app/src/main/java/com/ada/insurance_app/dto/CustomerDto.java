@@ -18,6 +18,12 @@ public class CustomerDto {
     private String customerNumber;
     private CustomerType customerType;
     private UserDto user;
+    
+    // User bilgileri için convenience fields
+    private String firstName;
+    private String lastName;
+    private String email;
+    private String phoneNumber;
 
     // Bireysel için
     private String nationalId;

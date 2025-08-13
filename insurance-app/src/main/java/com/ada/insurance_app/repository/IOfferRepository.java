@@ -17,10 +17,11 @@ public interface IOfferRepository extends JpaRepository<Offer, Long> {
     @EntityGraph(attributePaths = {"coverages", "customer", "policy"})
     List<Offer> findByCustomer_Id(UUID customerId);
 
+    @EntityGraph(attributePaths = {"coverages", "customer", "policy"})
+    List<Offer> findByAgent_Id(@Param("agentId") UUID agentId);
+
     @Query("SELECT o FROM Offer o LEFT JOIN FETCH o.coverages LEFT JOIN FETCH o.customer LEFT JOIN FETCH o.policy LEFT JOIN FETCH o.agent WHERE o.id = :id")
     Optional<Offer> findByIdWithDetails(@Param("id") Long id);
-
-    List<Offer> findByAgent_Id(UUID agentId);
 
     List<Offer> findByPolicy_Id(Long policyİd);
     

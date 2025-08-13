@@ -272,6 +272,10 @@ export interface CreateClaimRequest {
 export interface CreatePaymentRequest {
   amount: number;
   paymentMethod: string;
+  cardNumber: string;
+  cardHolder: string;
+  expiryDate: string;
+  cvv: string;
 }
 
 // API functions
@@ -445,6 +449,12 @@ export const getCoveragesByInsuranceType = async (insuranceType: keyof typeof In
 
 export const getCoveragesByOfferId = async (offerId: number): Promise<CoverageDto[]> => {
   const response = await axiosInstance.get(`/coverages/by-offer/${offerId}`);
+  return response.data.data;
+};
+
+export const acceptOfferAndCreatePolicy = async (offerId: number): Promise<PolicyDto> => {
+  const customerId = getValidCustomerId();
+  const response = await axiosInstance.post(`/customer/${customerId}/offers/${offerId}/accept`);
   return response.data.data;
 };
 

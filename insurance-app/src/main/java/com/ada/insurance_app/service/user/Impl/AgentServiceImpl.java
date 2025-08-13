@@ -1,11 +1,8 @@
 package com.ada.insurance_app.service.user.Impl;
 
 import com.ada.insurance_app.core.enums.OfferStatus;
-import com.ada.insurance_app.dto.AgentDto;
-import com.ada.insurance_app.dto.AgentStatsDto;
-import com.ada.insurance_app.dto.CustomerDto;
-import com.ada.insurance_app.dto.OfferDto;
-import com.ada.insurance_app.dto.PolicyDto;
+import com.ada.insurance_app.core.enums.PolicyStatus;
+import com.ada.insurance_app.dto.*;
 import com.ada.insurance_app.entity.Agent;
 import com.ada.insurance_app.entity.Customer;
 import com.ada.insurance_app.entity.Offer;
@@ -24,22 +21,32 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.ada.insurance_app.core.exception.ResourceNotFoundException;
+import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import com.ada.insurance_app.entity.Coverage;
+import com.ada.insurance_app.entity.Payment;
+import com.ada.insurance_app.mapper.PaymentMapper;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AgentServiceImpl implements IAgentService {
     private final IOfferRepository offerRepository;
     private final ICustomerRepository customerRepository;
     private final IPolicyRepository policyRepository;
     private final IAgentRepository agentRepository;
     private final IClaimRepository claimRepository;
+    private final IPaymentRepository paymentRepository;
     private final OfferMapper offerMapper;
     private final CustomerMapper customerMapper;
     private final PolicyMapper policyMapper;
     private final AgentMapper agentMapper;
+    private final PaymentMapper paymentMapper;
     private final IDashboardService dashboardService;
     private final AgentServiceHelper agentHelper;
 
@@ -65,9 +72,27 @@ public class AgentServiceImpl implements IAgentService {
     public List<CustomerDto> getMyCustomers() {
         Agent currentAgent = agentHelper.getCurrentAuthenticatedAgent();
         
-        return customerRepository.findCustomersByAgentId(currentAgent.getId()).stream()
+        List<Customer> customers = customerRepository.findCustomersByAgentId(currentAgent.getId());
+        log.info("=== getMyCustomers Debug ===");
+        log.info("Total customers found: {}", customers.size());
+        
+        for (Customer customer : customers) {
+            log.info("Customer ID: {}, User: {}", 
+                    customer.getId(), 
+                    customer.getUser() != null ? customer.getUser().getFirstName() + " " + customer.getUser().getLastName() : "NULL");
+        }
+        
+        List<CustomerDto> customerDtos = customers.stream()
                 .map(customerMapper::toDto)
                 .collect(Collectors.toList());
+        
+        for (CustomerDto dto : customerDtos) {
+            log.info("Customer DTO ID: {}, Name: {}, Email: {}", 
+                    dto.getId(), dto.getFirstName() + " " + dto.getLastName(), dto.getEmail());
+        }
+        
+        log.info("=== End getMyCustomers Debug ===");
+        return customerDtos;
     }
 
     @Override
@@ -90,15 +115,91 @@ public class AgentServiceImpl implements IAgentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<OfferDto> getAllOffers() {
-        // Only return PENDING offers for agents to review
-        List<Offer> offers = offerRepository.findByStatus(OfferStatus.PENDING);
+    public List<OfferDto> getoffersByAgentId(UUID agentId) {
+        try {
+            log.info("Fetching offers for agent: {}", agentId);
+            
+            Agent agent = agentHelper.getAgentById(agentId);
+            if (agent == null) {
+                log.warn("Agent not found with ID: {}", agentId);
+                return new ArrayList<>();
+            }
+            
+            List<Offer> offers = offerRepository.findByAgent_Id(agent.getId());
+            log.info("Found {} offers for agent: {}", offers.size(), agentId);
+            
+            // Safe conversion with explicit iteration
+            List<OfferDto> offerDtos = new ArrayList<>();
+            for (Offer offer : offers) {
+                try {
+                    // Detailed offer information logging
+                    log.info("=== Offer Details for ID: {} ===", offer.getId());
+                    log.info("Offer Number: {}", offer.getOfferNumber());
+                    log.info("Status: {}", offer.getStatus());
+                    log.info("Total Premium: {}", offer.getTotalPremium());
+                    log.info("Insurance Type: {}", offer.getInsuranceType());
+                    log.info("Note: {}", offer.getNote());
+                    log.info("Created At: {}", offer.getCreatedAt());
+                    log.info("Updated At: {}", offer.getUpdatedAt());
+                    
+                    // Customer information
+                    if (offer.getCustomer() != null) {
+                        log.info("Customer ID: {}", offer.getCustomer().getId());
+                        log.info("Customer Name: {} {}", 
+                                offer.getCustomer().getUser() != null ? offer.getCustomer().getUser().getFirstName() : "null",
+                                offer.getCustomer().getUser() != null ? offer.getCustomer().getUser().getLastName() : "null");
+                    } else {
+                        log.warn("Customer is NULL for offer {}", offer.getId());
+                    }
+                    
+                    // Agent information
+                    if (offer.getAgent() != null) {
+                        log.info("Agent ID: {}", offer.getAgent().getId());
+                        log.info("Agent Name: {}", offer.getAgent().getName());
+                    } else {
+                        log.info("Agent is NULL for offer {} (this is normal for PENDING offers)", offer.getId());
+                    }
+                    
+                    // Coverages information
+                    if (offer.getCoverages() != null) {
+                        log.info("Coverages count: {}", offer.getCoverages().size());
+                        for (Coverage coverage : offer.getCoverages()) {
+                            log.info("  - Coverage: {} (ID: {})", coverage.getName(), coverage.getId());
+                        }
+                    } else {
+                        log.warn("Coverages is NULL for offer {}", offer.getId());
+                    }
+                    
+                    log.info("=== End Offer Details ===");
+                    
+                    OfferDto dto = offerMapper.toDto(offer);
+                    if (dto != null) {
+                        offerDtos.add(dto);
+                        log.info("Successfully mapped offer {} to DTO", offer.getId());
+                    } else {
+                        log.error("Offer {} mapped to NULL DTO - this indicates a serious mapping issue", offer.getId());
+                    }
+                } catch (Exception e) {
+                    log.error("Error mapping offer {} to DTO: {}", offer.getId(), e.getMessage(), e);
+                    // Continue with other offers
+                }
+            }
+            
+            log.info("Successfully mapped {} out of {} offers to DTOs", offerDtos.size(), offers.size());
+            return offerDtos;
+        } catch (Exception e) {
+            log.error("Error fetching offers for agent {}: {}", agentId, e.getMessage(), e);
+            return new ArrayList<>();
+        }
+    }
 
-
-
-        return offers.stream()
-                .map(offerMapper::toDto)
-                .collect(Collectors.toList());
+    @Override
+    @Transactional(readOnly = true)
+    public OfferDto getOfferById(Long offerId) {
+        Offer offer = offerRepository.findByIdWithDetails(offerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Offer not found with ID: " + offerId));
+        
+        return offerMapper.toDto(offer);
     }
 
     @Override
@@ -118,7 +219,7 @@ public class AgentServiceImpl implements IAgentService {
         
         offer.setAgent(agent);
         offer.setStatus(OfferStatus.APPROVED);
-        offer.setAcceptedAt(java.time.LocalDateTime.now());
+        offer.setAcceptedAt(LocalDateTime.now());
         
         Offer savedOffer = offerRepository.save(offer);
         return offerMapper.toDto(savedOffer);
@@ -190,7 +291,9 @@ public class AgentServiceImpl implements IAgentService {
     @PreAuthorize("hasRole('AGENT')")
     public Long getMyActivePoliciesCount() {
         Agent currentAgent = agentHelper.getCurrentAuthenticatedAgent();
-        return policyRepository.countByAgentId(currentAgent.getId());
+        return policyRepository.findByAgentId(currentAgent.getId()).stream()
+                .filter(policy -> "ACTIVE".equals(policy.getStatus().name()) || "PENDING_PAYMENT".equals(policy.getStatus().name()))
+                .count();
     }
 
     @Override
@@ -218,8 +321,9 @@ public class AgentServiceImpl implements IAgentService {
     @PreAuthorize("hasRole('AGENT')")
     public List<PolicyDto> getMyActivePolicies() {
         Agent currentAgent = agentHelper.getCurrentAuthenticatedAgent();
+        
         return policyRepository.findByAgentId(currentAgent.getId()).stream()
-                .filter(policy -> "ACTIVE".equals(policy.getStatus())) // Assuming you have status field
+                .filter(policy -> "ACTIVE".equals(policy.getStatus().name()) || "PENDING_PAYMENT".equals(policy.getStatus().name()))
                 .map(policyMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -230,7 +334,7 @@ public class AgentServiceImpl implements IAgentService {
     public List<PolicyDto> getMyExpiredPolicies() {
         Agent currentAgent = agentHelper.getCurrentAuthenticatedAgent();
         return policyRepository.findByAgentId(currentAgent.getId()).stream()
-                .filter(policy -> "EXPIRED".equals(policy.getStatus())) // Assuming you have status field
+                .filter(policy -> "EXPIRED".equals(policy.getStatus().name()))
                 .map(policyMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -250,7 +354,83 @@ public class AgentServiceImpl implements IAgentService {
         return policyMapper.toDto(policy);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('AGENT')")
+    public PolicyDto getPolicyById(Long policyId) {
+        Policy policy = policyRepository.findById(policyId)
+                .orElseThrow(() -> new RuntimeException("Policy not found: " + policyId));
+        
+        log.info("=== getPolicyById Debug ===");
+        log.info("Policy ID: {}", policyId);
+        log.info("Policy Customer: {}", policy.getCustomer() != null ? policy.getCustomer().getId() : "NULL");
+        if (policy.getCustomer() != null) {
+            log.info("Customer User: {}", policy.getCustomer().getUser() != null ? policy.getCustomer().getUser().getFirstName() + " " + policy.getCustomer().getUser().getLastName() : "NULL");
+        }
+        
+        PolicyDto policyDto = policyMapper.toDto(policy);
+        log.info("Policy DTO Customer: {}", policyDto.getCustomer() != null ? policyDto.getCustomer().getId() : "NULL");
+        log.info("Policy DTO Customer Name: {}", policyDto.getCustomerName());
+        log.info("=== End getPolicyById Debug ===");
+        
+        return policyDto;
+    }
 
+    @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('AGENT')")
+    public List<CoverageDto> getPolicyCoverages(Long policyId) {
+        Policy policy = policyRepository.findById(policyId)
+                .orElseThrow(() -> new RuntimeException("Policy not found: " + policyId));
+        
+        // Return policy coverages as a list of CoverageDto
+        return policy.getCoverages().stream()
+                .map(coverage -> {
+                    CoverageDto dto = new CoverageDto();
+                    dto.setId(coverage.getId());
+                    dto.setName(coverage.getName());
+                    dto.setDescription(coverage.getDescription());
+                    dto.setBasePrice(coverage.getBasePrice());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
 
+    @Override
+    @Transactional
+    @PreAuthorize("hasRole('AGENT')")
+    public PolicyDto updatePolicyStatus(Long policyId, PolicyStatus newStatus) {
+        Policy policy = policyRepository.findById(policyId)
+                .orElseThrow(() -> new RuntimeException("Policy not found: " + policyId));
+        
+        // Update policy status
+        policy.setStatus(PolicyStatus.valueOf(newStatus.name()));
+        policyRepository.save(policy);
+        
+        return policyMapper.toDto(policy);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('AGENT')")
+    public List<PaymentDto> getPaymentsByAgentId(UUID agentId) {
+        log.info("Getting payments for agent: {}", agentId);
+        
+        // Get current authenticated agent to verify access
+        Agent currentAgent = agentHelper.getCurrentAuthenticatedAgent();
+        
+        // Verify that the requested agentId matches the current authenticated agent
+        if (!currentAgent.getId().equals(agentId)) {
+            throw new RuntimeException("Access denied: Can only view own payments");
+        }
+        
+        // Get payments for the agent
+        List<Payment> payments = paymentRepository.findByAgentId(agentId);
+        
+        // Convert to DTOs
+        return payments.stream()
+                .map(paymentMapper::toDto)
+                .collect(Collectors.toList());
+    }
 
 } 

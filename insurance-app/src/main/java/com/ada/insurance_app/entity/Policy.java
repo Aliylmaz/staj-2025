@@ -3,10 +3,10 @@ package com.ada.insurance_app.entity;
 import com.ada.insurance_app.core.enums.InsuranceType;
 import com.ada.insurance_app.core.enums.PolicyStatus;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -18,7 +18,8 @@ import java.util.Set;
 
 @Entity
 @Table(name = "policies")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Policy {
@@ -36,7 +37,6 @@ public class Policy {
 
     @OneToMany(mappedBy = "policy", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Offer> offers = new HashSet<>();
-
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agent_id")
@@ -61,7 +61,6 @@ public class Policy {
     @Column(length = 500)
     private  String  cancellationReason;
 
-
     @OneToOne
     @JoinColumn(name = "vehicle_id", nullable = false)
     private Vehicle vehicle;
@@ -82,14 +81,11 @@ public class Policy {
     )
     private Set<Coverage> coverages = new HashSet<>();
 
-
     @OneToMany(mappedBy = "policy", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Claim> claims = new HashSet<>();
 
-
     @OneToMany(mappedBy = "policy", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Document> documents = new HashSet<>();
-
 
     @OneToOne(mappedBy = "policy", cascade = CascadeType.ALL, orphanRemoval = true)
     private Payment payment;
@@ -131,6 +127,4 @@ public class Policy {
         documents.remove(document);
         document.setPolicy(null);
     }
-
-
 }

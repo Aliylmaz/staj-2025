@@ -2,11 +2,8 @@ package com.ada.insurance_app.controller.user.Impl;
 
 import com.ada.insurance_app.controller.user.IAgentController;
 import com.ada.insurance_app.core.common.dto.GeneralResponse;
-import com.ada.insurance_app.dto.AgentDto;
-import com.ada.insurance_app.dto.AgentStatsDto;
-import com.ada.insurance_app.dto.CustomerDto;
-import com.ada.insurance_app.dto.OfferDto;
-import com.ada.insurance_app.dto.PolicyDto;
+import com.ada.insurance_app.core.enums.PolicyStatus;
+import com.ada.insurance_app.dto.*;
 
 import com.ada.insurance_app.request.offer.OfferUpdateRequest;
 import com.ada.insurance_app.request.customer.UpdateIndividualCustomerRequest;
@@ -17,8 +14,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -38,7 +38,6 @@ public class AgentControllerImpl implements IAgentController {
     }
 
 
-
     @Override
     @PreAuthorize("hasRole('AGENT')")
     @PutMapping("/customers/{customerId}")
@@ -49,14 +48,22 @@ public class AgentControllerImpl implements IAgentController {
     }
 
 
+    @Override
+    @PreAuthorize("hasRole('AGENT')")
+    @GetMapping("/offers/agent/{agentId}")
+    public ResponseEntity<GeneralResponse<List<OfferDto>>> getOfferByAgentId(@PathVariable UUID agentId) {
+        log.info("Agent fetching all offers for agent: {}", agentId);
+        List<OfferDto> offers = agentService.getoffersByAgentId(agentId);
+        return ResponseEntity.ok(GeneralResponse.success("Offers list", offers));
+    }
 
     @Override
     @PreAuthorize("hasRole('AGENT')")
-    @GetMapping("/offers")
-    public ResponseEntity<GeneralResponse<List<OfferDto>>> getAllOffers() {
-        log.info("Agent fetching all offers");
-        List<OfferDto> offers = agentService.getAllOffers();
-        return ResponseEntity.ok(GeneralResponse.success("Offers list", offers));
+    @GetMapping("/offers/{offerId}")
+    public ResponseEntity<GeneralResponse<OfferDto>> getOfferById(@PathVariable Long offerId) {
+        log.info("Agent fetching offer details: {}", offerId);
+        OfferDto offer = agentService.getOfferById(offerId);
+        return ResponseEntity.ok(GeneralResponse.success("Offer details", offer));
     }
 
     @Override
@@ -182,7 +189,42 @@ public class AgentControllerImpl implements IAgentController {
         return ResponseEntity.ok(GeneralResponse.success("Policy assigned to agent", assigned));
     }
 
+    @Override
+    @PreAuthorize("hasRole('AGENT')")
+    @GetMapping("/policies/{policyId}")
+    public ResponseEntity<GeneralResponse<PolicyDto>> getPolicyById(@PathVariable Long policyId) {
+        log.info("Agent fetching policy details: policyId={}", policyId);
+        PolicyDto policy = agentService.getPolicyById(policyId);
+        return ResponseEntity.ok(GeneralResponse.success("Policy details", policy));
+    }
+
+    @Override
+    @PreAuthorize("hasRole('AGENT')")
+    @GetMapping("/policies/{policyId}/coverages")
+    public ResponseEntity<GeneralResponse<List<CoverageDto>>> getPolicyCoverages(@PathVariable Long policyId) {
+        log.info("Agent fetching policy coverages: policyId={}", policyId);
+        List<CoverageDto> coverages = agentService.getPolicyCoverages(policyId);
+        return ResponseEntity.ok(GeneralResponse.success("Policy coverages", coverages));
+    }
+
+    @Override
+    public ResponseEntity<GeneralResponse<PolicyDto>> updatePolicyStatus(Long policyId, PolicyStatus status) {
+        log.info("Agent updating policy status: policyId={}, status={}", policyId, status);
+        PolicyDto updatedPolicy = agentService.updatePolicyStatus(policyId, status);
+        return ResponseEntity.ok(GeneralResponse.success("Policy status updated", updatedPolicy));
+
+    }
+
+    // Payment Management
+
+    @Override
+    @PreAuthorize("hasRole('AGENT')")
+    @GetMapping("/payments/{agentId}")
+    public ResponseEntity<GeneralResponse<List<PaymentDto>>> getPaymentsByAgentId(@PathVariable UUID agentId) {
+        log.info("Agent fetching payments for agent: {}", agentId);
+        List<PaymentDto> payments = agentService.getPaymentsByAgentId(agentId);
+        return ResponseEntity.ok(GeneralResponse.success("Agent payments", payments));
+    }
+}
 
 
-
-} 

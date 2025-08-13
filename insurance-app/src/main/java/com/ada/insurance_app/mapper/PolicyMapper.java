@@ -21,10 +21,13 @@ public interface PolicyMapper {
     
     @Mapping(target = "customerId", source = "customer.id")
     @Mapping(target = "customerName", expression = "java(policy.getCustomer() != null && policy.getCustomer().getUser() != null ? policy.getCustomer().getUser().getFirstName() + \" \" + policy.getCustomer().getUser().getLastName() : null)")
+    @Mapping(target = "customer", source = "customer")
     @Mapping(target = "vehicleDto", source = "vehicle")
     @Mapping(target = "vehicleDto.plateNumber", source = "vehicle.plateNumber")
     @Mapping(target = "agentId", source = "agent.id")
     @Mapping(target = "agentDto", source = "agent")
+    @Mapping(target = "coverages", source = "coverages")
+
     PolicyDto toDto(Policy policy);
     
     @Mapping(target = "customer", ignore = true)

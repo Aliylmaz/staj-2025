@@ -9,12 +9,13 @@ import org.mapstruct.factory.Mappers;
 @Mapper(componentModel = "spring")
 public interface PaymentMapper {
     
-
-    
+    @Mapping(source = "policy.policyNumber", target = "policyNumber")
+    @Mapping(source = "policy.insuranceType", target = "insuranceType")
+    @Mapping(expression = "java(payment.getCustomer().getUser().getFirstName() + \" \" + payment.getCustomer().getUser().getLastName())", target = "customerName")
+    @Mapping(source = "createdAt", target = "createdAt")
     PaymentDto toDto(Payment payment);
     
-    @Mapping(target = "policy", ignore = true)
+
     @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
     Payment toEntity(PaymentDto paymentDto);
 }

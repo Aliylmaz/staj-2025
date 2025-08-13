@@ -1,13 +1,11 @@
 package com.ada.insurance_app.controller.user;
 
 import com.ada.insurance_app.core.common.dto.GeneralResponse;
-import com.ada.insurance_app.dto.AgentDto;
-import com.ada.insurance_app.dto.AgentStatsDto;
-import com.ada.insurance_app.dto.CustomerDto;
-import com.ada.insurance_app.dto.OfferDto;
-import com.ada.insurance_app.dto.PolicyDto;
+import com.ada.insurance_app.core.enums.PolicyStatus;
+import com.ada.insurance_app.dto.*;
 import com.ada.insurance_app.request.offer.OfferUpdateRequest;
 import com.ada.insurance_app.request.customer.UpdateIndividualCustomerRequest;
+import com.ada.insurance_app.request.policy.UpdatePolicyRequest;
 import org.springframework.http.ResponseEntity;
 import java.util.List;
 import java.util.UUID;
@@ -16,7 +14,10 @@ public interface IAgentController {
     ResponseEntity<GeneralResponse<OfferDto>> updateOfferStatus(OfferUpdateRequest request);
     ResponseEntity<GeneralResponse<CustomerDto>> updateCustomer(UUID customerId, UpdateIndividualCustomerRequest request);
 
-    ResponseEntity<GeneralResponse<List<OfferDto>>> getAllOffers();
+    ResponseEntity<GeneralResponse<List<OfferDto>>> getOfferByAgentId(UUID agentId);
+    
+    // Offer detail endpoint
+    ResponseEntity<GeneralResponse<OfferDto>> getOfferById(Long offerId);
     
     // Offer approval endpoints
     ResponseEntity<GeneralResponse<OfferDto>> approveOffer(Long offerId, UUID agentId);
@@ -41,5 +42,12 @@ public interface IAgentController {
     ResponseEntity<GeneralResponse<List<PolicyDto>>> getMyExpiredPolicies();
     ResponseEntity<GeneralResponse<PolicyDto>> assignPolicyToAgent(Long policyId, UUID agentId);
     
+    // Policy Details
+    ResponseEntity<GeneralResponse<PolicyDto>> getPolicyById(Long policyId);
+    ResponseEntity<GeneralResponse<List<CoverageDto>>> getPolicyCoverages(Long policyId);
+    ResponseEntity<GeneralResponse<PolicyDto>> updatePolicyStatus(Long policyId, PolicyStatus status);
+
+    // Payment Management
+    ResponseEntity<GeneralResponse<List<PaymentDto>>> getPaymentsByAgentId(UUID agentId);
 
 } 

@@ -1,5 +1,6 @@
 package com.ada.insurance_app.request.document;
 
+import com.ada.insurance_app.core.enums.DocumentType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -12,7 +13,7 @@ public class UploadDocumentRequest {
     private Long policyId;
 
     @NotBlank(message = "Document type must not be blank")
-    private String documentType;
+    private DocumentType documentType;
 
     @NotNull(message = "File must not be null")
     private MultipartFile file;

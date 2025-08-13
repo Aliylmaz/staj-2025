@@ -92,8 +92,16 @@ public class OfferServiceImpl implements IOfferService {
     @Override
     @Transactional
     public OfferDto approveOffer(Long offerId, UUID agentId) {
+        log.info("=== Approving Offer ===");
+        log.info("Offer ID: {}", offerId);
+        log.info("Agent ID: {}", agentId);
+        
         Offer offer = offerRepository.findById(offerId)
                 .orElseThrow(() -> new OfferNotFoundException("Offer not found: " + offerId));
+        
+        log.info("Found offer: {}", offer.getId());
+        log.info("Current offer status: {}", offer.getStatus());
+        log.info("Current offer agent: {}", offer.getAgent() != null ? offer.getAgent().getId() : "NULL");
         
         // Business rule: Can only approve PENDING offers
         if (offer.getStatus() != OfferStatus.PENDING) {
@@ -104,12 +112,24 @@ public class OfferServiceImpl implements IOfferService {
         Agent agent = agentRepository.findById(agentId)
                 .orElseThrow(() -> new IllegalArgumentException("Agent not found: " + agentId));
         
+        log.info("Found agent: {}", agent.getId());
+        log.info("Agent name: {}", agent.getName());
+        
         offer.setAgent(agent);
         offer.setStatus(OfferStatus.APPROVED);
         offer.setAcceptedAt(LocalDateTime.now());
         
+        log.info("Offer updated - Agent: {}, Status: {}", 
+                offer.getAgent() != null ? offer.getAgent().getId() : "NULL", 
+                offer.getStatus());
+        
         Offer savedOffer = offerRepository.save(offer);
-        log.info("Offer approved by agent: {} for offer: {}", agentId, offerId);
+        log.info("Offer saved - ID: {}, Agent: {}, Status: {}", 
+                savedOffer.getId(),
+                savedOffer.getAgent() != null ? savedOffer.getAgent().getId() : "NULL",
+                savedOffer.getStatus());
+        
+        log.info("=== End Approving Offer ===");
         
         return offerMapper.toDto(savedOffer);
     }

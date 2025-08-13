@@ -121,7 +121,9 @@ export default function DashboardSummaryCards() {
       case "CUSTOMER":
         const activePolicies = policies.filter(p => p.status === 'ACTIVE').length;
         const pendingOffers = offers.filter(o => o.status === 'PENDING').length;
-        const totalPremium = policies.reduce((sum, p) => sum + p.totalPremium, 0);
+        const totalPremium = policies
+          .filter(p => p.status === 'ACTIVE')
+          .reduce((sum, p) => sum + (p.totalPremium || 0), 0);
         const totalDocuments = documents.length;
         
         return [

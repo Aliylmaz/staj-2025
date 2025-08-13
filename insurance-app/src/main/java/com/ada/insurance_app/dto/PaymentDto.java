@@ -18,4 +18,12 @@ public class PaymentDto {
     private PaymentStatus status;
     private LocalDateTime paymentDate;
     private String transactionReference;
+    private LocalDateTime createdAt;
+    
+    // Basic policy info (just what we need)
+    private String policyNumber;
+    private String insuranceType;
+    
+    // Basic customer info (just what we need)
+    private String customerName;
 }

@@ -17,6 +17,15 @@ public interface AgentMapper {
     @Mapping(target = "userId", source = "user.id")
     @Mapping(target = "surname", source = "user.lastName")
     @Mapping(target = "policyIds", expression = "java(mapPolicyIds(agent))")
+    
+    // Agent specific fields
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "email", source = "email")
+    @Mapping(target = "phoneNumber", source = "phoneNumber")
+    @Mapping(target = "address", source = "address")
+    @Mapping(target = "city", source = "city")
+    @Mapping(target = "country", source = "country")
+    @Mapping(target = "postalCode", source = "postalCode")
     AgentDto toDto(Agent agent);
     
     @Mapping(target = "user", ignore = true)

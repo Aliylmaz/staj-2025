@@ -1,10 +1,7 @@
 package com.ada.insurance_app.service.user;
 
-import com.ada.insurance_app.dto.AgentDto;
-import com.ada.insurance_app.dto.AgentStatsDto;
-import com.ada.insurance_app.dto.CustomerDto;
-import com.ada.insurance_app.dto.OfferDto;
-import com.ada.insurance_app.dto.PolicyDto;
+import com.ada.insurance_app.core.enums.PolicyStatus;
+import com.ada.insurance_app.dto.*;
 import com.ada.insurance_app.request.offer.OfferUpdateRequest;
 import com.ada.insurance_app.request.customer.UpdateIndividualCustomerRequest;
 import java.util.List;
@@ -14,7 +11,10 @@ public interface IAgentService {
     OfferDto updateOfferStatus(OfferUpdateRequest request);
     CustomerDto updateCustomer(UUID customerId, UpdateIndividualCustomerRequest request);
 
-    List<OfferDto> getAllOffers();
+    List<OfferDto> getoffersByAgentId( UUID agentId);
+    
+    // Offer detail method
+    OfferDto getOfferById(Long offerId);
     
     // Offer approval methods
     OfferDto approveOffer(Long offerId, UUID agentId);
@@ -40,5 +40,12 @@ public interface IAgentService {
     List<PolicyDto> getMyExpiredPolicies();
     PolicyDto assignPolicyToAgent(Long policyId, UUID agentId); // Bu admin işlemi olduğu için agentId kalabilir
     
+    // Policy Details
+    PolicyDto getPolicyById(Long policyId);
+    List<CoverageDto> getPolicyCoverages(Long policyId);
+    PolicyDto updatePolicyStatus(Long policyId, PolicyStatus newStatus);
+
+    // Payment Management
+    List<PaymentDto> getPaymentsByAgentId(UUID agentId);
 
 } 

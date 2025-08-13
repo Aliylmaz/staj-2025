@@ -24,6 +24,16 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import com.ada.insurance_app.core.exception.CustomerNotFoundException;
+import com.ada.insurance_app.core.exception.PolicyNotFoundException;
+import com.ada.insurance_app.core.exception.ClaimNotFoundException;
+import com.ada.insurance_app.entity.Customer;
+import com.ada.insurance_app.entity.Policy;
+import com.ada.insurance_app.entity.Claim;
+import com.ada.insurance_app.repository.ICustomerRepository;
+import com.ada.insurance_app.repository.IPolicyRepository;
+import com.ada.insurance_app.repository.IClaimRepository;
+
 
 @Slf4j
 @Service
@@ -31,7 +41,9 @@ import java.util.UUID;
 public class DocumentServiceImpl implements IDocumentService {
     private final IDocumentRepository documentRepository;
     private final DocumentMapper documentMapper;
-
+    private final ICustomerRepository customerRepository;
+    private final IPolicyRepository policyRepository;
+    private final IClaimRepository claimRepository;
 
 
     @Override
@@ -107,14 +119,35 @@ public class DocumentServiceImpl implements IDocumentService {
             Path targetPath = uploadPath.resolve(uniqueFileName);
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
 
-            // DTO'yu entity'ye çevir ve güncelle
-            documentDto.setFileName(uniqueFileName);
-            documentDto.setOriginalFileName(file.getOriginalFilename());
-            documentDto.setContentType(contentType);
-            documentDto.setFileSize(file.getSize());
-            documentDto.setFilePath(filePath);
+            // Create Document entity manually to ensure proper relationships
+            Document document = new Document();
+            document.setFileName(uniqueFileName);
+            document.setOriginalFileName(file.getOriginalFilename());
+            document.setContentType(contentType);
+            document.setFileSize(file.getSize());
+            document.setFilePath(filePath);
+            document.setDescription(documentDto.getDescription());
+            document.setDocumentType(documentDto.getDocumentType());
+            
+            // Set relationships based on DTO
+            if (documentDto.getCustomerId() != null) {
+                Customer customer = customerRepository.findById(documentDto.getCustomerId())
+                    .orElseThrow(() -> new CustomerNotFoundException("Customer not found with id: " + documentDto.getCustomerId()));
+                document.setCustomer(customer);
+            }
+            
+            if (documentDto.getPolicyId() != null) {
+                Policy policy = policyRepository.findById(documentDto.getPolicyId())
+                    .orElseThrow(() -> new PolicyNotFoundException("Policy not found with id: " + documentDto.getPolicyId()));
+                document.setPolicy(policy);
+            }
+            
+            if (documentDto.getClaimId() != null) {
+                Claim claim = claimRepository.findById(documentDto.getClaimId())
+                    .orElseThrow(() -> new ClaimNotFoundException("Claim not found with id: " + documentDto.getClaimId()));
+                document.setClaim(claim);
+            }
 
-            Document document = documentMapper.toEntity(documentDto);
             Document saved = documentRepository.save(document);
             return documentMapper.toDto(saved);
 
