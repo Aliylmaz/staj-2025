@@ -3,6 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { useCustomer } from '../contexts/CustomerContext';
 import html2pdf from 'html2pdf.js';
 
+// CSS Animations
+const spinAnimation = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+// Inject CSS animations
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = spinAnimation;
+  document.head.appendChild(style);
+}
+
 import { 
   getMyOffers, 
   getMyPolicies, 
@@ -1382,201 +1397,445 @@ export default function CustomerPage() {
 
   const renderDashboard = () => (
     <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ 
-          fontSize: '2.5rem', 
-          fontWeight: 700, 
-          color: '#1e293b',
-          marginBottom: '0.5rem'
-        }}>
-          Customer Dashboard
-        </h1>
-        <p style={{ 
-          fontSize: '1.1rem', 
-          color: '#64748b',
-          margin: 0
-        }}>
-          Welcome back! Here's your insurance overview and quick actions.
-        </p>
+      {/* Header Section */}
+      <div style={{ 
+        marginBottom: '3rem',
+        background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+        padding: '2rem',
+        borderRadius: '20px',
+        boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
+        border: '1px solid rgba(255, 255, 255, 0.1)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+          <div style={{
+            width: '60px',
+            height: '60px',
+            background: 'rgba(255, 255, 255, 0.2)',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 16px rgba(255, 255, 255, 0.2)'
+          }}>
+            <span style={{ fontSize: '2rem', color: 'white' }}>👋</span>
+          </div>
+          <div>
+            <h1 style={{ 
+              fontSize: '2.5rem', 
+              fontWeight: 700, 
+              color: '#ffffff',
+              marginBottom: '0.5rem'
+            }}>
+              Welcome back, {customer?.user?.firstName || 'Customer'}!
+            </h1>
+            <p style={{ 
+              fontSize: '1.1rem', 
+              color: 'rgba(255, 255, 255, 0.9)',
+              margin: 0
+            }}>
+              Here's your comprehensive insurance overview and quick actions
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Stats Cards */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-        gap: '1.5rem',
-        marginBottom: '2rem'
+        gap: '2rem',
+        marginBottom: '3rem'
       }}>
         {/* My Policies */}
         <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: '16px',
-          padding: '1.5rem',
+          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+          borderRadius: '20px',
+          padding: '2rem',
           color: 'white',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          transition: 'all 0.3s ease',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-8px)';
+          e.currentTarget.style.boxShadow = '0 16px 40px rgba(59, 130, 246, 0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3)';
+        }}
+        >
+          <div style={{ 
+            position: 'absolute', 
+            top: '-20px', 
+            right: '-20px', 
+            width: '80px', 
+            height: '80px', 
+            background: 'rgba(255, 255, 255, 0.1)', 
+            borderRadius: '50%' 
+          }}></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
             <div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                My Policies
+              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.75rem', fontWeight: 500 }}>
+                Active Policies
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+              <div style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>
                 {policies.length}
               </div>
+              <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>
+                {policies.length === 0 ? 'No active policies' : 'Policies in force'}
+              </div>
             </div>
-            <div style={{ fontSize: '2rem' }}>📄</div>
+            <div style={{ 
+              fontSize: '3rem',
+              opacity: 0.9,
+              filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2))'
+            }}>📄</div>
           </div>
         </div>
 
         {/* Active Offers */}
         <div style={{
-          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-          borderRadius: '16px',
-          padding: '1.5rem',
+          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+          borderRadius: '20px',
+          padding: '2rem',
           color: 'white',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          transition: 'all 0.3s ease',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-8px)';
+          e.currentTarget.style.boxShadow = '0 16px 40px rgba(59, 130, 246, 0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3)';
+        }}
+        >
+          <div style={{ 
+            position: 'absolute', 
+            top: '-20px', 
+            right: '-20px', 
+            width: '80px', 
+            height: '80px', 
+            background: 'rgba(255, 255, 255, 0.1)', 
+            borderRadius: '50%' 
+          }}></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
             <div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                Active Offers
+              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.75rem', fontWeight: 500 }}>
+                Pending Offers
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+              <div style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>
                 {offers.filter(o => o.status === 'PENDING').length}
               </div>
+              <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>
+                {offers.filter(o => o.status === 'PENDING').length === 0 ? 'No pending offers' : 'Awaiting review'}
+              </div>
             </div>
-            <div style={{ fontSize: '2rem' }}>📋</div>
+            <div style={{ 
+              fontSize: '3rem',
+              opacity: 0.9,
+              filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2))'
+            }}>📋</div>
           </div>
         </div>
 
         {/* My Claims */}
         <div style={{
-          background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-          borderRadius: '16px',
-          padding: '1.5rem',
+          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+          borderRadius: '20px',
+          padding: '2rem',
           color: 'white',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          transition: 'all 0.3s ease',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-8px)';
+          e.currentTarget.style.boxShadow = '0 16px 40px rgba(59, 130, 246, 0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3)';
+        }}
+        >
+          <div style={{ 
+            position: 'absolute', 
+            top: '-20px', 
+            right: '-20px', 
+            width: '80px', 
+            height: '80px', 
+            background: 'rgba(255, 255, 255, 0.1)', 
+            borderRadius: '50%' 
+          }}></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
             <div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                My Claims
+              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.75rem', fontWeight: 500 }}>
+                Active Claims
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+              <div style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>
                 {claims.length}
               </div>
+              <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>
+                {claims.length === 0 ? 'No active claims' : 'Claims in progress'}
+              </div>
             </div>
-            <div style={{ fontSize: '2rem' }}>🔑</div>
+            <div style={{ 
+              fontSize: '3rem',
+              opacity: 0.9,
+              filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2))'
+            }}>🔑</div>
           </div>
         </div>
 
         {/* Total Premium */}
         <div style={{
-          background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-          borderRadius: '16px',
-          padding: '1.5rem',
+          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+          borderRadius: '20px',
+          padding: '2rem',
           color: 'white',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          transition: 'all 0.3s ease',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-8px)';
+          e.currentTarget.style.boxShadow = '0 16px 40px rgba(59, 130, 246, 0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3)';
+        }}
+        >
+          <div style={{ 
+            position: 'absolute', 
+            top: '-20px', 
+            right: '-20px', 
+            width: '80px', 
+            height: '80px', 
+            background: 'rgba(255, 255, 255, 0.1)', 
+            borderRadius: '50%' 
+          }}></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
             <div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
+              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.75rem', fontWeight: 500 }}>
                 Total Premium
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+              <div style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>
                 €{policies
                   .filter(p => p.payment && p.payment.status === 'SUCCESS')
                   .reduce((sum, p) => sum + p.premium, 0)
                 }
               </div>
+              <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>
+                Total paid amount
+              </div>
             </div>
-            <div style={{ fontSize: '2rem' }}>💳</div>
+            <div style={{ 
+              fontSize: '3rem',
+              opacity: 0.9,
+              filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2))'
+            }}>💳</div>
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ 
-          fontSize: '1.5rem', 
-          fontWeight: 600, 
-          color: '#1e293b',
-          marginBottom: '1rem'
-        }}>
-          Quick Actions
-        </h2>
+      <div style={{ 
+        marginBottom: '3rem',
+        background: 'white',
+        padding: '2rem',
+        borderRadius: '20px',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+        border: '1px solid #e2e8f0'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white'
+          }}>
+            <span style={{ fontSize: '1.25rem' }}>⚡</span>
+          </div>
+          <h2 style={{ 
+            fontSize: '1.5rem', 
+            fontWeight: 600, 
+            color: '#3b82f6',
+            margin: 0
+          }}>
+            Quick Actions
+          </h2>
+        </div>
         <div style={{ 
           display: 'grid', 
-                     gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                     gap: '1.5rem'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: '1.5rem'
         }}>
           <button 
             onClick={() => setCurrentModule('offers')}
             style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
               color: 'white',
               border: 'none',
-              borderRadius: '12px',
-              padding: '1rem',
+              borderRadius: '16px',
+              padding: '1.5rem',
               fontSize: '1rem',
               fontWeight: 600,
               cursor: 'pointer',
-              transition: 'transform 0.2s',
+              transition: 'all 0.3s ease',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              gap: '0.5rem'
+              gap: '0.75rem',
+              boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3)',
+              position: 'relative',
+              overflow: 'hidden'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 8px 30px rgba(59, 130, 246, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(59, 130, 246, 0.3)';
+            }}
           >
-            <span>📋</span>
-            Request Offer
+            <span style={{ fontSize: '2rem' }}>📋</span>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 600 }}>Request New Offer</div>
+              <div style={{ fontSize: '0.875rem', opacity: 0.8, marginTop: '0.25rem' }}>
+                Get insurance quote
+              </div>
+            </div>
           </button>
 
           <button 
             onClick={() => setCurrentModule('documents')}
             style={{
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
               color: 'white',
               border: 'none',
-              borderRadius: '12px',
-              padding: '1rem',
+              borderRadius: '16px',
+              padding: '1.5rem',
               fontSize: '1rem',
               fontWeight: 600,
               cursor: 'pointer',
-              transition: 'transform 0.2s',
+              transition: 'all 0.3s ease',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              gap: '0.5rem'
+              gap: '0.75rem',
+              boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3)',
+              position: 'relative',
+              overflow: 'hidden'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 8px 30px rgba(59, 130, 246, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(59, 130, 246, 0.3)';
+            }}
           >
-            <span>📁</span>
-            Upload Document
+            <span style={{ fontSize: '2rem' }}>📁</span>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 600 }}>Upload Document</div>
+              <div style={{ fontSize: '0.875rem', opacity: 0.8, marginTop: '0.25rem' }}>
+                Submit files
+              </div>
+            </div>
           </button>
 
           <button 
             onClick={() => setCurrentModule('claims')}
             style={{
-              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
               color: 'white',
               border: 'none',
-              borderRadius: '12px',
-              padding: '1rem',
+              borderRadius: '16px',
+              padding: '1.5rem',
               fontSize: '1rem',
               fontWeight: 600,
               cursor: 'pointer',
-              transition: 'transform 0.2s',
+              transition: 'all 0.3s ease',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              gap: '0.5rem'
+              gap: '0.75rem',
+              boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3)',
+              position: 'relative',
+              overflow: 'hidden'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 8px 30px rgba(59, 130, 246, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(59, 130, 246, 0.3)';
+            }}
           >
-            <span>🔑</span>
-            File Claim
+            <span style={{ fontSize: '2rem' }}>🔑</span>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 600 }}>File New Claim</div>
+              <div style={{ fontSize: '0.875rem', opacity: 0.8, marginTop: '0.25rem' }}>
+                Report incident
+              </div>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => setCurrentModule('profile')}
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '16px',
+              padding: '1.5rem',
+              fontSize: '1rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.75rem',
+              boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 8px 30px rgba(59, 130, 246, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(59, 130, 246, 0.3)';
+            }}
+          >
+            <span style={{ fontSize: '2rem' }}>👤</span>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 600 }}>Manage Profile</div>
+              <div style={{ fontSize: '0.875rem', opacity: 0.8, marginTop: '0.25rem' }}>
+                Update information
+              </div>
+            </div>
           </button>
         </div>
       </div>
@@ -1590,45 +1849,84 @@ export default function CustomerPage() {
              case 'offers':
          return (
            <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
-             <div style={{ marginBottom: '2rem' }}>
-               <h1 style={{
-                 fontSize: '2.5rem',
-                 fontWeight: 700,
-                 color: '#1e293b',
-                 marginBottom: '0.5rem'
-               }}>
-                 My Offers
-               </h1>
-               <p style={{
-                 fontSize: '1.1rem',
-                 color: '#64748b',
-                 margin: 0
-               }}>
-                 View and manage your insurance offers
-               </p>
+             {/* Header Section */}
+             <div style={{ 
+               marginBottom: '3rem',
+               background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+               padding: '2rem',
+               borderRadius: '20px',
+               boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
+               border: '1px solid rgba(255, 255, 255, 0.1)'
+             }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                 <div style={{
+                   width: '60px',
+                   height: '60px',
+                   background: 'rgba(255, 255, 255, 0.2)',
+                   borderRadius: '16px',
+                   display: 'flex',
+                   alignItems: 'center',
+                   justifyContent: 'center',
+                   color: 'white',
+                   boxShadow: '0 4px 16px rgba(255, 255, 255, 0.2)'
+                 }}>
+                   <span style={{ fontSize: '2rem' }}>📋</span>
+                 </div>
+                 <div>
+                   <h1 style={{
+                     fontSize: '2.5rem',
+                     fontWeight: 700,
+                     color: '#ffffff',
+                     marginBottom: '0.5rem'
+                   }}>
+                     My Insurance Offers
+                   </h1>
+                   <p style={{
+                     fontSize: '1.1rem',
+                     color: 'rgba(255, 255, 255, 0.9)',
+                     margin: 0
+                   }}>
+                     View, manage, and track your insurance offers
+                   </p>
+                 </div>
+               </div>
              </div>
 
-             <div style={{ marginBottom: '2rem' }}>
+             <div style={{ 
+               marginBottom: '2rem',
+               background: 'white',
+               padding: '1.5rem',
+               borderRadius: '16px',
+               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+               border: '1px solid #e2e8f0'
+             }}>
                <button
                  onClick={() => setShowOfferForm(true)}
                  style={{
-                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                   background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
                    color: 'white',
                    border: 'none',
-                   borderRadius: '12px',
+                   borderRadius: '16px',
                    padding: '1rem 2rem',
                    fontSize: '1rem',
                    fontWeight: 600,
                    cursor: 'pointer',
-                   transition: 'transform 0.2s',
+                   transition: 'all 0.3s ease',
                    display: 'flex',
                    alignItems: 'center',
-                   gap: '0.5rem'
+                   gap: '0.75rem',
+                   boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3)'
                  }}
-                 onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                 onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.transform = 'translateY(-2px)';
+                   e.currentTarget.style.boxShadow = '0 8px 30px rgba(59, 130, 246, 0.4)';
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.transform = 'translateY(0)';
+                   e.currentTarget.style.boxShadow = '0 4px 20px rgba(59, 130, 246, 0.3)';
+                 }}
                >
-                 <span>📋</span>
+                 <span style={{ fontSize: '1.25rem' }}>📋</span>
                  Request New Offer
                </button>
              </div>
@@ -1636,36 +1934,55 @@ export default function CustomerPage() {
                           {/* Status Filter */}
              <div style={{ 
                marginBottom: '2rem',
-               display: 'flex',
-               flexDirection: 'column',
-               gap: '1rem',
                background: 'white',
-               padding: '1.5rem',
-               borderRadius: '12px',
-               boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-               border: '1px solid #e5e7eb'
+               padding: '2rem',
+               borderRadius: '20px',
+               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+               border: '1px solid #e2e8f0'
              }}>
-                                <div style={{
+               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                 <div style={{
+                   width: '40px',
+                   height: '40px',
+                   background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                   borderRadius: '12px',
                    display: 'flex',
-                   flexDirection: 'column',
-                   gap: '0.5rem',
-                   flex: 1
+                   alignItems: 'center',
+                   justifyContent: 'center',
+                   color: 'white'
                  }}>
-                   <label style={{
-                     fontSize: '0.875rem',
-                     fontWeight: 600,
-                     color: '#374151',
-                     display: 'flex',
-                     alignItems: 'center',
-                     gap: '0.5rem'
-                   }}>
-                     <span>🔍</span>
-                     Filter by Status:
-                   </label>
-                                    <div style={{
+                   <span style={{ fontSize: '1.25rem' }}>🔍</span>
+                 </div>
+                 <h3 style={{
+                   fontSize: '1.25rem',
+                   fontWeight: 600,
+                   color: '#3b82f6',
+                   margin: 0
+                 }}>
+                   Filter Offers
+                 </h3>
+               </div>
+               
+               <div style={{
+                 display: 'flex',
+                 flexDirection: 'column',
+                 gap: '1rem'
+               }}>
+                 <label style={{
+                   fontSize: '0.875rem',
+                   fontWeight: 600,
+                   color: '#374151',
+                   display: 'flex',
+                   alignItems: 'center',
+                   gap: '0.5rem'
+                 }}>
+                   <span>📊</span>
+                   Filter by Status:
+                 </label>
+                 <div style={{
                    display: 'flex',
                    flexWrap: 'wrap',
-                   gap: '0.5rem',
+                   gap: '1rem',
                    alignItems: 'center'
                  }}>
                    <select
@@ -1676,19 +1993,26 @@ export default function CustomerPage() {
                        localStorage.setItem('customerOffersStatusFilter', newStatus);
                      }}
                      style={{
-                       padding: '0.5rem 1rem',
-                       border: '2px solid #e5e7eb',
-                       borderRadius: '8px',
+                       padding: '0.75rem 1rem',
+                       border: '2px solid #e2e8f0',
+                       borderRadius: '12px',
                        fontSize: '0.875rem',
                        backgroundColor: 'white',
                        color: '#374151',
                        cursor: 'pointer',
-                       minWidth: '150px',
-                       transition: 'border-color 0.2s',
-                       fontWeight: 500
+                       minWidth: '180px',
+                       transition: 'all 0.3s ease',
+                       fontWeight: 500,
+                       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
                      }}
-                     onFocus={(e) => e.target.style.borderColor = '#667eea'}
-                     onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                     onFocus={(e) => {
+                       e.target.style.borderColor = '#3b82f6';
+                       e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.15)';
+                     }}
+                     onBlur={(e) => {
+                       e.target.style.borderColor = '#e2e8f0';
+                       e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
+                     }}
                    >
                      <option value="ALL">📋 All Statuses</option>
                      <option value="PENDING">⏳ Pending</option>
@@ -3340,35 +3664,84 @@ export default function CustomerPage() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', width: '100vw', position: 'fixed', top: 0, left: 0 }}>
-      {/* Sidebar */}
+      {/* Modern Sidebar */}
       <div style={{
         width: '280px',
-        background: 'linear-gradient(180deg, #1e40af 0%, #3b82f6 100%)',
+        background: '#1e293b',
         color: 'white',
         padding: '2rem 1rem',
-        boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)'
+        boxShadow: '4px 0 20px rgba(0, 0, 0, 0.1)',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
+        {/* Background Pattern */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          width: '100px',
+          height: '100px',
+          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%)',
+          borderRadius: '50%'
+        }}></div>
+        
         {/* Logo */}
-        <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>InsuranceApp</h2>
-          <p style={{ fontSize: '0.875rem', opacity: 0.7, margin: '0.5rem 0 0 0' }}>Customer Panel</p>
+        <div style={{ 
+          marginBottom: '3rem', 
+          textAlign: 'center',
+          position: 'relative',
+          zIndex: 1
+        }}>
+          <div style={{
+            width: '60px',
+            height: '60px',
+            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1rem',
+            boxShadow: '0 8px 25px rgba(59, 130, 246, 0.3)'
+          }}>
+            <span style={{ fontSize: '2rem' }}>🛡️</span>
+          </div>
+          <h2 style={{ 
+            fontSize: '1.5rem', 
+            fontWeight: 700, 
+            margin: 0,
+            color: '#ffffff'
+          }}>Insurceed</h2>
+          <p style={{ 
+            fontSize: '0.875rem', 
+            opacity: 0.7, 
+            margin: '0.5rem 0 0 0',
+            color: '#94a3b8'
+          }}>Customer Portal</p>
         </div>
 
         {/* Navigation */}
-        <nav>
+        <nav style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 600, opacity: 0.7, marginBottom: '0.5rem' }}>
-              MAIN MODULES
+            <h3 style={{ 
+              fontSize: '0.75rem', 
+              fontWeight: 500, 
+              opacity: 0.6, 
+              marginBottom: '0.5rem',
+              color: '#94a3b8',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>
+              Navigation
             </h3>
           </div>
           
           {[
             { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-            { id: 'offers', label: 'My Offers', icon: '📋' },
-            { id: 'policies', label: 'My Policies', icon: '📄' },
-            { id: 'claims', label: 'My Claims', icon: '🔑' },
-            { id: 'payments', label: 'My Payments', icon: '💳' },
-            { id: 'documents', label: 'My Documents', icon: '📁' },
+            { id: 'offers', label: 'Offers', icon: '📋' },
+            { id: 'policies', label: 'Policies', icon: '📄' },
+            { id: 'claims', label: 'Claims', icon: '🔑' },
+            { id: 'payments', label: 'Payments', icon: '💳' },
+            { id: 'documents', label: 'Documents', icon: '📁' },
             { id: 'profile', label: 'Profile', icon: '👤' }
           ].map((module) => (
             <button
@@ -3376,69 +3749,111 @@ export default function CustomerPage() {
               onClick={() => setCurrentModule(module.id as any)}
               style={{
                 width: '100%',
-                padding: '0.75rem 1rem',
-                marginBottom: '0.5rem',
-                background: currentModule === module.id ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-                border: 'none',
-                borderRadius: '8px',
+                padding: '1rem',
+                marginBottom: '0.75rem',
+                background: currentModule === module.id 
+                  ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.1) 100%)' 
+                  : 'transparent',
+                border: currentModule === module.id 
+                  ? '1px solid rgba(59, 130, 246, 0.3)' 
+                  : '1px solid transparent',
+                borderRadius: '12px',
                 color: 'white',
                 fontSize: '0.875rem',
                 fontWeight: 500,
                 cursor: 'pointer',
                 display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                transition: 'background 0.2s'
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '0.25rem',
+                transition: 'all 0.3s ease',
+                position: 'relative',
+                overflow: 'hidden'
               }}
               onMouseEnter={(e) => {
                 if (currentModule !== module.id) {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)';
+                  e.currentTarget.style.transform = 'translateX(4px)';
                 }
               }}
               onMouseLeave={(e) => {
                 if (currentModule !== module.id) {
                   e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.transform = 'translateX(0)';
                 }
               }}
             >
-              <span style={{ fontSize: '1.1rem' }}>{module.icon}</span>
-              {module.label}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%' }}>
+                <span style={{ 
+                  fontSize: '1.25rem',
+                  opacity: currentModule === module.id ? 1 : 0.8
+                }}>{module.icon}</span>
+                <span style={{ fontWeight: 600 }}>{module.label}</span>
+              </div>
+              {currentModule === module.id && (
+                <div style={{
+                  position: 'absolute',
+                  right: '0.5rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '4px',
+                  height: '20px',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                  borderRadius: '2px'
+                }}></div>
+              )}
             </button>
           ))}
         </nav>
 
         {/* Logout */}
-        <div style={{ marginTop: 'auto', paddingTop: '2rem' }}>
+        <div style={{ 
+          marginTop: 'auto', 
+          paddingTop: '2rem',
+          position: 'relative',
+          zIndex: 1
+        }}>
           <button
             onClick={handleLogout}
             style={{
               width: '100%',
-              padding: '0.75rem 1rem',
-              background: 'rgba(239, 68, 68, 0.2)',
-              border: 'none',
-              borderRadius: '8px',
-              color: 'white',
+              padding: '1rem',
+              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              borderRadius: '12px',
+              color: '#fca5a5',
               fontSize: '0.875rem',
               fontWeight: 500,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '0.75rem',
-              transition: 'background 0.2s'
+              transition: 'all 0.3s ease',
+              justifyContent: 'center'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.1) 100%)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
           >
-            <span>🚪</span>
-            Logout
+            <span style={{ fontSize: '1.1rem' }}>🚪</span>
+            Sign Out
           </button>
         </div>
       </div>
 
-             {/* Main Content */}
-       <div style={{ flex: 1, overflow: 'auto' }}>
-         {renderModuleContent()}
-       </div>
+      {/* Main Content */}
+      <div style={{ 
+        flex: 1, 
+        overflow: 'auto',
+        background: '#f8fafc'
+      }}>
+        {renderModuleContent()}
+      </div>
 
        {/* Offer Form Modal */}
        {showOfferForm && (

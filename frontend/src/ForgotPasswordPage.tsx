@@ -109,7 +109,7 @@ const ForgotPasswordPage = () => {
         }}
       >
         <h2 style={{ textAlign: 'center', marginBottom: 8, fontWeight: 700, color: '#d946ef', fontSize: 32, letterSpacing: -1 }}>
-          Forgot Password
+          Insurceed - Forgot Password
         </h2>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
           <div>

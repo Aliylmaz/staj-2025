@@ -1119,19 +1119,23 @@ export default function AdminPage() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', width: '100vw', position: 'fixed', top: 0, left: 0 }}>
+    <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
       {/* Sidebar */}
       <div style={{
         width: '280px',
         background: 'linear-gradient(180deg, #1e293b 0%, #334155 100%)',
         color: 'white',
         padding: '2rem 1rem',
-        boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)'
+        boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
+        position: 'sticky',
+        top: 0,
+        height: '100vh',
+        overflowY: 'auto'
       }}>
         {/* Logo */}
         <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>InsuranceApp</h2>
-          <p style={{ fontSize: '0.875rem', opacity: 0.7, margin: '0.5rem 0 0 0' }}>Admin Panel</p>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Insurceed</h2>
+          <p style={{ fontSize: '0.875rem', opacity: 0.7, margin: '0.5rem 0 0 0' }}>Admin Portal</p>
         </div>
 
         {/* Navigation */}
@@ -1382,7 +1386,7 @@ export default function AdminPage() {
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: '2rem', background: '#f8fafc' }}>
         {renderModuleContent()}
       </div>
     </div>

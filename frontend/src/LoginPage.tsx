@@ -211,7 +211,7 @@ const LoginPage = () => {
         }}
       >
         <h2 style={{ textAlign: 'center', marginBottom: 8, fontWeight: 700, color: '#2563eb', fontSize: 36, letterSpacing: -1 }}>
-          Welcome
+          Welcome to Insurceed
         </h2>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
           <div>

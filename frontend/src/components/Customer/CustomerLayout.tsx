@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface CustomerLayoutProps {
@@ -8,6 +8,7 @@ interface CustomerLayoutProps {
 const CustomerLayout: React.FC<CustomerLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -72,98 +73,92 @@ const CustomerLayout: React.FC<CustomerLayoutProps> = ({ children }) => {
     return location.pathname === path;
   };
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
   return (
     <div className="flex h-screen bg-gray-100">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={toggleSidebar}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-blue-600 text-white rounded-lg shadow-lg"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
       {/* Sidebar */}
-      <div className="w-80 bg-gray-900 shadow-xl">
+      <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         {/* Header */}
-        <div className="p-6 border-b border-gray-700">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white text-lg font-bold">I</span>
+        <div className="sidebar-header">
+          <div className="sidebar-brand">Insurceed</div>
+          <div className="sidebar-subtitle">Customer Portal</div>
+        </div>
+        
+        {/* Navigation */}
+        <nav className="sidebar-nav">
+          <div className="nav-section">
+            <div className="nav-section-title">Main Modules</div>
+            
+            <div className="space-y-2">
+              {navigationItems.map((item) => (
+                <a
+                  key={item.id}
+                  href={item.path}
+                  className={`nav-item ${isActivePath(item.path) ? 'active' : ''}`}
+                  title={item.description}
+                >
+                  <span className="nav-item-icon">{item.icon}</span>
+                  {item.label}
+                </a>
+              ))}
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">InsuranceApp</h1>
-              <p className="text-sm text-gray-400">Customer Portal</p>
+          </div>
+          
+          {/* User Actions */}
+          <div className="nav-section">
+            <div className="nav-section-title">Account</div>
+            <button
+              onClick={handleLogout}
+              className="nav-item w-full text-left"
+            >
+              <span className="nav-item-icon">🚪</span>
+              Logout
+            </button>
+          </div>
+        </nav>
+      </div>
+      
+      {/* Main Content */}
+      <div className="main-with-sidebar">
+        {/* Top Header */}
+        <div className="page-header">
+          <div className="header-content">
+            <div className="flex items-center space-x-4">
+              <h1 className="header-title">Insurceed</h1>
+              <span className="text-gray-300 text-sm">Customer Management Platform</span>
+            </div>
+            <div className="header-actions">
+              <div className="flex items-center space-x-3">
+                <div className="text-right">
+                  <div className="text-sm text-gray-300">Welcome back</div>
+                  <div className="text-white font-semibold">Customer</div>
+                </div>
+                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-lg font-bold">C</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         
-        {/* Navigation */}
-        <nav className="p-4">
-          <div className="mb-6">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              Main Modules
-            </h3>
+        {/* Scrollable Content */}
+        <div className="main-content-scrollable">
+          <div className="scrollable-content">
+            {children}
           </div>
-          
-          <div className="space-y-2">
-            {navigationItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => navigate(item.path)}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center space-x-3 group ${
-                  isActivePath(item.path)
-                    ? 'bg-blue-600 text-white shadow-lg'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                }`}
-              >
-                <span className={`text-lg ${isActivePath(item.path) ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
-                  {item.icon}
-                </span>
-                <div className="flex-1">
-                  <span className={`text-sm font-medium ${isActivePath(item.path) ? 'text-white' : 'text-gray-300'}`}>
-                    {item.label}
-                  </span>
-                  <p className={`text-xs ${isActivePath(item.path) ? 'text-blue-100' : 'text-gray-500'} mt-0.5`}>
-                    {item.description}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </nav>
-
-        {/* Footer */}
-        <div className="absolute bottom-0 w-80 p-4 border-t border-gray-700 bg-gray-900">
-          <button
-            onClick={handleLogout}
-            className="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-3 group"
-          >
-            <span className="text-lg group-hover:scale-110 transition-transform">🚪</span>
-            <span className="text-sm font-medium">Sign Out</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Bar */}
-        <div className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                {navigationItems.find(item => isActivePath(item.path))?.label || 'Dashboard'}
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                {navigationItems.find(item => isActivePath(item.path))?.description || 'Welcome to your insurance portal'}
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">Customer Portal</p>
-                <p className="text-xs text-gray-500">Welcome back!</p>
-              </div>
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-bold">C</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Page Content */}
-        <div className="flex-1 overflow-auto bg-gray-50">
-          {children}
         </div>
       </div>
     </div>

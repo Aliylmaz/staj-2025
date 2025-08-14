@@ -264,7 +264,7 @@ export default function RegistrationForm({ onSubmit, loading = false }: Registra
         }}
       >
         <h2 style={{ textAlign: 'center', marginBottom: 8, fontWeight: 700, color: '#2563eb', fontSize: 36, letterSpacing: -1 }}>
-          Create Account
+          Insurceed - Create Account
         </h2>
         <p style={{ textAlign: 'center', color: '#6b7280', fontSize: 16, marginBottom: 8 }}>
           Join our insurance platform

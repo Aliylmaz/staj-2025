@@ -2293,7 +2293,7 @@ export default function AgentPage() {
       <header className="page-header">
         <div className="header-content">
           <div className="header-title">
-            Insurance Management System
+            Insurceed - Agent Portal
           </div>
           <div className="header-actions">
             <span style={{ color: '#e2e8f0' }}>
@@ -2540,7 +2540,7 @@ export default function AgentPage() {
                 Cancel
               </button>
               <button
-                onClick={handleApproveClaim}
+                onClick={handleConfirmApproveClaim}
                 className="btn btn-success"
                 style={{ flex: 1 }}
               >
