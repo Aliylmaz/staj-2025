@@ -66,4 +66,8 @@ public interface IClaimRepository extends JpaRepository<Claim, UUID> {
     long countByPolicy_Agent_AgentNumber(String policyAgentAgentNumber);
 
     int countByPolicy_Customer_Id(UUID policyCustomerId);
+    
+    // Sum approved claim amounts by agent number
+    @Query("SELECT COALESCE(SUM(c.approvedAmount), 0) FROM Claim c WHERE c.policy.agent.agentNumber = :agentNumber AND c.status = 'APPROVED'")
+    double sumApprovedClaimAmountsByAgent_AgentNumber(@Param("agentNumber") String agentNumber);
 }

@@ -107,7 +107,7 @@ public class DocumentServiceImpl implements IDocumentService {
                 throw new IllegalArgumentException("Unsupported file type.");
             }
 
-            String uniqueFileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+            String uniqueFileName = "DCM- "+UUID.randomUUID().toString().substring(0,8) + "_" + file.getOriginalFilename();
             String uploadDir = "uploads/" + documentDto.getDocumentType().toString().toLowerCase();
             String filePath = uploadDir + "/" + uniqueFileName;
 

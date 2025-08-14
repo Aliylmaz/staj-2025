@@ -157,7 +157,9 @@ export default function PremiumRevisionModal({
                 border: errors.premium ? '2px solid #dc2626' : '1px solid #d1d5db',
                 borderRadius: '8px',
                 fontSize: '1rem',
-                transition: 'border-color 0.2s'
+                transition: 'border-color 0.2s',
+                WebkitAppearance: 'none',
+                MozAppearance: 'textfield'
               }}
               placeholder="Enter new premium amount"
             />

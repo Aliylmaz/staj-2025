@@ -19,7 +19,10 @@ import {
   getMyActivePolicies,
   updatePolicyStatus,
   getPolicyById,
-  getPolicyCoverages
+  getPolicyCoverages,
+  updateAgentProfile,
+  updateAgentUserProfile,
+  getClaimsByAgent
 } from '../services/agentApi';
 
 export default function AgentPage() {
@@ -48,11 +51,19 @@ export default function AgentPage() {
   const [policyActionSuccess, setPolicyActionSuccess] = useState<string | null>(null);
   const [policyActionError, setPolicyActionError] = useState<string | null>(null);
   
+  // Claim approval states
+  const [showClaimApprovalModal, setShowClaimApprovalModal] = useState(false);
+  const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
+  const [approvedAmount, setApprovedAmount] = useState<string>('');
+  
+  // Claim rejection states
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState<string>('');
+  const [claimToReject, setClaimToReject] = useState<ClaimDto | null>(null);
+  
   // Profile update states
   const [showProfileUpdate, setShowProfileUpdate] = useState(false);
   const [profileFormData, setProfileFormData] = useState({
-    firstName: '',
-    lastName: '',
     email: '',
     phoneNumber: '',
     address: '',
@@ -97,8 +108,6 @@ export default function AgentPage() {
       // Initialize profile form with current agent data
       if (agent) {
         setProfileFormData({
-          firstName: agent.user?.firstName || '',
-          lastName: agent.user?.lastName || '',
           email: agent.user?.email || '',
           phoneNumber: agent.phoneNumber || '',
           address: agent.address || '',
@@ -154,9 +163,9 @@ export default function AgentPage() {
     if (!currentAgent?.id) return;
     setClaimsLoading(true);
     try {
-      // Claims API not implemented yet
-      console.log('Claims API not implemented yet');
-      setClaims([]);
+      const claimsData = await getClaimsByAgent(currentAgent.id);
+      setClaims(claimsData);
+      console.log('🔑 Fetched claims for agent:', claimsData);
     } catch (error) {
       console.error('Error fetching claims:', error);
       setClaims([]);
@@ -316,14 +325,33 @@ export default function AgentPage() {
 
   const handleApproveClaim = async (claimId: string) => {
     if (!currentAgent?.id) return;
+    
+    // Show modal to get approved amount
+    setSelectedClaimId(claimId);
+    setApprovedAmount('');
+    setShowClaimApprovalModal(true);
+  };
+
+  const handleConfirmApproveClaim = async () => {
+    if (!currentAgent?.id || !selectedClaimId || !approvedAmount) return;
+    
+    const amount = parseFloat(approvedAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Please enter a valid amount greater than 0');
+      return;
+    }
+    
     try {
-      const updatedClaim = await approveClaim(claimId, currentAgent.id);
+      const updatedClaim = await approveClaim(selectedClaimId, currentAgent.id, amount);
       setClaims(prevClaims => 
         prevClaims.map(claim => 
-          claim.id === claimId ? updatedClaim : claim
+          claim.id === selectedClaimId ? updatedClaim : claim
         )
       );
       alert('Claim approved successfully');
+      setShowClaimApprovalModal(false);
+      setSelectedClaimId(null);
+      setApprovedAmount('');
     } catch (error) {
       console.error('Error approving claim:', error);
       alert('Failed to approve claim. Please try again.');
@@ -332,26 +360,38 @@ export default function AgentPage() {
 
   const handleRejectClaim = async (claimId: string) => {
     if (!currentAgent?.id) return;
-    const reason = prompt('Please enter rejection reason:');
-    if (!reason) return;
+    
+    // Find the claim to reject
+    const claim = claims.find(c => c.id === claimId);
+    if (!claim) return;
+    
+    // Set claim to reject and open modal
+    setClaimToReject(claim);
+    setRejectReason('');
+    setShowRejectModal(true);
+  };
+
+  const handleRejectSubmit = async () => {
+    if (!currentAgent?.id || !claimToReject || !rejectReason.trim()) return;
 
     try {
-      const updatedClaim = await rejectClaim(claimId, currentAgent.id, reason);
+      const updatedClaim = await rejectClaim(claimToReject.id, currentAgent.id, rejectReason);
       setClaims(prevClaims => 
         prevClaims.map(claim => 
-          claim.id === claimId ? updatedClaim : claim
+          claim.id === claimToReject.id ? updatedClaim : claim
         )
       );
+      
+      // Close modal and show success message
+      setShowRejectModal(false);
+      setClaimToReject(null);
+      setRejectReason('');
       alert('Claim rejected successfully');
     } catch (error) {
       console.error('Error rejecting claim:', error);
       alert('Failed to reject claim. Please try again.');
     }
   };
-
-
-
-
 
   // Policy management functions
   const handleViewPolicy = async (policyId: number) => {
@@ -413,8 +453,8 @@ export default function AgentPage() {
   const handleProfileUpdate = async () => {
     try {
       // Validate required fields
-      if (!profileFormData.firstName || !profileFormData.lastName || !profileFormData.email) {
-        alert('Please fill in all required fields (First Name, Last Name, Email)');
+      if (!profileFormData.email) {
+        alert('Please fill in the required field (Email)');
         return;
       }
 
@@ -423,8 +463,29 @@ export default function AgentPage() {
         return;
       }
 
-      // TODO: Implement updateAgent API call
-      console.log('Profile update data:', profileFormData);
+      // Update agent profile information
+      const agentUpdateData = {
+        email: profileFormData.email,
+        phoneNumber: profileFormData.phoneNumber,
+        address: profileFormData.address,
+        city: profileFormData.city,
+        country: profileFormData.country,
+        postalCode: profileFormData.postalCode
+      };
+
+      await updateAgentProfile(currentAgent.id, agentUpdateData);
+
+      // Update user information if user exists
+      if (currentAgent.user?.id) {
+        const userUpdateData = {
+          firstName: currentAgent.user.firstName, // Keep existing firstName
+          lastName: currentAgent.user.lastName,   // Keep existing lastName
+          email: profileFormData.email,
+          phoneNumber: profileFormData.phoneNumber
+        };
+
+        await updateAgentUserProfile(currentAgent.user.id, userUpdateData);
+      }
       
       alert('Profile updated successfully!');
       setShowProfileUpdate(false);
@@ -441,8 +502,6 @@ export default function AgentPage() {
   const openProfileUpdate = () => {
     if (currentAgent) {
       setProfileFormData({
-        firstName: currentAgent.user?.firstName || '',
-        lastName: currentAgent.user?.lastName || '',
         email: currentAgent.user?.email || '',
         phoneNumber: currentAgent.phoneNumber || '',
         address: currentAgent.address || '',
@@ -462,171 +521,318 @@ export default function AgentPage() {
   };
 
   const renderDashboard = () => (
-    <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ 
-          fontSize: '2.5rem', 
-          fontWeight: 700, 
-          color: '#1e293b',
-          marginBottom: '0.5rem'
-        }}>
-          Agent Dashboard
-        </h1>
-        <p style={{ 
-          fontSize: '1.1rem', 
-          color: '#64748b',
-          margin: 0
-        }}>
+    <div>
+      {/* Page Header */}
+      <div className="card">
+        <div className="card-header">
+          <h1 className="card-title text-2xl">Agent Dashboard</h1>
+        </div>
+        <p className="text-gray-600">
           Welcome back! Here's what's happening with your customers and policies.
         </p>
       </div>
 
       {/* Stats Cards */}
-            <div style={{
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-        gap: '1.5rem',
-        marginBottom: '2rem'
-      }}>
+      <div className="grid grid-cols-4 mb-6">
         {/* My Policies */}
-        <div style={{
-          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-          borderRadius: '16px',
-          padding: '1.5rem',
-          color: 'white',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}>
+        <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                My Policies
-              </div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-                {policies.length}
-              </div>
+              <div className="text-sm text-gray-500 mb-1">My Policies</div>
+              <div className="text-2xl font-bold text-blue-600">{policies.length}</div>
             </div>
-            <div style={{ fontSize: '2rem' }}>📋</div>
+            <div className="text-3xl">📋</div>
           </div>
         </div>
+        
         {/* My Customers */}
-        <div style={{
-          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-          borderRadius: '16px',
-          padding: '1.5rem',
-          color: 'white',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}>
+        <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                My Customers
-              </div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-                {customers.length}
-              </div>
+              <div className="text-sm text-gray-500 mb-1">My Customers</div>
+              <div className="text-2xl font-bold text-green-600">{customers.length}</div>
             </div>
-            <div style={{ fontSize: '2rem' }}>👥</div>
+            <div className="text-3xl">👥</div>
           </div>
         </div>
+        
         {/* Pending Offers */}
-        <div style={{
-          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-          borderRadius: '16px',
-          padding: '1.5rem',
-          color: 'white',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}>
+        <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                Pending Offers
-              </div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-                {offers.length}
-              </div>
+              <div className="text-sm text-gray-500 mb-1">Pending Offers</div>
+              <div className="text-2xl font-bold text-orange-600">{offers.length}</div>
             </div>
-            <div style={{ fontSize: '2rem' }}>📋</div>
+            <div className="text-3xl">📋</div>
           </div>
         </div>
+        
         {/* Total Payments */}
-        <div style={{
-          background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-          borderRadius: '16px',
-          padding: '1.5rem',
-          color: 'white',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}>
+        <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                Total Payments
-              </div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+              <div className="text-sm text-gray-500 mb-1">Total Payments</div>
+              <div className="text-2xl font-bold text-purple-600">
                 €{payments
                   .filter(payment => payment.status === 'SUCCESS' || payment.status === 'PAID')
                   .reduce((sum, payment) => sum + (payment.amount || 0), 0)
                   .toFixed(2)}
               </div>
             </div>
-            <div style={{ fontSize: '2rem' }}>💰</div>
-          </div>
-        </div>
-
-        {/* Total Payments Count */}
-        <div style={{
-          background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
-          borderRadius: '16px',
-          padding: '1.5rem',
-          color: 'white',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
-                Total Payments
-              </div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-                {payments.length}
-              </div>
-            </div>
-            <div style={{ fontSize: '2rem' }}>💳</div>
+            <div className="text-3xl">💰</div>
           </div>
         </div>
       </div>
 
+      {/* Performance Statistics Section */}
+      {agentStats && (
+        <div className="card">
+          <div className="card-header">
+            <h2 className="card-title">Performance Statistics</h2>
+          </div>
+          <div className="grid grid-cols-3">
+            {/* Total Policies */}
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{
+                  width: '3rem',
+                  height: '3rem',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '1.5rem'
+                }}>
+                  📊
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">Total Policies</div>
+                  <div className="text-xl font-bold">{agentStats.totalPolicies || 0}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Total Claims */}
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{
+                  width: '3rem',
+                  height: '3rem',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '1.5rem'
+                }}>
+                  🔑
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">Total Claims</div>
+                  <div className="text-xl font-bold">{agentStats.totalClaims || 0}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Total Offers */}
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{
+                  width: '3rem',
+                  height: '3rem',
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '1.5rem'
+                }}>
+                  📝
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">Total Offers</div>
+                  <div className="text-xl font-bold">{agentStats.totalOffers || 0}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Approved Policies */}
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{
+                  width: '3rem',
+                  height: '3rem',
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '1.5rem'
+                }}>
+                  ✅
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">Approved Policies</div>
+                  <div className="text-xl font-bold">{agentStats.approvedPolicies || 0}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Total Premium */}
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{
+                  width: '3rem',
+                  height: '3rem',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '1.5rem'
+                }}>
+                  💰
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">Total Premium</div>
+                  <div className="text-xl font-bold">€{(agentStats.totalPremium || 0).toFixed(2)}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Total Claim Paid */}
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{
+                  width: '3rem',
+                  height: '3rem',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '1.5rem'
+                }}>
+                  💸
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">Total Claim Paid</div>
+                  <div className="text-xl font-bold">€{(agentStats.totalClaimPaid || 0).toFixed(2)}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Conversion Rate */}
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{
+                  width: '3rem',
+                  height: '3rem',
+                  background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '1.5rem'
+                }}>
+                  📈
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">Conversion Rate</div>
+                  <div className="text-xl font-bold">{(agentStats.conversionRate || 0).toFixed(1)}%</div>
+                </div>
+              </div>
+            </div>
+
+            {/* No Claim Policy Rate */}
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{
+                  width: '3rem',
+                  height: '3rem',
+                  background: 'linear-gradient(135deg, #84cc16 0%, #65a30d 100%)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '1.5rem'
+                }}>
+                  🛡️
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">No Claim Rate</div>
+                  <div className="text-xl font-bold">{(agentStats.noClaimPolicyRate || 0).toFixed(1)}%</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Net Profitability */}
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{
+                  width: '3rem',
+                  height: '3rem',
+                  background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '1.5rem'
+                }}>
+                  📊
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">Net Profitability</div>
+                  <div className="text-xl font-bold">{(agentStats.netProfitability || 0).toFixed(1)}%</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Performance Score */}
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{
+                  width: '3rem',
+                  height: '3rem',
+                  background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '1.5rem'
+                }}>
+                  🏆
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">Performance Score</div>
+                  <div className="text-xl font-bold">{(agentStats.performanceScore || 0).toFixed(1)}%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Quick Actions */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ 
-          fontSize: '1.5rem', 
-          fontWeight: 600, 
-          color: '#1e293b',
-          marginBottom: '1rem'
-        }}>
-          Quick Actions
-        </h2>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
-          gap: '1rem'
-        }}>
+      <div className="card">
+        <div className="card-header">
+          <h2 className="card-title">Quick Actions</h2>
+        </div>
+        <div className="grid grid-cols-4 gap-4">
           <button 
             onClick={() => setCurrentModule('customers')}
-            style={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '1rem',
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            className="btn btn-primary"
           >
             <span>👥</span>
             View Customers
@@ -635,24 +841,9 @@ export default function AgentPage() {
           <button 
             onClick={() => {
               setCurrentModule('policies');
-              fetchPolicies(); // Policies tab'ına tıklandığında fetch et
+              fetchPolicies();
             }}
-            style={{
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '1rem',
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            className="btn btn-primary"
           >
             <span>📋</span>
             Manage Policies
@@ -660,22 +851,7 @@ export default function AgentPage() {
 
           <button 
             onClick={() => setCurrentModule('offers')}
-            style={{
-              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '1rem',
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            className="btn btn-primary"
           >
             <span>📄</span>
             Review Offers
@@ -683,48 +859,10 @@ export default function AgentPage() {
 
           <button 
             onClick={() => setCurrentModule('claims')}
-            style={{
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '1rem',
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            className="btn btn-primary"
           >
             <span>🔧</span>
-            Review Claims
-          </button>
-
-          <button 
-            onClick={() => setCurrentModule('payments')}
-            style={{
-              background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '1rem',
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-          >
-            <span>💰</span>
-            View Payments
+            Claims Review
           </button>
         </div>
       </div>
@@ -1472,7 +1610,7 @@ export default function AgentPage() {
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Total Premium:</span>
-                        <span style={{ fontWeight: 600, color: '#1e293b' }}>₺{offer.totalPremium}</span>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>€{offer.totalPremium}</span>
                       </div>
                       {offer.note && (
                         <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px' }}>
@@ -1703,16 +1841,21 @@ export default function AgentPage() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Customer:</span>
                         <span style={{ fontWeight: 600, color: '#1e293b' }}>
-                          {claim.customer.firstName} {claim.customer.lastName}
+                          {claim.customer?.firstName && claim.customer?.lastName 
+                            ? `${claim.customer.firstName} ${claim.customer.lastName}`
+                            : claim.customer?.firstName || claim.customer?.lastName || 'N/A'
+                          }
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Policy:</span>
-                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{claim.policy.policyNumber}</span>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{claim.policy?.policyNumber || 'N/A'}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Claim Amount:</span>
-                        <span style={{ fontWeight: 600, color: '#1e293b' }}>₺{claim.claimAmount.toFixed(2)}</span>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>
+                          €{(claim.estimatedAmount || claim.approvedAmount || 0).toFixed(2)}
+                        </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Incident Date:</span>
@@ -1941,7 +2084,7 @@ export default function AgentPage() {
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Amount:</span>
-                        <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '1.1rem' }}>₺{payment.amount?.toFixed(2) || '0.00'}</span>
+                        <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '1.1rem' }}>€{payment.amount?.toFixed(2) || '0.00'}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Insurance Type:</span>
@@ -2111,73 +2254,6 @@ export default function AgentPage() {
                     ✏️ Edit Profile
                   </button>
                 </div>
-
-                {/* Statistics Card */}
-                <div style={{
-                  background: 'white',
-                  borderRadius: '16px',
-                  padding: '2rem',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  border: '1px solid #e5e7eb'
-                }}>
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <h3 style={{
-                      fontSize: '1.5rem',
-                      fontWeight: 700,
-                      color: '#1e293b',
-                      marginBottom: '0.5rem'
-                    }}>
-                      Performance Statistics
-                    </h3>
-                    <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
-                      Your agent performance metrics
-                    </p>
-                  </div>
-
-                  <div style={{ display: 'grid', gap: '1rem' }}>
-                    <div style={{
-                      padding: '1rem',
-                      background: '#f0f9ff',
-                      borderRadius: '8px',
-                      border: '1px solid #0ea5e9'
-                    }}>
-                      <div style={{ fontSize: '0.875rem', color: '#0c4a6e', marginBottom: '0.25rem' }}>
-                        Total Policies
-                      </div>
-                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0c4a6e' }}>
-                        {agentStats?.totalPolicies || 0}
-                      </div>
-                    </div>
-
-                    <div style={{
-                      padding: '1rem',
-                      background: '#f0fdf4',
-                      borderRadius: '8px',
-                      border: '1px solid #10b981'
-                    }}>
-                      <div style={{ fontSize: '0.875rem', color: '#166534', marginBottom: '0.25rem' }}>
-                        Total Claims
-                      </div>
-                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#166534' }}>
-                        {agentStats?.totalClaims || 0}
-                      </div>
-                    </div>
-
-                    <div style={{
-                      padding: '1rem',
-                      background: '#fef3c7',
-                      borderRadius: '8px',
-                      border: '1px solid #f59e0b'
-                    }}>
-                      <div style={{ fontSize: '0.875rem', color: '#92400e', marginBottom: '0.25rem' }}>
-                        Success Rate
-                      </div>
-                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#92400e' }}>
-                        {(agentStats?.successRate || 0).toFixed(1)}%
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             ) : (
               <div style={{
@@ -2212,29 +2288,32 @@ export default function AgentPage() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', width: '100vw', position: 'fixed', top: 0, left: 0 }}>
-      {/* Sidebar */}
-      <div style={{
-        width: '280px',
-        background: 'linear-gradient(180deg, #1e40af 0%, #3b82f6 100%)',
-        color: 'white',
-        padding: '2rem 1rem',
-        boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)'
-      }}>
-        {/* Logo */}
-        <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>InsuranceApp</h2>
-          <p style={{ fontSize: '0.875rem', opacity: 0.7, margin: '0.5rem 0 0 0' }}>Agent Panel</p>
-        </div>
-
-        {/* Navigation */}
-        <nav>
-          <div style={{ marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 600, opacity: 0.7, marginBottom: '0.5rem' }}>
-              MAIN MODULES
-            </h3>
+    <div className="page-container">
+      {/* Header */}
+      <header className="page-header">
+        <div className="header-content">
+          <div className="header-title">
+            Insurance Management System
           </div>
-          
+          <div className="header-actions">
+            <span style={{ color: '#e2e8f0' }}>
+              Welcome, {currentAgent?.name || 'Agent'}
+            </span>
+            <button 
+              onClick={handleLogout}
+              className="btn btn-outline"
+              style={{ color: 'white', borderColor: 'white' }}
+            >
+              🚪 Logout
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="main-content">
+        {/* Navigation Tabs */}
+        <div className="nav-tabs">
           {[
             { id: 'dashboard', label: 'Dashboard', icon: '📊' },
             { id: 'customers', label: 'My Customers', icon: '👥' },
@@ -2247,384 +2326,112 @@ export default function AgentPage() {
             <button
               key={module.id}
               onClick={() => setCurrentModule(module.id as any)}
-              style={{
-                width: '100%',
-                padding: '0.75rem 1rem',
-                marginBottom: '0.5rem',
-                background: currentModule === module.id ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-                border: 'none',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                if (currentModule !== module.id) {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (currentModule !== module.id) {
-                  e.currentTarget.style.background = 'transparent';
-                }
-              }}
+              className={`nav-tab ${currentModule === module.id ? 'active' : ''}`}
             >
-              <span style={{ fontSize: '1.1rem' }}>{module.icon}</span>
+              <span style={{ marginRight: '0.5rem' }}>{module.icon}</span>
               {module.label}
             </button>
           ))}
-        </nav>
-
-        {/* Logout */}
-        <div style={{ marginTop: 'auto', paddingTop: '2rem' }}>
-          <button
-            onClick={handleLogout}
-            style={{
-              width: '100%',
-              padding: '0.75rem 1rem',
-              background: 'rgba(239, 68, 68, 0.2)',
-              border: 'none',
-              borderRadius: '8px',
-              color: 'white',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              transition: 'background 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
-          >
-            <span>🚪</span>
-            Logout
-          </button>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div style={{ flex: 1, overflow: 'auto' }}>
+        {/* Module Content */}
         {renderModuleContent()}
       </div>
 
       {/* Profile Update Modal */}
       {showProfileUpdate && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '2rem',
-            maxWidth: '600px',
-            width: '90%',
-            maxHeight: '90vh',
-            overflow: 'auto',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }}>
-            <h3 style={{
-              fontSize: '1.5rem',
-              fontWeight: 700,
-              color: '#1e293b',
-              marginBottom: '1.5rem',
-              textAlign: 'center'
-            }}>
-              Update Profile
-            </h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  color: '#374151',
-                  marginBottom: '0.5rem'
-                }}>
-                  First Name *
-                </label>
-                <input
-                  type="text"
-                  value={profileFormData.firstName}
-                  onChange={(e) => setProfileFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                  placeholder="Enter first name"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem 1rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    outline: 'none',
-                    transition: 'border-color 0.2s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                />
-              </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  color: '#374151',
-                  marginBottom: '0.5rem'
-                }}>
-                  Last Name *
-                </label>
-                <input
-                  type="text"
-                  value={profileFormData.lastName}
-                  onChange={(e) => setProfileFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                  placeholder="Enter last name"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem 1rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    outline: 'none',
-                    transition: 'border-color 0.2s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                />
-              </div>
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3 className="modal-title">Update Profile</h3>
+              <button 
+                onClick={() => setShowProfileUpdate(false)}
+                className="modal-close"
+              >
+                ✕
+              </button>
             </div>
-
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                color: '#374151',
-                marginBottom: '0.5rem'
-              }}>
-                Email *
-              </label>
+            
+            {/* Profile Form */}
+            <div className="form-group">
+              <label className="form-label">Email *</label>
               <input
                 type="email"
                 value={profileFormData.email}
                 onChange={(e) => setProfileFormData(prev => ({ ...prev, email: e.target.value }))}
                 placeholder="Enter email address"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'border-color 0.2s'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                className="form-input"
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  color: '#374151',
-                  marginBottom: '0.5rem'
-                }}>
-                  Phone Number
-                </label>
+            <div className="grid grid-cols-2">
+              <div className="form-group">
+                <label className="form-label">Phone Number</label>
                 <input
                   type="tel"
                   value={profileFormData.phoneNumber}
                   onChange={(e) => setProfileFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
                   placeholder="Enter phone number"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem 1rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    outline: 'none',
-                    transition: 'border-color 0.2s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                  className="form-input"
                 />
               </div>
-
-
+              <div className="form-group">
+                <label className="form-label">Address</label>
+                <input
+                  type="text"
+                  value={profileFormData.address}
+                  onChange={(e) => setProfileFormData(prev => ({ ...prev, address: e.target.value }))}
+                  placeholder="Enter address"
+                  className="form-input"
+                />
+              </div>
             </div>
 
-
-
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                color: '#374151',
-                marginBottom: '0.5rem'
-              }}>
-                Address
-              </label>
-              <input
-                type="text"
-                value={profileFormData.address}
-                onChange={(e) => setProfileFormData(prev => ({ ...prev, address: e.target.value }))}
-                placeholder="Enter address"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'border-color 0.2s'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  color: '#374151',
-                  marginBottom: '0.5rem'
-                }}>
-                  City
-                </label>
+            <div className="grid grid-cols-3">
+              <div className="form-group">
+                <label className="form-label">City</label>
                 <input
                   type="text"
                   value={profileFormData.city}
                   onChange={(e) => setProfileFormData(prev => ({ ...prev, city: e.target.value }))}
                   placeholder="Enter city"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem 1rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    outline: 'none',
-                    transition: 'border-color 0.2s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                  className="form-input"
                 />
               </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  color: '#374151',
-                  marginBottom: '0.5rem'
-                }}>
-                  Country
-                </label>
+              <div className="form-group">
+                <label className="form-label">Country</label>
                 <input
                   type="text"
                   value={profileFormData.country}
                   onChange={(e) => setProfileFormData(prev => ({ ...prev, country: e.target.value }))}
                   placeholder="Enter country"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem 1rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    outline: 'none',
-                    transition: 'border-color 0.2s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                  className="form-input"
                 />
               </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  color: '#374151',
-                  marginBottom: '0.5rem'
-                }}>
-                  Postal Code
-                </label>
+              <div className="form-group">
+                <label className="form-label">Postal Code</label>
                 <input
                   type="text"
                   value={profileFormData.postalCode}
                   onChange={(e) => setProfileFormData(prev => ({ ...prev, postalCode: e.target.value }))}
                   placeholder="Enter postal code"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem 1rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    outline: 'none',
-                    transition: 'border-color 0.2s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                  className="form-input"
                 />
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
               <button
                 onClick={() => setShowProfileUpdate(false)}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1.5rem',
-                  background: '#6b7280',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'background 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#4b5563'}
-                onMouseLeave={(e) => e.currentTarget.style.background = '#6b7280'}
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleProfileUpdate}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1.5rem',
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'transform 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                className="btn btn-primary"
+                style={{ flex: 1 }}
               >
                 Update Profile
               </button>
@@ -2635,97 +2442,44 @@ export default function AgentPage() {
 
       {/* Premium Revision Modal */}
       {reviseModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '2rem',
-            maxWidth: '500px',
-            width: '90%',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }}>
-            <h3 style={{
-              fontSize: '1.5rem',
-              fontWeight: 700,
-              color: '#1e293b',
-              marginBottom: '1.5rem',
-              textAlign: 'center'
-            }}>
-              Revise Premium
-            </h3>
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3 className="modal-title">Revise Premium</h3>
+              <button 
+                onClick={() => setReviseModalOpen(false)}
+                className="modal-close"
+              >
+                ✕
+              </button>
+            </div>
             
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                color: '#374151',
-                marginBottom: '0.5rem'
-              }}>
-                New Premium Amount (₺)
-              </label>
+            <div className="form-group">
+              <label className="form-label">New Premium Amount (€)</label>
               <input
                 type="number"
-                step="0.01"
                 value={newPremium}
                 onChange={(e) => setNewPremium(e.target.value)}
                 placeholder="Enter new premium amount"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'border-color 0.2s'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                className="form-input"
+                step="0.01"
+                min="0"
               />
             </div>
 
-            <div style={{ marginBottom: '2rem' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                color: '#374151',
-                marginBottom: '0.5rem'
-              }}>
-                Revision Note (Optional)
-              </label>
+            <div className="form-group">
+              <label className="form-label">Revision Note (Optional)</label>
               <textarea
                 value={reviseNote}
                 onChange={(e) => setReviseNote(e.target.value)}
                 placeholder="Explain the reason for premium revision..."
                 rows={3}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  resize: 'vertical'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                className="form-input"
+                style={{ resize: 'vertical' }}
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
               <button
                 onClick={() => {
                   setReviseModalOpen(false);
@@ -2733,39 +2487,15 @@ export default function AgentPage() {
                   setNewPremium('');
                   setReviseNote('');
                 }}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1.5rem',
-                  background: '#6b7280',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'background 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#4b5563'}
-                onMouseLeave={(e) => e.currentTarget.style.background = '#6b7280'}
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmitRevision}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1.5rem',
-                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'transform 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                className="btn btn-primary"
+                style={{ flex: 1 }}
               >
                 Submit Revision
               </button>
@@ -2773,14 +2503,124 @@ export default function AgentPage() {
           </div>
         </div>
       )}
-      
-      {/* Add spin animation for loading spinners */}
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+
+      {/* Claim Approval Modal */}
+      {showClaimApprovalModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3 className="modal-title">Approve Claim</h3>
+              <button 
+                onClick={() => setShowClaimApprovalModal(false)}
+                className="modal-close"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">Approved Amount (€)</label>
+              <input
+                type="number"
+                value={approvedAmount}
+                onChange={(e) => setApprovedAmount(e.target.value)}
+                placeholder="Enter approved amount"
+                className="form-input"
+                step="0.01"
+                min="0"
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+              <button
+                onClick={() => setShowClaimApprovalModal(false)}
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleApproveClaim}
+                className="btn btn-success"
+                style={{ flex: 1 }}
+              >
+                ✅ Approve Claim
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Claim Rejection Modal */}
+      {showRejectModal && claimToReject && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3 className="modal-title">Reject Claim</h3>
+              <button 
+                onClick={() => setShowRejectModal(false)}
+                className="modal-close"
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* Claim Details */}
+            <div className="card mb-4">
+              <div className="card-header">
+                <h4 className="card-title">Claim Details</h4>
+              </div>
+              <div className="grid grid-cols-2">
+                <div>
+                  <strong>Claim Number:</strong> {claimToReject.claimNumber}
+                </div>
+                <div>
+                  <strong>Policy Number:</strong> {claimToReject.policy?.policyNumber || 'N/A'}
+                </div>
+                <div>
+                  <strong>Customer:</strong> {claimToReject.customer?.firstName && claimToReject.customer?.lastName 
+                    ? `${claimToReject.customer.firstName} ${claimToReject.customer.lastName}`
+                    : claimToReject.customer?.firstName || claimToReject.customer?.lastName || 'N/A'
+                  }
+                </div>
+                <div>
+                  <strong>Claim Amount:</strong> €{claimToReject.estimatedAmount || 0}
+                </div>
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">Rejection Reason *</label>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Please provide a detailed reason for rejecting this claim..."
+                rows={4}
+                className="form-input"
+                style={{ resize: 'vertical' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+              <button
+                onClick={() => setShowRejectModal(false)}
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectSubmit}
+                className="btn btn-danger"
+                style={{ flex: 1 }}
+                disabled={!rejectReason.trim()}
+              >
+                ❌ Reject Claim
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

@@ -27,6 +27,7 @@ import java.time.chrono.ChronoLocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.ada.insurance_app.mapper.CustomerMapper;
 
 @Slf4j
 @Service
@@ -36,6 +37,7 @@ public class ClaimServiceImpl implements IClaimService {
     private final IPolicyRepository policyRepository;
     private final ClaimMapper claimMapper;
     private final IAgentRepository agentRepository;
+    private final CustomerMapper customerMapper;
 
     @Override
     @Transactional
@@ -171,8 +173,11 @@ public class ClaimServiceImpl implements IClaimService {
         claim.setPolicy(policy);
         claim.setIncidentDate(request.getIncidentDate());
         claim.setDescription(request.getDescription());
-        claim.setStatus(com.ada.insurance_app.core.enums.ClaimStatus.valueOf(String.valueOf(request.getStatus())));
+        claim.setStatus(request.getStatus()); // Use the status from request
         claim.setCreatedAt(LocalDateTime.now());
+        claim.setAgent(policy.getAgent());
+        claim.setEstimatedAmount(request.getEstimatedAmount());
+        claim.setNotificationsEnabled(request.isNotificationsEnabled());
 
         claim.setClaimNumber("CLM-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         
@@ -268,16 +273,7 @@ public class ClaimServiceImpl implements IClaimService {
             throw new IllegalArgumentException("Claim description is required");
         }
         
-        if (!StringUtils.hasText(String.valueOf(request.getStatus()))) {
-            throw new IllegalArgumentException("Claim status is required");
-        }
-        
-        // Validate status enum
-        try {
-            com.ada.insurance_app.core.enums.ClaimStatus.valueOf(String.valueOf(request.getStatus()));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid claim status: " + request.getStatus());
-        }
+        // Status is optional and has default value, no need to validate
     }
     
     private void validateUpdateClaimRequest(UpdateClaimRequest request) {
@@ -304,7 +300,7 @@ public class ClaimServiceImpl implements IClaimService {
     // Agent management methods
     @Override
     @Transactional
-    public ClaimDto approveClaim(UUID claimId, UUID agentId) {
+    public ClaimDto approveClaim(UUID claimId, UUID agentId, BigDecimal approvedAmount) {
         Claim claim = claimRepository.findById(claimId)
                 .orElseThrow(() -> new ClaimNotFoundException("Claim not found: " + claimId));
         
@@ -313,16 +309,22 @@ public class ClaimServiceImpl implements IClaimService {
             throw new IllegalArgumentException("Can only approve PENDING or IN_REVIEW claims. Current status: " + claim.getStatus());
         }
         
+        // Validate approved amount
+        if (approvedAmount == null || approvedAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Approved amount must be greater than 0");
+        }
+        
         // Set agent and update status
         Agent agent = agentRepository.findById(agentId)
                 .orElseThrow(() -> new IllegalArgumentException("Agent not found: " + agentId));
         
         claim.setAgent(agent);
         claim.setStatus(ClaimStatus.APPROVED);
+        claim.setApprovedAmount(approvedAmount);
         claim.setUpdatedAt(LocalDateTime.now());
         
         Claim savedClaim = claimRepository.save(claim);
-        log.info("Claim approved by agent: {} for claim: {}", agentId, claimId);
+        log.info("Claim approved by agent: {} for claim: {} with approved amount: {}", agentId, claimId, approvedAmount);
         
         return claimMapper.toDto(savedClaim);
     }
@@ -355,7 +357,21 @@ public class ClaimServiceImpl implements IClaimService {
 
     @Override
     public List<ClaimDto> getClaimsByAgent(UUID agentId) {
+        log.info("Getting claims for agent ID: {}", agentId);
         List<Claim> claims = claimRepository.findByAgent_Id(agentId);
-        return claims.stream().map(claimMapper::toDto).toList();
+        log.info("Found {} claims in repository for agent ID: {}", claims.size(), agentId);
+        
+        List<ClaimDto> claimDtos = claims.stream().map(claim -> {
+            ClaimDto dto = claimMapper.toDto(claim);
+            // Manually set customer information from policy
+            if (claim.getPolicy() != null && claim.getPolicy().getCustomer() != null) {
+                dto.setCustomer(customerMapper.toDto(claim.getPolicy().getCustomer()));
+            }
+            return dto;
+        }).toList();
+        
+        log.info("Mapped {} claims to DTOs for agent ID: {}", claimDtos.size(), agentId);
+        
+        return claimDtos;
     }
 }

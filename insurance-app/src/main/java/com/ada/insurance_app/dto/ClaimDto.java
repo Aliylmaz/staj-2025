@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
+import com.ada.insurance_app.dto.PolicyDto;
+import com.ada.insurance_app.dto.CustomerDto;
 
 @Data
 @NoArgsConstructor
@@ -23,6 +25,12 @@ public class ClaimDto {
     private String rejectionReason;
     private boolean notificationsEnabled;
     private Long policyId;
-
-
+    private UUID agentId;
+    private String agentName;
+    
+    // Policy information
+    private PolicyDto policy;
+    
+    // Customer information
+    private CustomerDto customer;
 }

@@ -24,7 +24,7 @@ public class CreateClaimRequest {
 
     private boolean notificationsEnabled = true; // Optional: default to true
 
-    private String documentUrl; // Optional: document path or URL
+    private String claimType = "CLAIM_DOCUMENT"; // Default claim type as String
 
     private ClaimStatus status = ClaimStatus.SUBMITTED;
 }

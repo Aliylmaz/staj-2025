@@ -15,4 +15,13 @@ public class AgentStatsDto {
     private long totalPayments;
     private double totalPremium;
     private double successRate;
+    
+    // New performance metrics
+    private long totalOffers;
+    private long approvedPolicies;
+    private double totalClaimPaid;
+    private double conversionRate;
+    private double noClaimPolicyRate;
+    private double netProfitability;
+    private double performanceScore;
 }

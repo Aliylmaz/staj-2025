@@ -145,8 +145,8 @@ export default function DashboardSummaryCards() {
           },
           {
             title: "Total Premium",
-            value: `₺${totalPremium.toFixed(2)}`,
-            change: totalPremium > 0 ? `+₺${totalPremium.toFixed(2)}` : "₺0.00",
+                    value: `€${totalPremium.toFixed(2)}`,
+        change: totalPremium > 0 ? `+€${totalPremium.toFixed(2)}` : "€0.00",
             changeType: totalPremium > 0 ? "positive" : "neutral",
             icon: "💳",
             color: "bg-gradient-to-r from-purple-500 to-purple-600"

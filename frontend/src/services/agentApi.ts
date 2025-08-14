@@ -132,6 +132,7 @@ export interface AgentDto {
   licenseExpiryDate?: string;
   isActive: boolean;
   user?: {
+    id: string;
     firstName: string;
     lastName: string;
     email: string;
@@ -146,8 +147,16 @@ export interface AgentStatsDto {
   totalClaims: number;
   totalPayments: number;
   totalPremium: number;
-
   successRate: number;
+  
+  // New performance metrics
+  totalOffers: number;
+  approvedPolicies: number;
+  totalClaimPaid: number;
+  conversionRate: number;
+  noClaimPolicyRate: number;
+  netProfitability: number;
+  performanceScore: number;
 }
 
 // Offer Management
@@ -223,6 +232,17 @@ export const updateAgentProfile = async (agentId: string, agentData: Partial<Age
   return response.data.data;
 };
 
+// User Profile Update for Agents
+export const updateAgentUserProfile = async (userId: string, userData: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string;
+}): Promise<any> => {
+  const response = await axiosInstance.put(`/api/v1/users/${userId}`, userData);
+  return response.data.data;
+};
+
 // Agent Statistics
 export const getMyCustomersCount = async (): Promise<number> => {
   const response = await axiosInstance.get('/api/v1/agent/statistics/customers-count');
@@ -257,12 +277,17 @@ export interface ClaimDto {
   id: string;
   claimNumber: string;
   status: 'SUBMITTED' | 'IN_REVIEW' | 'ADDITIONAL_INFO_REQUIRED' | 'APPROVED' | 'REJECTED' | 'PAID' | 'CLOSED';
-  claimAmount: number;
+  claimAmount?: number;
+  estimatedAmount?: number;
   approvedAmount?: number;
   description: string;
   incidentDate: string;
-  createdAt: string;
+  createdAt?: string;
   rejectionReason?: string;
+  notificationsEnabled?: boolean;
+  policyId?: number;
+  agentId?: string;
+  agentName?: string;
   policy: {
     id: number;
     policyNumber: string;
@@ -298,13 +323,13 @@ export const getClaimsByAgent = async (agentId: string): Promise<ClaimDto[]> => 
   return response.data.data;
 };
 
-export const approveClaim = async (claimId: string, agentId: string): Promise<ClaimDto> => {
-  const response = await axiosInstance.put(`/api/v1/claims/${claimId}/approve/${agentId}`);
+export const approveClaim = async (claimId: string, agentId: string, approvedAmount: number): Promise<ClaimDto> => {
+  const response = await axiosInstance.put(`/api/v1/claims/${claimId}/approve?agentId=${agentId}&approvedAmount=${approvedAmount}`);
   return response.data.data;
 };
 
 export const rejectClaim = async (claimId: string, agentId: string, reason: string): Promise<ClaimDto> => {
-  const response = await axiosInstance.put(`/api/v1/claims/${claimId}/reject/${agentId}?reason=${encodeURIComponent(reason)}`);
+  const response = await axiosInstance.put(`/api/v1/claims/${claimId}/reject?agentId=${agentId}&reason=${encodeURIComponent(reason)}`);
   return response.data.data;
 };
 

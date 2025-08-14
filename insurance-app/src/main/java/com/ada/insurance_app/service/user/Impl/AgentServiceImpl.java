@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import com.ada.insurance_app.entity.Coverage;
 import com.ada.insurance_app.entity.Payment;
 import com.ada.insurance_app.mapper.PaymentMapper;
+import com.ada.insurance_app.entity.User;
+import com.ada.insurance_app.service.user.IUserService;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +51,7 @@ public class AgentServiceImpl implements IAgentService {
     private final PaymentMapper paymentMapper;
     private final IDashboardService dashboardService;
     private final AgentServiceHelper agentHelper;
+    private final IUserService userService;
 
     @Override
     @Transactional
@@ -274,6 +277,18 @@ public class AgentServiceImpl implements IAgentService {
         agent.setCountry(agentDto.getCountry());
         agent.setPostalCode(agentDto.getPostalCode());
 
+        // Update user information if provided
+        if (agent.getUser() != null && agentDto.getUser() != null) {
+            UserDto userDto = new UserDto();
+            userDto.setId(agent.getUser().getId());
+            userDto.setFirstName(agent.getUser().getFirstName()); // Keep existing firstName
+            userDto.setLastName(agent.getUser().getLastName());   // Keep existing lastName
+            userDto.setEmail(agentDto.getUser().getEmail());
+            userDto.setPhoneNumber(agentDto.getUser().getPhoneNumber());
+            
+            userService.updateUser(agent.getUser().getId(), userDto);
+        }
+
         // Save updated agent
         agentRepository.save(agent);
         return agentMapper.toDto(agent);
@@ -360,20 +375,9 @@ public class AgentServiceImpl implements IAgentService {
     public PolicyDto getPolicyById(Long policyId) {
         Policy policy = policyRepository.findById(policyId)
                 .orElseThrow(() -> new RuntimeException("Policy not found: " + policyId));
-        
-        log.info("=== getPolicyById Debug ===");
-        log.info("Policy ID: {}", policyId);
-        log.info("Policy Customer: {}", policy.getCustomer() != null ? policy.getCustomer().getId() : "NULL");
-        if (policy.getCustomer() != null) {
-            log.info("Customer User: {}", policy.getCustomer().getUser() != null ? policy.getCustomer().getUser().getFirstName() + " " + policy.getCustomer().getUser().getLastName() : "NULL");
-        }
-        
-        PolicyDto policyDto = policyMapper.toDto(policy);
-        log.info("Policy DTO Customer: {}", policyDto.getCustomer() != null ? policyDto.getCustomer().getId() : "NULL");
-        log.info("Policy DTO Customer Name: {}", policyDto.getCustomerName());
-        log.info("=== End getPolicyById Debug ===");
-        
-        return policyDto;
+
+
+        return policyMapper.toDto(policy);
     }
 
     @Override

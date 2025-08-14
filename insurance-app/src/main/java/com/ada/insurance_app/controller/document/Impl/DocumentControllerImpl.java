@@ -46,10 +46,7 @@ public class DocumentControllerImpl {
                     return ResponseEntity.badRequest()
                             .body(GeneralResponse.error("Policy ID is required for CLAIM_DOCUMENT", HttpStatus.BAD_REQUEST));
                 }
-                if (claimId == null) {
-                    return ResponseEntity.badRequest()
-                            .body(GeneralResponse.error("Claim ID is required for CLAIM_DOCUMENT", HttpStatus.BAD_REQUEST));
-                }
+                // claimId is optional for CLAIM_DOCUMENT as it might be uploaded before claim creation
             }
 
             DocumentDto dto = new DocumentDto();

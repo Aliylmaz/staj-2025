@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -149,10 +150,10 @@ public class ClaimControllerImpl implements IClaimController {
 
     @Override
     @PutMapping("/{claimId}/approve")
-    public ResponseEntity<GeneralResponse<ClaimDto>> approveClaim(@PathVariable UUID claimId, @RequestParam UUID agentId) {
+    public ResponseEntity<GeneralResponse<ClaimDto>> approveClaim(@PathVariable UUID claimId, @RequestParam UUID agentId, @RequestParam BigDecimal approvedAmount) {
         try {
-            log.info("Agent {} approving claim: {}", agentId, claimId);
-            ClaimDto claim = claimService.approveClaim(claimId, agentId);
+            log.info("Agent {} approving claim: {} with approved amount: {}", agentId, claimId, approvedAmount);
+            ClaimDto claim = claimService.approveClaim(claimId, agentId, approvedAmount);
             return ResponseEntity.ok(GeneralResponse.success("Claim approved successfully", claim));
         } catch (Exception e) {
             log.error("Error approving claim: {}", e.getMessage());
@@ -181,6 +182,7 @@ public class ClaimControllerImpl implements IClaimController {
         try {
             log.info("Getting claims for agent: {}", agentId);
             List<ClaimDto> claims = claimService.getClaimsByAgent(agentId);
+            log.info("Found {} claims for agent: {}", claims.size(), agentId);
             return ResponseEntity.ok(GeneralResponse.success("Claims retrieved successfully", claims));
         } catch (Exception e) {
             log.error("Error getting claims for agent: {}", e.getMessage());

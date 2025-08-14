@@ -5,6 +5,7 @@ import com.ada.insurance_app.request.claim.CreateClaimRequest;
 import com.ada.insurance_app.request.claim.UpdateClaimRequest;
 import java.util.List;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 public interface IClaimService {
     ClaimDto createClaim(ClaimDto claimDto, Long policyId);
@@ -20,7 +21,7 @@ public interface IClaimService {
     ClaimDto updateClaimFromRequest(UUID claimId, UpdateClaimRequest request);
     
     // Agent management methods
-    ClaimDto approveClaim(UUID claimId, UUID agentId);
+    ClaimDto approveClaim(UUID claimId, UUID agentId, BigDecimal approvedAmount);
     ClaimDto rejectClaim(UUID claimId, UUID agentId, String reason);
     List<ClaimDto> getClaimsByAgent(UUID agentId);
 }

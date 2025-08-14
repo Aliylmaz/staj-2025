@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 public interface IClaimController {
     
@@ -30,7 +31,7 @@ public interface IClaimController {
     ResponseEntity<GeneralResponse<Void>> deleteClaim( UUID claimId);
     
     // Agent management endpoints
-    ResponseEntity<GeneralResponse<ClaimDto>> approveClaim(UUID claimId, UUID agentId);
+    ResponseEntity<GeneralResponse<ClaimDto>> approveClaim(UUID claimId, UUID agentId, BigDecimal approvedAmount);
     ResponseEntity<GeneralResponse<ClaimDto>> rejectClaim(UUID claimId, UUID agentId, String reason);
     ResponseEntity<GeneralResponse<List<ClaimDto>>> getClaimsByAgent(UUID agentId);
 }

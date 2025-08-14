@@ -725,8 +725,10 @@ export default function CustomerPage() {
   const [claimFormData, setClaimFormData] = useState({ 
     description: '', 
     incidentDate: new Date().toISOString().split('T')[0],
-    estimatedAmount: 0,
-    notificationsEnabled: true
+    estimatedAmount: undefined as number | undefined,
+    notificationsEnabled: true,
+    claimType: 'CLAIM_DOCUMENT',
+    documentFile: null as File | null
   });
   const [paymentFormData, setPaymentFormData] = useState({ 
     amount: 0,
@@ -1057,25 +1059,71 @@ export default function CustomerPage() {
       return;
     }
 
+    // Debug: Log form data
+    console.log('🔍 handleCreateClaim - claimFormData:', claimFormData);
+    console.log('🔍 handleCreateClaim - claimType:', claimFormData.claimType);
+    console.log('🔍 handleCreateClaim - claimType length:', claimFormData.claimType?.length);
+
+    // Validate required fields
+    if (!claimFormData.description.trim()) {
+      alert('Please enter a claim description');
+      return;
+    }
+
+    if (!claimFormData.claimType || claimFormData.claimType.trim() === '') {
+      alert('Please select a claim type');
+      return;
+    }
+
+    if (!claimFormData.documentFile) {
+      alert('Please upload a claim document');
+      return;
+    }
+
     try {
-      await createClaim({
+      // First create the claim
+      const claimResponse = await createClaim({
         policyId: selectedPolicyId,
         description: claimFormData.description,
         incidentDate: claimFormData.incidentDate,
-        estimatedAmount: claimFormData.estimatedAmount > 0 ? claimFormData.estimatedAmount : undefined,
-        notificationsEnabled: claimFormData.notificationsEnabled
+        estimatedAmount: claimFormData.estimatedAmount,
+        notificationsEnabled: claimFormData.notificationsEnabled,
+        claimType: claimFormData.claimType,
+        status: 'SUBMITTED'
       });
+
+      // Get the selected policy to check agent information
+      const selectedPolicy = policies.find(p => p.id === selectedPolicyId);
+      if (selectedPolicy) {
+        console.log('🔍 handleCreateClaim - Selected Policy:', selectedPolicy);
+        console.log('🔍 handleCreateClaim - Policy Agent:', selectedPolicy.agent);
+      }
+
+      // Now upload the document with the claim ID
+      const documentResponse = await uploadDocument(
+        claimFormData.documentFile,
+        selectedPolicyId,
+        claimResponse.id, // Now we have the claim ID
+        claimFormData.claimType,
+        claimFormData.description // Use the actual claim description instead of default text
+      );
+
+      console.log('🔍 handleCreateClaim - Document uploaded successfully:', documentResponse);
+
       setShowClaimForm(false);
       setClaimFormData({ 
         description: '', 
         incidentDate: new Date().toISOString().split('T')[0],
-        estimatedAmount: 0,
-        notificationsEnabled: true
+        estimatedAmount: undefined as number | undefined,
+        notificationsEnabled: true,
+        claimType: 'CLAIM_DOCUMENT',
+        documentFile: null
       });
       setSelectedPolicyId(null);
       fetchAllData();
     } catch (error) {
       console.error('Error creating claim:', error);
+      alert('Failed to create claim. Please try again.');
     }
   };
 
@@ -2636,8 +2684,14 @@ export default function CustomerPage() {
                          borderRadius: '9999px',
                          fontSize: '0.75rem',
                          fontWeight: 500,
-                         background: claim.status === "APPROVED" ? '#dcfce7' : claim.status === "PENDING" ? '#fef3c7' : '#fee2e2',
-                         color: claim.status === "APPROVED" ? '#166534' : claim.status === "PENDING" ? '#92400e' : '#991b1b'
+                         background: claim.status === "APPROVED" ? '#dcfce7' : 
+                                   claim.status === "PENDING" ? '#fef3c7' : 
+                                   claim.status === "SUBMITTED" ? '#dbeafe' : 
+                                   claim.status === "IN_REVIEW" ? '#fef3c7' : '#fee2e2',
+                         color: claim.status === "APPROVED" ? '#166534' : 
+                               claim.status === "PENDING" ? '#92400e' : 
+                               claim.status === "SUBMITTED" ? '#1e40af' : 
+                               claim.status === "IN_REVIEW" ? '#92400e' : '#991b1b'
                        }}>
                          {claim.status}
                        </span>
@@ -2654,13 +2708,13 @@ export default function CustomerPage() {
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                          <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Estimated Amount:</span>
                          <span style={{ fontWeight: 600, color: '#1e293b' }}>
-                           {claim.estimatedAmount ? `€${claim.estimatedAmount}` : 'N/A'}
+                           {claim.estimatedAmount ? `€${claim.estimatedAmount}` : 'Not specified yet'}
                          </span>
                        </div>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                          <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Approved Amount:</span>
                          <span style={{ fontWeight: 600, color: '#1e293b' }}>
-                           {claim.approvedAmount ? `€${claim.approvedAmount}` : 'N/A'}
+                           {claim.approvedAmount ? `€${claim.approvedAmount}` : 'Pending approval'}
                          </span>
                        </div>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -2670,7 +2724,13 @@ export default function CustomerPage() {
                              year: 'numeric',
                              month: 'long',
                              day: 'numeric'
-                           }) : 'N/A'}
+                           }) : 'Date not specified'}
+                         </span>
+                       </div>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Assigned Agent:</span>
+                         <span style={{ fontWeight: 600, color: claim.agentId ? '#059669' : '#dc2626' }}>
+                           {claim.agentId ? claim.agentName || 'Agent assigned' : 'No agent assigned yet'}
                          </span>
                        </div>
                        <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px' }}>
@@ -2679,32 +2739,7 @@ export default function CustomerPage() {
                        </div>
                      </div>
                      
-                     {/* Claim Report Upload Button */}
-                     <button 
-                       onClick={() => {
-                         setSelectedPolicyId(claim.policyId);
-                         setSelectedClaimId(claim.id);
-                         setSelectedDocumentType('CLAIM_DOCUMENT');
-                         setShowDocumentUpload(true);
-                       }}
-                       style={{
-                         width: '100%',
-                         padding: '0.75rem 1rem',
-                         background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                         color: 'white',
-                         border: 'none',
-                         borderRadius: '12px',
-                         fontSize: '0.875rem',
-                         fontWeight: 600,
-                         cursor: 'pointer',
-                         transition: 'transform 0.2s',
-                         marginTop: '1rem'
-                       }}
-                       onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                       onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                     >
-                       📎 Upload Claim Report
-                     </button>
+
                    </div>
                  ))}
                </div>
@@ -3971,10 +4006,11 @@ export default function CustomerPage() {
                        onChange={(e) => setHomeData({ ...homeData, address: e.target.value })}
                        style={{
                          width: '100%',
-                         padding: '0.5rem',
+                         padding: '0.75rem',
                          border: '1px solid #d1d5db',
-                         borderRadius: '6px',
-                         fontSize: '0.875rem'
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: '#f9fafb'
                        }}
                      />
                    </div>
@@ -3988,10 +4024,11 @@ export default function CustomerPage() {
                        onChange={(e) => setHomeData({ ...homeData, buildingAge: Number(e.target.value) })}
                        style={{
                          width: '100%',
-                         padding: '0.5rem',
+                         padding: '0.75rem',
                          border: '1px solid #d1d5db',
-                         borderRadius: '6px',
-                         fontSize: '0.875rem'
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: '#f9fafb'
                        }}
                      />
                    </div>
@@ -4005,10 +4042,11 @@ export default function CustomerPage() {
                        onChange={(e) => setHomeData({ ...homeData, squareMeters: Number(e.target.value) })}
                        style={{
                          width: '100%',
-                         padding: '0.5rem',
+                         padding: '0.75rem',
                          border: '1px solid #d1d5db',
-                         borderRadius: '6px',
-                         fontSize: '0.875rem'
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: '#f9fafb'
                        }}
                      />
                    </div>
@@ -4022,10 +4060,11 @@ export default function CustomerPage() {
                        onChange={(e) => setHomeData({ ...homeData, floorNumber: Number(e.target.value) })}
                        style={{
                          width: '100%',
-                         padding: '0.5rem',
+                         padding: '0.75rem',
                          border: '1px solid #d1d5db',
-                         borderRadius: '6px',
-                         fontSize: '0.875rem'
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: '#f9fafb'
                        }}
                      />
                    </div>
@@ -4039,10 +4078,11 @@ export default function CustomerPage() {
                        onChange={(e) => setHomeData({ ...homeData, totalFloors: Number(e.target.value) })}
                        style={{
                          width: '100%',
-                         padding: '0.5rem',
+                         padding: '0.75rem',
                          border: '1px solid #d1d5db',
-                         borderRadius: '6px',
-                         fontSize: '0.875rem'
+                         borderRadius: '8px',
+                         fontSize: '0.875rem',
+                         background: '#f9fafb'
                        }}
                      />
                    </div>
@@ -4207,7 +4247,7 @@ export default function CustomerPage() {
                  color: '#374151',
                  marginBottom: '0.5rem'
                }}>
-                 Description
+                 Description *
                </label>
                <textarea
                  value={claimFormData.description}
@@ -4222,6 +4262,7 @@ export default function CustomerPage() {
                    minHeight: '100px',
                    resize: 'vertical'
                  }}
+                 required
                />
              </div>
 
@@ -4249,8 +4290,6 @@ export default function CustomerPage() {
                />
              </div>
 
-
-
              <div style={{ marginBottom: '1.5rem' }}>
                <label style={{
                  display: 'block',
@@ -4263,9 +4302,19 @@ export default function CustomerPage() {
                </label>
                <input
                  type="number"
-                 value={claimFormData.estimatedAmount}
-                 onChange={(e) => setClaimFormData({ ...claimFormData, estimatedAmount: Number(e.target.value) })}
-                 placeholder="0.00"
+                 value={claimFormData.estimatedAmount || ''}
+                 onChange={(e) => {
+                   const value = e.target.value;
+                   if (value === '') {
+                     setClaimFormData({ ...claimFormData, estimatedAmount: undefined });
+                   } else {
+                     const numValue = parseFloat(value);
+                     if (!isNaN(numValue) && numValue >= 0) {
+                       setClaimFormData({ ...claimFormData, estimatedAmount: numValue });
+                     }
+                   }
+                 }}
+                 placeholder="Enter estimated amount"
                  min="0"
                  step="0.01"
                  style={{
@@ -4273,14 +4322,76 @@ export default function CustomerPage() {
                    padding: '0.75rem',
                    border: '1px solid #d1d5db',
                    borderRadius: '8px',
-                   fontSize: '0.875rem'
+                   fontSize: '0.875rem',
+                   WebkitAppearance: 'none',
+                   MozAppearance: 'textfield'
                  }}
                />
              </div>
 
 
 
+             <div style={{ marginBottom: '1.5rem' }}>
+               <label style={{
+                 display: 'block',
+                 fontSize: '0.875rem',
+                 fontWeight: 500,
+                 color: '#374151',
+                 marginBottom: '0.5rem'
+               }}>
+                 Claim Type *
+               </label>
+               <select
+                 value={claimFormData.claimType || 'CLAIM_DOCUMENT'}
+                 onChange={(e) => setClaimFormData({ ...claimFormData, claimType: e.target.value })}
+                 style={{
+                   width: '100%',
+                   border: '1px solid #d1d5db',
+                   borderRadius: '8px',
+                   fontSize: '0.875rem',
+                   background: 'white'
+                 }}
+                 required
+               >
+                 <option value="">Select a claim type</option>
+                 <option value="CLAIM_DOCUMENT">Claim Document</option>
+                 <option value="CLAIM_INVOICE">Claim Invoice</option>
+                 <option value="CLAIM_PHOTO">Claim Photo</option>
+               </select>
+             </div>
 
+             <div style={{ marginBottom: '1.5rem' }}>
+               <label style={{
+                 display: 'block',
+                 fontSize: '0.875rem',
+                 fontWeight: 500,
+                 color: '#374151',
+                 marginBottom: '0.5rem'
+               }}>
+                 Upload Claim Document *
+               </label>
+               <input
+                 type="file"
+                 onChange={(e) => setClaimFormData({ ...claimFormData, documentFile: e.target.files?.[0] || null })}
+                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                 style={{
+                   width: '100%',
+                   padding: '0.75rem',
+                   border: '1px solid #d1d5db',
+                   borderRadius: '8px',
+                   fontSize: '0.875rem',
+                   background: 'white'
+                 }}
+                 required
+               />
+               <p style={{
+                 fontSize: '0.75rem',
+                 color: '#6b7280',
+                 marginTop: '0.25rem'
+               }}>
+                 Supported formats: PDF, DOC, DOCX, JPG, JPEG, PNG
+               </p>
+             </div>
 
              <div style={{ marginBottom: '1.5rem' }}>
                <label style={{
@@ -4797,12 +4908,12 @@ export default function CustomerPage() {
                  color: '#374151',
                  marginBottom: '0.5rem'
                }}>
-                 Select Policy {(selectedDocumentType === 'POLICY_DOCUMENT' || selectedDocumentType === 'CLAIM_DOCUMENT') ? '*' : '(Optional)'}
+                 Select Policy {selectedDocumentType === 'POLICY_DOCUMENT' ? '*' : '(Optional)'}
                </label>
                <select
                  value={selectedPolicyId || ''}
                  onChange={(e) => setSelectedPolicyId(Number(e.target.value) || null)}
-                 required={selectedDocumentType === 'POLICY_DOCUMENT' || selectedDocumentType === 'CLAIM_DOCUMENT'}
+                 required={selectedDocumentType === 'POLICY_DOCUMENT'}
                  style={{
                    width: '100%',
                    padding: '0.75rem',
@@ -4821,44 +4932,46 @@ export default function CustomerPage() {
                </select>
              </div>
 
-             <div style={{ marginBottom: '1.5rem' }}>
-               <label style={{
-                 display: 'block',
-                 fontSize: '0.875rem',
-                 fontWeight: 500,
-                 color: '#374151',
-                 marginBottom: '0.5rem'
-               }}>
-                 Select Claim {selectedDocumentType === 'CLAIM_DOCUMENT' ? '*' : '(Optional)'}
-               </label>
-               <select
-                 value={selectedClaimId || ''}
-                 onChange={(e) => setSelectedClaimId(e.target.value || null)}
-                 required={selectedDocumentType === 'CLAIM_DOCUMENT'}
-                 disabled={selectedDocumentType !== 'CLAIM_DOCUMENT' || !selectedPolicyId}
-                 style={{
-                   width: '100%',
-                   padding: '0.75rem',
-                   border: '1px solid #d1d5db',
-                   borderRadius: '8px',
+             {selectedDocumentType === 'CLAIM_DOCUMENT' && (
+               <div style={{ marginBottom: '1.5rem' }}>
+                 <label style={{
+                   display: 'block',
                    fontSize: '0.875rem',
-                   background: selectedDocumentType !== 'CLAIM_DOCUMENT' || !selectedPolicyId ? '#f3f4f6' : 'white',
-                   cursor: selectedDocumentType !== 'CLAIM_DOCUMENT' || !selectedPolicyId ? 'not-allowed' : 'pointer'
-                 }}
-               >
-                 <option value="">Select a claim...</option>
-                 {selectedPolicyId && claims.filter(claim => claim.policyId === selectedPolicyId).map((claim) => (
-                   <option key={claim.id} value={claim.id}>
-                     {claim.claimNumber} - {claim.status}
-                   </option>
-                 ))}
-               </select>
-               {selectedDocumentType === 'CLAIM_DOCUMENT' && !selectedPolicyId && (
-                 <p style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.25rem' }}>
-                   ⚠️ Önce policy seçmelisiniz
-                 </p>
-               )}
-             </div>
+                   fontWeight: 500,
+                   color: '#374151',
+                   marginBottom: '0.5rem'
+                 }}>
+                   Select Claim *
+                 </label>
+                 <select
+                   value={selectedClaimId || ''}
+                   onChange={(e) => setSelectedClaimId(e.target.value || null)}
+                   required={true}
+                   disabled={!selectedPolicyId}
+                   style={{
+                     width: '100%',
+                     padding: '0.75rem',
+                     border: '1px solid #d1d5db',
+                     borderRadius: '8px',
+                     fontSize: '0.875rem',
+                     background: !selectedPolicyId ? '#f3f4f6' : 'white',
+                     cursor: !selectedPolicyId ? 'not-allowed' : 'pointer'
+                   }}
+                 >
+                   <option value="">Select a claim...</option>
+                   {selectedPolicyId && claims.filter(claim => claim.policyId === selectedPolicyId).map((claim) => (
+                     <option key={claim.id} value={claim.id}>
+                       {claim.claimNumber} - {claim.status}
+                     </option>
+                   ))}
+                 </select>
+                 {!selectedPolicyId && (
+                   <p style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.25rem' }}>
+                     ⚠️ Önce policy seçmelisiniz
+                   </p>
+                 )}
+               </div>
+             )}
 
              <div style={{ marginBottom: '1.5rem' }}>
                <label style={{
@@ -4875,10 +4988,7 @@ export default function CustomerPage() {
                  onChange={(e) => {
                    setSelectedDocumentType(e.target.value);
                    // Reset selections when document type changes
-                   if (e.target.value !== 'CLAIM_DOCUMENT') {
-                     setSelectedClaimId(null);
-                   }
-                   if (e.target.value !== 'POLICY_DOCUMENT' && e.target.value !== 'CLAIM_DOCUMENT') {
+                   if (e.target.value !== 'POLICY_DOCUMENT') {
                      setSelectedPolicyId(null);
                    }
                  }}
@@ -4892,7 +5002,7 @@ export default function CustomerPage() {
                  }}
                >
                  <option value="POLICY_DOCUMENT">📋 Policy Document</option>
-                 <option value="CLAIM_DOCUMENT">📝 Claim Document</option>
+                 <option value="CLAIM_DOCUMENT">📋 Claim Document</option>
                  <option value="IDENTITY_DOCUMENT">🆔 Identity Document</option>
                  <option value="MEDICAL_DOCUMENT">🏥 Medical Document</option>
                  <option value="VEHICLE_DOCUMENT">🚗 Vehicle Document</option>

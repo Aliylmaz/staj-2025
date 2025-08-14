@@ -244,6 +244,7 @@ export interface DocumentDto {
   uploadDate: string;
   createdAt: string;
   updatedAt: string;
+  filePath?: string;
 }
 
 export interface AgentDto {
@@ -268,7 +269,8 @@ export interface CreateClaimRequest {
   incidentDate: string;
   estimatedAmount?: number;
   notificationsEnabled?: boolean;
-  documentUrl?: string;
+  claimType?: string;
+  status?: string;
 }
 
 export interface CreatePaymentRequest {

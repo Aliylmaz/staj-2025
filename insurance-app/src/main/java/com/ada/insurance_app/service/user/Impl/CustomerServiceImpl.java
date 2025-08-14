@@ -137,6 +137,9 @@ public class CustomerServiceImpl implements ICustomerService {
             Agent agent = agentRepository.findById(request.getAgentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Agent not found"));
             offer.setAgent(agent);
+            log.info("Offer created with agent ID: {}", agent.getId());
+        } else {
+            log.warn("No agent ID provided in request, offer will have no agent assigned");
         }
 
         if (request.getCoverageIds() != null && !request.getCoverageIds().isEmpty()) {
@@ -268,19 +271,7 @@ public class CustomerServiceImpl implements ICustomerService {
         Offer offer = offerRepository.findByIdWithDetails(offerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Offer not found with ID: " + offerId));
 
-        // Debug logging for agent assignment
-        log.info("=== Converting Offer to Policy ===");
-        log.info("Offer ID: {}", offerId);
-        log.info("Offer Status: {}", offer.getStatus());
-        log.info("Offer Agent: {}", offer.getAgent() != null ? offer.getAgent().getId() : "NULL");
-        if (offer.getAgent() != null) {
-            log.info("Agent Name: {}", offer.getAgent().getName());
-            log.info("Agent Email: {}", offer.getAgent().getEmail());
-        }
-        log.info("Customer ID: {}", offer.getCustomer().getId());
-        log.info("Customer Name: {} {}", 
-                offer.getCustomer().getUser() != null ? offer.getCustomer().getUser().getFirstName() : "null",
-                offer.getCustomer().getUser() != null ? offer.getCustomer().getUser().getLastName() : "null");
+
 
         // Teklifi oluşturan müşteriyle şu anki müşteri aynı mı?
         if (!offer.getCustomer().getId().equals(customerId)) {
@@ -297,6 +288,12 @@ public class CustomerServiceImpl implements ICustomerService {
         policy.setPolicyNumber("POL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         policy.setCustomer(offer.getCustomer());
         policy.setAgent(offer.getAgent()); // Agent'ı offer'dan al
+        
+        // Debug logging for agent assignment
+        log.info("Converting offer to policy - Offer agent: {}, Policy agent set to: {}", 
+                offer.getAgent() != null ? offer.getAgent().getId() : "NULL",
+                policy.getAgent() != null ? policy.getAgent().getId() : "NULL");
+        
         policy.setStatus(PolicyStatus.PENDING_PAYMENT); // Başlangıçta ödeme bekliyor
         policy.setStartDate(LocalDate.now());
         policy.setEndDate(LocalDate.now().plusYears(1));
@@ -332,9 +329,7 @@ public class CustomerServiceImpl implements ICustomerService {
         offerRepository.save(offer);
 
 
-        
-        PolicyDto policyDto = policyMapper.toDto(savedPolicy);
-        return policyDto;
+        return policyMapper.toDto(savedPolicy);
     }
 
 
@@ -357,30 +352,15 @@ public class CustomerServiceImpl implements ICustomerService {
         claim.setDescription(request.getDescription());
         claim.setStatus(ClaimStatus.SUBMITTED);
         claim.setClaimNumber("CLM-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        claim.setAgent(policy.getAgent());
+        claim.setEstimatedAmount(request.getEstimatedAmount());
+        claim.setNotificationsEnabled(request.isNotificationsEnabled());
+        claim.setCreatedAt(LocalDateTime.now());
 
+        // Önce claim'i kaydet
+        Claim savedClaim = claimRepository.save(claim);
 
-        // Only create document if documentUrl is provided
-        if (request.getDocumentUrl() != null && !request.getDocumentUrl().trim().isEmpty()) {
-            Document document = new Document();
-            document.setFilePath(request.getDocumentUrl());
-            document.setCreatedAt(LocalDateTime.now());
-            document.setPolicy(policy);
-            document.setDocumentType(com.ada.insurance_app.core.enums.DocumentType.CLAIM_DOCUMENT);
-            document.setFileName("claim_document");
-            document.setOriginalFileName("claim_document");
-            document.setContentType("application/pdf");
-            document.setFileSize(0L); // Default size since we don't have actual file
-
-            Set<Document> documents = new HashSet<>();
-            documents.add(document);
-            claim.setDocuments(documents);
-        }
-
-
-        // Kaydet
-        claimRepository.save(claim);
-
-        return claimMapper.toDto(claim);
+        return claimMapper.toDto(savedClaim);
     }
 
     @Override
@@ -531,7 +511,7 @@ public class CustomerServiceImpl implements ICustomerService {
         DocumentDto documentDto = new DocumentDto();
         documentDto.setCustomerId(customerId);
         documentDto.setDocumentType(DocumentType.valueOf(documentType != null ? documentType.toUpperCase() : "OTHER"));
-        documentDto.setDescription(description != null ? description : "Customer uploaded document");
+        documentDto.setDescription(description);
 
         // Set policy and claim IDs if provided
         if (policyId != null) {

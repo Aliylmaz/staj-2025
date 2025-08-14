@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import com.ada.insurance_app.dto.UserDto;
 
 @Data
 @NoArgsConstructor
@@ -26,5 +27,5 @@ public class AgentDto {
     private String country;
     private  String postalCode;
 
-
+    private UserDto user;
 }

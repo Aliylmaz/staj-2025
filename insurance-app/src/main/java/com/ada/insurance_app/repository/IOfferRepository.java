@@ -32,4 +32,8 @@ public interface IOfferRepository extends JpaRepository<Offer, Long> {
     
     @Query("SELECT o FROM Offer o ORDER BY o.createdAt DESC")
     List<Offer> findTop5ByOrderByCreatedAtDesc();
+    
+    // Count offers by agent number
+    @Query("SELECT COUNT(o) FROM Offer o WHERE o.agent.agentNumber = :agentNumber")
+    long countByAgent_AgentNumber(@Param("agentNumber") String agentNumber);
 }
