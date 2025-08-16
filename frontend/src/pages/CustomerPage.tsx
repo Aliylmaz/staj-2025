@@ -1,7 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCustomer } from '../contexts/CustomerContext';
-import html2pdf from 'html2pdf.js';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+
+// Declare html2pdf as global
+declare global {
+  interface Window {
+    html2pdf: any;
+  }
+}
+const html2pdf = (window as any).html2pdf;
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -565,10 +574,10 @@ export default function CustomerPage() {
       }
     }
   };
-  // PDF export function for all policies
-  const handleExportPoliciesToPDF = async () => {
+  // PDF export function for selected policy
+  const handleExportPolicyToPDF = async (selectedPolicy:any) => {
     try {
-      // Create a temporary container for policies
+      // Create a temporary container for the selected policy
       const tempContainer = document.createElement('div');
       tempContainer.style.padding = '2rem';
       tempContainer.style.background = 'white';
@@ -578,170 +587,133 @@ export default function CustomerPage() {
       const header = document.createElement('div');
       header.innerHTML = `
         <div style="text-align: center; margin-bottom: 2rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem;">
-          <h1 style="font-size: 2rem; font-weight: 700; color: #1e293b; margin: 0;">My Insurance Policies</h1>
-          <p style="font-size: 1rem; color: #64748b; margin: 0.5rem 0 0 0;">Generated on ${new Date().toLocaleDateString()}</p>
+          <h1 style="font-size: 2rem; font-weight: 700; color: #1e293b; margin: 0;">Insurance Policy Document</h1>
+          <p style="font-size: 1rem; color: #64748b; margin: 0.5rem 0 0 0;">Policy #${selectedPolicy.policyNumber}</p>
+          <p style="font-size: 0.875rem; color: #64748b; margin: 0.25rem 0 0 0;">Generated on ${new Date().toLocaleDateString()}</p>
         </div>
       `;
       tempContainer.appendChild(header);
       
-      // Add policies
-      policies.forEach((policy) => {
-        const policyDiv = document.createElement('div');
-        policyDiv.style.cssText = `
-          background: #f8fafc;
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 1.5rem;
-          margin-bottom: 1rem;
-          page-break-inside: avoid;
-        `;
-        
-        policyDiv.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-            <div>
-              <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0 0 0.5rem 0;">
-                Policy #${policy.policyNumber}
-              </h3>
-              <p style="font-size: 0.875rem; color: #64748b; margin: 0;">
-                Insurance Type: ${policy.insuranceType || 'N/A'}
-              </p>
-            </div>
-            <div style="text-align: right;">
-              <div style="
-                background: ${policy.status === 'ACTIVE' ? '#d1fae5' : '#fee2e2'};
-                color: ${policy.status === 'ACTIVE' ? '#059669' : '#dc2626'};
-                padding: 0.25rem 0.75rem;
-                border-radius: 6px;
-                font-size: 0.75rem;
-                font-weight: 600;
-                text-transform: uppercase;
-              ">
-                ${policy.status}
-              </div>
-            </div>
-          </div>
-          
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
-            <div>
-              <div style="font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 0.25rem;">
-                Premium
-              </div>
-              <div style="font-size: 1.125rem; font-weight: 700; color: #059669;">
-                €${policy.premium}
-              </div>
-            </div>
-            <div>
-              <div style="font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: 600; color: #1e293b;">
-                ${policy.startDate ? new Date(policy.startDate).toLocaleDateString() : 'N/A'}
-              </div>
-            </div>
-            <div>
-              <div style="font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 0.25rem;">
-                End Date
-              </div>
-              <div style="font-size: 1rem; font-weight: 600; color: #1e293b;">
-                ${policy.endDate ? new Date(policy.endDate).toLocaleDateString() : 'N/A'}
-              </div>
-            </div>
-            <div>
-              <div style="font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 0.25rem;">
-                Payment Status
-              </div>
-              <div style="
-                background: ${policy.payment && policy.payment.status === 'SUCCESS' ? '#d1fae5' : '#fef3c7'};
-                color: ${policy.payment && policy.payment.status === 'SUCCESS' ? '#059669' : '#f59e0b'};
-                padding: 0.25rem 0.75rem;
-                border-radius: 6px;
-                font-size: 0.75rem;
-                font-weight: 600;
-                text-transform: uppercase;
-                display: inline-block;
-              ">
-                ${policy.payment ? policy.payment.status : 'PENDING'}
-              </div>
-            </div>
-          </div>
-          
-          ${policy.description ? `
-            <div style="margin-top: 1rem;">
-              <div style="font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 0.5rem;">
-                Description:
-              </div>
-              <p style="font-size: 0.875rem; color: #64748b; margin: 0; line-height: 1.5;">
-                ${policy.description}
-              </p>
-            </div>
-          ` : ''}
-        `;
-        
-        tempContainer.appendChild(policyDiv);
-      });
-      
-      // Add summary
-      const summary = document.createElement('div');
-      summary.style.cssText = `
-        background: #f0fdf4;
-        border: 1px solid #bbf7d0;
+      // Add the selected policy
+      const policy = selectedPolicy;
+      const policyDiv = document.createElement('div');
+      policyDiv.style.cssText = `
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
         border-radius: 12px;
         padding: 1.5rem;
-        margin-top: 2rem;
-        text-align: center;
+        margin-bottom: 1rem;
+        page-break-inside: avoid;
       `;
       
-      const totalPremium = policies
-        .filter(p => p.payment && p.payment.status === 'SUCCESS')
-        .reduce((sum, p) => sum + p.premium, 0);
-      
-      summary.innerHTML = `
-        <h3 style="font-size: 1.25rem; font-weight: 700; color: #059669; margin: 0 0 1rem 0;">
-          Summary
-        </h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+      policyDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
           <div>
-            <div style="font-size: 0.875rem; font-weight: 600; color: #059669; margin-bottom: 0.25rem;">
-              Total Policies
+            <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0 0 0.5rem 0;">
+              Policy #${policy.policyNumber}
+            </h3>
+            <p style="font-size: 0.875rem; color: #64748b; margin: 0;">
+              Insurance Type: ${policy.insuranceType || 'N/A'}
+            </p>
+          </div>
+          <div style="text-align: right;">
+            <div style="
+              background: ${policy.status === 'ACTIVE' ? '#d1fae5' : '#fee2e2'};
+              color: ${policy.status === 'ACTIVE' ? '#059669' : '#dc2626'};
+              padding: 0.25rem 0.75rem;
+              border-radius: 6px;
+              font-size: 0.75rem;
+              font-weight: 600;
+              text-transform: uppercase;
+            ">
+              ${policy.status}
             </div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: #059669;">
-              ${policies.length}
+          </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 0.25rem;">
+              Premium
+            </div>
+            <div style="font-size: 1.125rem; font-weight: 700; color: #059669;">
+              €${policy.premium}
             </div>
           </div>
           <div>
-            <div style="font-size: 0.875rem; font-weight: 600; color: #059669; margin-bottom: 0.25rem;">
-              Active Policies
+            <div style="font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 0.25rem;">
+              Start Date
             </div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: #059669;">
-              ${policies.filter(p => p.status === 'ACTIVE').length}
+            <div style="font-size: 1rem; font-weight: 600; color: #1e293b;">
+              ${policy.startDate ? new Date(policy.startDate).toLocaleDateString() : 'N/A'}
             </div>
           </div>
           <div>
-            <div style="font-size: 0.875rem; font-weight: 600; color: #059669; margin-bottom: 0.25rem;">
-              Total Premium
+            <div style="font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 0.25rem;">
+              End Date
             </div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: #059669;">
-              €${totalPremium}
+            <div style="font-size: 1rem; font-weight: 600; color: #1e293b;">
+              ${policy.endDate ? new Date(policy.endDate).toLocaleDateString() : 'N/A'}
+            </div>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 0.25rem;">
+              Payment Status
+            </div>
+            <div style="
+              background: ${policy.payment && policy.payment.status === 'SUCCESS' ? '#d1fae5' : '#fef3c7'};
+              color: ${policy.payment && policy.payment.status === 'SUCCESS' ? '#059669' : '#f59e0b'};
+              padding: 0.25rem 0.75rem;
+              border-radius: 6px;
+              font-size: 0.75rem;
+              font-weight: 600;
+              text-transform: uppercase;
+              display: inline-block;
+            ">
+              ${policy.payment ? policy.payment.status : 'PENDING'}
             </div>
           </div>
         </div>
       `;
       
-      tempContainer.appendChild(summary);
+      tempContainer.appendChild(policyDiv);
+      
+      // Add to body temporarily
+      document.body.appendChild(tempContainer);
       
       // Generate PDF
-      const opt = {
-        margin: 1,
-        filename: `my-policies-${new Date().toISOString().split('T')[0]}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-      };
+      const canvas = await html2canvas(tempContainer, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true
+      });
       
-      await html2pdf().set(opt).from(tempContainer).save();
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF();
+      const imgWidth = 210;
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
       
-      // Show success message
-      alert('Policies PDF exported successfully!');
+      let position = 0;
+      
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      pdf.save(`policy-${policy.policyNumber}.pdf`);
+      
+      // Clean up
+      document.body.removeChild(tempContainer);
       
     } catch (error) {
-      console.error('Error generating policies PDF:', error);
+      console.error('Error generating PDF:', error);
       alert('Error generating PDF. Please try again.');
     }
   };
@@ -1691,23 +1663,152 @@ export default function CustomerPage() {
           </button>
         </div>
 
-        {/* Poliçelerin Son 6 Aylık Dağılımı Grafiği */}
+        {/* Charts Section */}
         <div style={{
-          background: '#fff',
-          borderRadius: '16px',
-          padding: '2.5rem',
-          boxShadow: '0 2px 12px rgba(59, 130, 246, 0.07)',
-          border: '1px solid #e2e8f0',
-          marginBottom: '2.5rem',
-          maxWidth: 700,
-          marginLeft: 'auto',
-          marginRight: 'auto'
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '2rem',
+          marginBottom: '2rem'
         }}>
-          <h3 style={{ color: '#2563eb', fontWeight: 600, fontSize: '1.15rem', marginBottom: '1.5rem' }}>
-            Policies Created in the Last 6 Months
-          </h3>
-          <div style={{height: '100%', minHeight: 300}}>
-            <Line data={chartData} options={chartOptions} />
+          {/* Poliçelerin Son 6 Aylık Dağılımı Grafiği */}
+          <div style={{
+            background: '#fff',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            boxShadow: '0 2px 12px rgba(59, 130, 246, 0.07)',
+            border: '1px solid #e2e8f0'
+          }}>
+            <h3 style={{ color: '#2563eb', fontWeight: 600, fontSize: '1.15rem', marginBottom: '1.5rem' }}>
+              Policies Created in the Last 6 Months
+            </h3>
+            <div style={{height: '300px', width: '100%'}}>
+              <Line data={chartData} options={chartOptions} />
+            </div>
+          </div>
+
+          {/* Claims Status Chart */}
+          <div style={{
+            background: '#fff',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            boxShadow: '0 2px 12px rgba(59, 130, 246, 0.07)',
+            border: '1px solid #e2e8f0'
+          }}>
+            <h3 style={{ color: '#10b981', fontWeight: 600, fontSize: '1.15rem', marginBottom: '1.5rem' }}>
+              Claims Status Overview
+            </h3>
+            <div style={{height: '300px', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+              {(() => {
+                const approvedClaims = claims.filter(c => c.status === 'APPROVED').length;
+                const pendingClaims = claims.filter(c => c.status === 'PENDING').length;
+                const rejectedClaims = claims.filter(c => c.status === 'REJECTED').length;
+                const totalClaims = claims.length;
+
+                if (totalClaims === 0) {
+                  return (
+                    <div style={{
+                      textAlign: 'center',
+                      color: '#64748b',
+                      fontSize: '1.1rem',
+                      padding: '2rem'
+                    }}>
+                      <div style={{
+                        fontSize: '3rem',
+                        marginBottom: '1rem',
+                        opacity: 0.5
+                      }}>📋</div>
+                      No claims data available
+                    </div>
+                  );
+                }
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {/* Approved Claims */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '1rem',
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      borderRadius: '12px',
+                      color: 'white'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ fontSize: '1.5rem' }}>✅</span>
+                        <span style={{ fontWeight: 600 }}>Approved</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 700 }}>{approvedClaims}</span>
+                        <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+                          ({totalClaims > 0 ? Math.round((approvedClaims / totalClaims) * 100) : 0}%)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Pending Claims */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '1rem',
+                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                      borderRadius: '12px',
+                      color: 'white'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ fontSize: '1.5rem' }}>⏳</span>
+                        <span style={{ fontWeight: 600 }}>Pending</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 700 }}>{pendingClaims}</span>
+                        <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+                          ({totalClaims > 0 ? Math.round((pendingClaims / totalClaims) * 100) : 0}%)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Rejected Claims */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '1rem',
+                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      borderRadius: '12px',
+                      color: 'white'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ fontSize: '1.5rem' }}>❌</span>
+                        <span style={{ fontWeight: 600 }}>Rejected</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 700 }}>{rejectedClaims}</span>
+                        <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+                          ({totalClaims > 0 ? Math.round((rejectedClaims / totalClaims) * 100) : 0}%)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Total Summary */}
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '1rem',
+                      background: '#f8fafc',
+                      borderRadius: '12px',
+                      border: '2px solid #e2e8f0'
+                    }}>
+                      <span style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>
+                        Total Claims: 
+                      </span>
+                      <span style={{ color: '#1e293b', fontSize: '1.2rem', fontWeight: 700, marginLeft: '0.5rem' }}>
+                        {totalClaims}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         </div>
       </div>
@@ -2334,92 +2435,86 @@ export default function CustomerPage() {
          );
              case 'policies':
          return (
-           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh', overflowY: 'auto' }}>
-             <div style={{ marginBottom: '2rem' }}>
+           <div style={{ 
+             padding: '1.5rem', 
+             background: 'linear-gradient(135deg, #fafbfc 0%, #f1f5f9 100%)', 
+             minHeight: '100vh', 
+             overflowY: 'auto' 
+           }}>
+             {/* Header Section */}
+             <div style={{
+               background: 'rgba(255, 255, 255, 0.8)',
+               backdropFilter: 'blur(10px)',
+               borderRadius: '24px',
+               padding: '2rem',
+               marginBottom: '2rem',
+               border: '1px solid rgba(226, 232, 240, 0.6)',
+               boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)'
+             }}>
                <div style={{ 
                  display: 'flex', 
                  justifyContent: 'space-between', 
-                 alignItems: 'flex-start',
-                 marginBottom: '1rem'
+                 alignItems: 'flex-start'
                }}>
                  <div>
                    <h1 style={{
-                     fontSize: '2.5rem',
-                     fontWeight: 700,
-                     color: '#1e293b',
-                     marginBottom: '0.5rem'
+                     fontSize: '2.25rem',
+                     fontWeight: 800,
+                     background: 'linear-gradient(135deg, #0f172a 0%, #475569 100%)',
+                     backgroundClip: 'text',
+                     WebkitBackgroundClip: 'text',
+                     WebkitTextFillColor: 'transparent',
+                     marginBottom: '0.5rem',
+                     letterSpacing: '-0.025em'
                    }}>
-                     My Policies
+                     Insurance Policies
                    </h1>
                    <p style={{
-                     fontSize: '1.1rem',
+                     fontSize: '1rem',
                      color: '#64748b',
-                     margin: 0
+                     margin: 0,
+                     fontWeight: 400
                    }}>
-                     Manage your active insurance coverage and policies
+                     Comprehensive overview of your coverage and protection plans
                    </p>
                  </div>
                  
-                 {/* Export All Policies to PDF Button */}
-                 {policies.length > 0 && (
+                 {/* Action Buttons */}
+                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                    <button
-                     onClick={() => handleExportPoliciesToPDF()}
+                     onClick={() => setCurrentModule('offers')}
                      style={{
-                       background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                       color: 'white',
-                       border: 'none',
-                       borderRadius: '12px',
-                       padding: '0.875rem 1.75rem',
+                       background: '#ffffff',
+                       color: '#475569',
+                       border: '2px solid #e2e8f0',
+                       borderRadius: '16px',
+                       padding: '0.75rem 1.5rem',
                        fontSize: '0.875rem',
-                       fontWeight: 700,
+                       fontWeight: 600,
                        cursor: 'pointer',
                        transition: 'all 0.3s ease',
                        display: 'flex',
                        alignItems: 'center',
-                       gap: '0.75rem',
-                       boxShadow: '0 4px 14px 0 rgba(16, 185, 129, 0.4)',
-                       position: 'relative',
-                       overflow: 'hidden'
+                       gap: '0.5rem',
+                       boxShadow: '0 2px 8px rgba(15, 23, 42, 0.08)'
                      }}
                      onMouseEnter={(e) => {
-                       e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
-                       e.currentTarget.style.boxShadow = '0 8px 25px 0 rgba(16, 185, 129, 0.6)';
+                       e.currentTarget.style.transform = 'translateY(-2px)';
+                       e.currentTarget.style.boxShadow = '0 8px 25px rgba(15, 23, 42, 0.15)';
+                       e.currentTarget.style.borderColor = '#cbd5e1';
                      }}
                      onMouseLeave={(e) => {
-                       e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                       e.currentTarget.style.boxShadow = '0 4px 14px 0 rgba(16, 185, 129, 0.4)';
+                       e.currentTarget.style.transform = 'translateY(0)';
+                       e.currentTarget.style.boxShadow = '0 2px 8px rgba(15, 23, 42, 0.08)';
+                       e.currentTarget.style.borderColor = '#e2e8f0';
                      }}
                    >
-                     <span style={{ fontSize: '1.1rem' }}>📄</span>
-                     Export All to PDF
+                     <span style={{ fontSize: '1rem' }}>➕</span>
+                     New Policy
                    </button>
-                 )}
+                   
+                  </div>
                </div>
-             </div>
-
-             <div style={{ marginBottom: '2rem' }}>
-               <button
-                 onClick={() => setCurrentModule('offers')}
-                 style={{
-                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                   color: 'white',
-                   border: 'none',
-                   borderRadius: '12px',
-                   padding: '1rem 2rem',
-                   fontSize: '1rem',
-                   fontWeight: 600,
-                   cursor: 'pointer',
-                   transition: 'transform 0.2s',
-                   display: 'flex',
-                   alignItems: 'center',
-                   gap: '0.5rem'
-                 }}
-                 onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                 onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-               >
-                 <span>📋</span>
-                 Request New Policy
-               </button>
              </div>
 
              {loading ? (
@@ -2427,187 +2522,256 @@ export default function CustomerPage() {
                  display: 'flex',
                  justifyContent: 'center',
                  alignItems: 'center',
-                 padding: '3rem'
+                 padding: '4rem',
+                 background: 'rgba(255, 255, 255, 0.6)',
+                 borderRadius: '24px',
+                 backdropFilter: 'blur(10px)'
                }}>
                  <div style={{
-                   width: '3rem',
-                   height: '3rem',
-                   border: '4px solid #e5e7eb',
-                   borderTop: '4px solid #3b82f6',
+                   width: '2.5rem',
+                   height: '2.5rem',
+                   border: '3px solid #f1f5f9',
+                   borderTop: '3px solid #0f172a',
                    borderRadius: '50%',
                    animation: 'spin 1s linear infinite'
                  }}></div>
                </div>
-                          ) : policies.length === 0 && offers.filter(offer => offer.status === 'APPROVED').length === 0 ? (
+             ) : policies.length === 0 && offers.filter(offer => offer.status === 'APPROVED').length === 0 ? (
                <div style={{
                  textAlign: 'center',
-                 padding: '3rem',
-                 background: 'white',
-                 borderRadius: '16px',
-                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                 padding: '4rem 2rem',
+                 background: 'rgba(255, 255, 255, 0.7)',
+                 backdropFilter: 'blur(10px)',
+                 borderRadius: '24px',
+                 border: '1px solid rgba(226, 232, 240, 0.6)',
+                 boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)'
                }}>
-                 <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📄</div>
+                 <div style={{ 
+                   fontSize: '4rem', 
+                   marginBottom: '1.5rem',
+                   opacity: 0.6
+                 }}>📋</div>
                  <h3 style={{
                    fontSize: '1.5rem',
-                   fontWeight: 600,
-                   color: '#1e293b',
-                   marginBottom: '1rem'
+                   fontWeight: 700,
+                   color: '#0f172a',
+                   marginBottom: '1rem',
+                   letterSpacing: '-0.025em'
                  }}>
-                   No Policies Yet
+                   No Active Policies
                  </h3>
                  <p style={{
                    color: '#64748b',
-                   marginBottom: '2rem'
+                   marginBottom: '2rem',
+                   fontSize: '1rem',
+                   lineHeight: '1.6',
+                   maxWidth: '400px',
+                   margin: '0 auto 2rem auto'
                  }}>
-                   You don't have any active insurance policies yet. Start by requesting an offer to get comprehensive coverage for your needs.
+                   Start your insurance journey by requesting a personalized quote tailored to your specific needs and requirements.
                  </p>
                  <button
                    onClick={() => setCurrentModule('offers')}
                    style={{
-                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                     background: '#0f172a',
                      color: 'white',
                      border: 'none',
-                     borderRadius: '12px',
+                     borderRadius: '16px',
                      padding: '1rem 2rem',
-                     fontSize: '1rem',
+                     fontSize: '0.95rem',
                      fontWeight: 600,
                      cursor: 'pointer',
-                     transition: 'transform 0.2s'
+                     transition: 'all 0.3s ease',
+                     display: 'inline-flex',
+                     alignItems: 'center',
+                     gap: '0.5rem',
+                     boxShadow: '0 4px 16px rgba(15, 23, 42, 0.2)'
                    }}
-                   onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                   onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                   onMouseEnter={(e) => {
+                     e.currentTarget.style.transform = 'translateY(-2px)';
+                     e.currentTarget.style.boxShadow = '0 8px 32px rgba(15, 23, 42, 0.3)';
+                     e.currentTarget.style.background = '#1e293b';
+                   }}
+                   onMouseLeave={(e) => {
+                     e.currentTarget.style.transform = 'translateY(0)';
+                     e.currentTarget.style.boxShadow = '0 4px 16px rgba(15, 23, 42, 0.2)';
+                     e.currentTarget.style.background = '#0f172a';
+                   }}
                  >
-                   <span>📋</span>
-                   Request Your First Policy
+                   <span style={{ fontSize: '1rem' }}>➕</span>
+                   Get Started
                  </button>
                </div>
              ) : (
-               <div>
+               <div style={{
+                 display: 'grid',
+                 gap: '1.5rem'
+               }}>
                  {/* Show existing policies */}
                  {policies.map((policy) => (
-                                        <div key={policy.id} style={{
-                       background: 'white',
-                       borderRadius: '16px',
-                       padding: '1.5rem',
-                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                       border: policy.payment && policy.payment.status === "SUCCESS" 
-                         ? '2px solid #10b981' 
-                         : '1px solid #e5e7eb',
-                       transition: 'transform 0.2s, box-shadow 0.2s',
-                       position: 'relative',
-                       overflow: 'hidden'
-                     }}
-                     onMouseEnter={(e) => {
-                       e.currentTarget.style.transform = 'translateY(-4px)';
-                       e.currentTarget.style.boxShadow = policy.payment && policy.payment.status === "SUCCESS"
-                         ? '0 10px 25px -3px rgba(16, 185, 129, 0.2)'
-                         : '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
-                     }}
-                     onMouseLeave={(e) => {
-                       e.currentTarget.style.transform = 'translateY(0)';
-                       e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-                     }}
-                     >
-                       {/* Payment Status Indicator Bar */}
-                       <div style={{
-                         position: 'absolute',
-                         top: 0,
-                         left: 0,
-                         right: 0,
-                         height: '4px',
-                         background: policy.payment && policy.payment.status === "SUCCESS" ? '#10b981' : '#f59e0b'
-                       }}
-                       />
-                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                       <div style={{
-                         width: '3rem',
-                         height: '3rem',
-                         background: policy.payment && policy.payment.status === "SUCCESS" 
-                           ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                           : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                         borderRadius: '12px',
-                         display: 'flex',
-                         alignItems: 'center',
-                         justifyContent: 'center',
-                         color: 'white',
-                         fontSize: '1.5rem'
-                       }}>
-                         {policy.payment && policy.payment.status === "SUCCESS" ? "✅" : "📄"}
+                   <div key={policy.id} style={{
+                     background: 'rgba(255, 255, 255, 0.9)',
+                     backdropFilter: 'blur(10px)',
+                     borderRadius: '20px',
+                     padding: '2rem',
+                     border: '1px solid rgba(226, 232, 240, 0.6)',
+                     boxShadow: '0 4px 24px rgba(15, 23, 42, 0.08)',
+                     transition: 'all 0.3s ease',
+                     position: 'relative',
+                     overflow: 'hidden'
+                   }}
+                   onMouseEnter={(e) => {
+                     e.currentTarget.style.transform = 'translateY(-4px)';
+                     e.currentTarget.style.boxShadow = '0 12px 40px rgba(15, 23, 42, 0.12)';
+                   }}
+                   onMouseLeave={(e) => {
+                     e.currentTarget.style.transform = 'translateY(0)';
+                     e.currentTarget.style.boxShadow = '0 4px 24px rgba(15, 23, 42, 0.08)';
+                   }}
+                   >
+                     {/* Status Indicator */}
+                     <div style={{
+                       position: 'absolute',
+                       top: 0,
+                       left: 0,
+                       right: 0,
+                       height: '3px',
+                       background: policy.payment && policy.payment.status === "SUCCESS" 
+                         ? 'linear-gradient(90deg, #10b981, #059669)' 
+                         : 'linear-gradient(90deg, #f59e0b, #d97706)'
+                     }} />
+                     {/* Header Section */}
+                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                         <div style={{
+                           width: '60px',
+                           height: '60px',
+                           background: 'rgba(15, 23, 42, 0.05)',
+                           borderRadius: '16px',
+                           display: 'flex',
+                           alignItems: 'center',
+                           justifyContent: 'center',
+                           fontSize: '1.5rem',
+                           border: '1px solid rgba(226, 232, 240, 0.8)'
+                         }}>
+                           🛡️
+                         </div>
+                         <div>
+                           <h3 style={{
+                             fontSize: '1.25rem',
+                             fontWeight: 700,
+                             color: '#0f172a',
+                             marginBottom: '0.25rem',
+                             letterSpacing: '-0.025em'
+                           }}>
+                             {policy.policyNumber}
+                           </h3>
+                           <p style={{
+                             fontSize: '0.875rem',
+                             color: '#64748b',
+                             margin: 0,
+                             fontWeight: 500
+                           }}>
+                             {policy.insuranceType}
+                           </p>
+                         </div>
                        </div>
-                       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                         {/* Policy Status Badge */}
+                       
+                       {/* Status Badges */}
+                       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                          <span style={{
-                           padding: '0.25rem 0.75rem',
-                           borderRadius: '9999px',
+                           padding: '0.5rem 1rem',
+                           borderRadius: '12px',
                            fontSize: '0.75rem',
-                           fontWeight: 500,
-                           background: policy.status === "ACTIVE" ? '#dcfce7' : policy.status === "PENDING" ? '#fef3c7' : '#fee2e2',
-                           color: policy.status === "ACTIVE" ? '#166534' : policy.status === "PENDING" ? '#92400e' : '#991b1b'
+                           fontWeight: 600,
+                           textTransform: 'uppercase',
+                           letterSpacing: '0.05em',
+                           background: policy.status === "ACTIVE" ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                           color: policy.status === "ACTIVE" ? '#059669' : '#d97706',
+                           border: `1px solid ${policy.status === "ACTIVE" ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`
                          }}>
                            {policy.status}
                          </span>
-                         {/* Payment Status Badge */}
+                         
                          {policy.payment && (
                            <span style={{
-                             padding: '0.25rem 0.75rem',
-                             borderRadius: '9999px',
+                             padding: '0.5rem 1rem',
+                             borderRadius: '12px',
                              fontSize: '0.75rem',
-                             fontWeight: 500,
-                             background: policy.payment.status === "SUCCESS" ? '#dcfce7' : '#fef3c7',
-                             color: policy.payment.status === "SUCCESS" ? '#166534' : '#92400e',
+                             fontWeight: 600,
+                             textTransform: 'uppercase',
+                             letterSpacing: '0.05em',
+                             background: policy.payment.status === "SUCCESS" ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                             color: policy.payment.status === "SUCCESS" ? '#059669' : '#dc2626',
+                             border: `1px solid ${policy.payment.status === "SUCCESS" ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
                              display: 'flex',
                              alignItems: 'center',
                              gap: '0.25rem'
                            }}>
-                             {policy.payment.status === "SUCCESS" ? '✅' : '⏳'} 
-                             {policy.payment.status === "SUCCESS" ? 'Paid' : 'Pending'}
+                             {policy.payment.status === "SUCCESS" ? 'Paid' : 'Unpaid'}
                            </span>
                          )}
                        </div>
                      </div>
-                     <h3 style={{
-                       fontSize: '1.25rem',
-                       fontWeight: 700,
-                       color: '#1e293b',
-                       marginBottom: '1rem'
+
+                     {/* Policy Details Grid */}
+                     <div style={{
+                       display: 'grid',
+                       gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                       gap: '1.5rem',
+                       marginBottom: '2rem'
                      }}>
-                       {policy.policyNumber}
-                     </h3>
-                     <div style={{ marginBottom: '1.5rem' }}>
-                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Insurance Type:</span>
-                         <span style={{ fontWeight: 600, color: '#1e293b' }}>{policy.insuranceType}</span>
-                       </div>
-                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Total Premium:</span>
-                         <span style={{ fontWeight: 600, color: '#1e293b' }}>€{policy.premium}</span>
-                       </div>
-                       {/* Payment Status */}
-                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Payment Status:</span>
-                         <span style={{ 
+                       <div style={{
+                         background: 'rgba(248, 250, 252, 0.8)',
+                         borderRadius: '12px',
+                         padding: '1rem',
+                         border: '1px solid rgba(226, 232, 240, 0.6)'
+                       }}>
+                         <div style={{ 
+                           fontSize: '0.75rem', 
                            fontWeight: 600, 
-                           color: policy.payment && policy.payment.status === 'SUCCESS' ? '#166534' : '#dc2626',
-                           display: 'flex',
-                           alignItems: 'center',
-                           gap: '0.25rem'
+                           color: '#64748b', 
+                           textTransform: 'uppercase',
+                           letterSpacing: '0.05em',
+                           marginBottom: '0.5rem'
                          }}>
-                           {policy.payment && policy.payment.status === 'SUCCESS' ? (
-                             <>
-                               ✅ Paid
-                               <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>
-                                 ({new Date(policy.payment.paymentDate || policy.createdAt).toLocaleDateString()})
-                               </span>
-                             </>
-                           ) : (
-                             <>
-                               ❌ Pending
-                               <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>
-                                 (Payment required)
-                               </span>
-                             </>
-                           )}
-                         </span>
+                           Premium Amount
+                         </div>
+                         <div style={{ 
+                           fontSize: '1.25rem', 
+                           fontWeight: 700, 
+                           color: '#0f172a'
+                         }}>
+                           €{policy.premium}
+                         </div>
+                       </div>
+
+                       <div style={{
+                         background: 'rgba(248, 250, 252, 0.8)',
+                         borderRadius: '12px',
+                         padding: '1rem',
+                         border: '1px solid rgba(226, 232, 240, 0.6)'
+                       }}>
+                         <div style={{ 
+                           fontSize: '0.75rem', 
+                           fontWeight: 600, 
+                           color: '#64748b', 
+                           textTransform: 'uppercase',
+                           letterSpacing: '0.05em',
+                           marginBottom: '0.5rem'
+                         }}>
+                           Payment Date
+                         </div>
+                         <div style={{ 
+                           fontSize: '1rem', 
+                           fontWeight: 600, 
+                           color: policy.payment && policy.payment.status === 'SUCCESS' ? '#059669' : '#dc2626'
+                         }}>
+                           {policy.payment && policy.payment.status === 'SUCCESS' 
+                             ? new Date(policy.payment.paymentDate || policy.createdAt).toLocaleDateString()
+                             : 'Payment Required'
+                           }
+                         </div>
                        </div>
                      </div>
                      {policy.status === 'PENDING_PAYMENT' ? (
@@ -2634,67 +2798,47 @@ export default function CustomerPage() {
                          💳 Make Payment
                        </button>
                      ) : policy.status === 'ACTIVE' ? (
-                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                         {/* Check if payment is already successful */}
-                         {policy.payment && policy.payment.status === 'SUCCESS' ? (
-                           <div style={{
-                             padding: '0.75rem 1rem',
-                             background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                             color: 'white',
-                             border: 'none',
-                             borderRadius: '8px',
-                             fontSize: '0.875rem',
-                             fontWeight: 600,
-                             textAlign: 'center',
-                             display: 'flex',
-                             alignItems: 'center',
-                             justifyContent: 'center',
-                             gap: '0.5rem'
-                           }}>
-                             ✅ Paid
-                           </div>
-                         ) : (
-                           <button
-                             onClick={() => {
-                               setShowPaymentForm(true);
-                               setSelectedPolicyId(policy.id);
-                             }}
-                             style={{
-                               padding: '0.75rem 1rem',
-                               background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                               fontSize: '0.875rem',
-                               fontWeight: 600,
-                               cursor: 'pointer',
-                               transition: 'transform 0.2s'
-                             }}
-                             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                           >
-                             💳 Pay
-                           </button>
-                         )}
-                         <button
-                           onClick={() => {
-                             setShowClaimForm(true);
-                             setSelectedPolicyId(policy.id);
-                           }}
-                           style={{
-                             padding: '0.75rem 1rem',
-                             background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                             color: 'white',
-                             border: 'none',
-                             borderRadius: '8px',
-                             fontSize: '0.875rem',
-                             fontWeight: 600,
-                             cursor: 'pointer',
-                             transition: 'transform 0.2s'
-                           }}
-                           onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                           onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                         >
-                           🔑 Claim
-                         </button>
-                       </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                        <button
+                          onClick={() => {
+                            setShowClaimForm(true);
+                            setSelectedPolicyId(policy.id);
+                          }}
+                          style={{
+                            padding: '0.75rem 1rem',
+                            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                        >
+                          🔑 Claim
+                        </button>
+                        <button
+                          onClick={() => handleExportPolicyToPDF(policy)}
+                          style={{
+                            padding: '0.75rem 1rem',
+                            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                        >
+                          📄 Export
+                        </button>
+                      </div>
                      ) : (
                        <div style={{
                          padding: '0.75rem 1rem',
@@ -3280,239 +3424,343 @@ export default function CustomerPage() {
            </div>
          );
        case 'profile':
-         return (
-           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh', display: 'flex', justifyContent: 'center', overflowY: 'auto' }}>
-             <div style={{ maxWidth: '800px', width: '100%' }}>
-               <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-                 <h1 style={{
-                   fontSize: '2.5rem',
-                   fontWeight: 700,
-                   color: '#1e293b',
-                   marginBottom: '0.5rem'
-                 }}>
-                   My Profile
-                 </h1>
-                 <p style={{
-                   fontSize: '1.1rem',
-                   color: '#64748b',
-                   margin: 0
-                 }}>
-                   Manage your personal information and account settings
-                 </p>
-               </div>
+        return (
+          <div style={{ 
+            padding: '1rem', 
+            background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', 
+            minHeight: '100vh', 
+            overflowY: 'auto' 
+          }}>
+            <div style={{ width: '100%', height: '100%' }}>
+              {/* Header Section */}
+              <div style={{ 
+                marginBottom: '1.5rem', 
+                textAlign: 'center',
+                background: 'rgba(255, 255, 255, 0.9)',
+                borderRadius: '20px',
+                padding: '1.5rem',
+                boxShadow: '0 10px 25px rgba(0, 0, 0, 0.08)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}>
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 1rem auto',
+                  fontSize: '1.5rem',
+                  color: 'white',
+                  boxShadow: '0 8px 20px rgba(102, 126, 234, 0.3)'
+                }}>
+                  👤
+                </div>
+                <h1 style={{
+                  fontSize: '2.2rem',
+                  fontWeight: 700,
+                  background: 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  marginBottom: '0.5rem',
+                  letterSpacing: '-0.02em'
+                }}>
+                  My Profile
+                </h1>
+                <p style={{
+                  fontSize: '1rem',
+                  color: '#64748b',
+                  margin: 0,
+                  fontWeight: 400
+                }}>
+                  Manage your personal information and account settings
+                </p>
+              </div>
 
-               <div style={{
-                 background: 'white',
-                 borderRadius: '16px',
-                 padding: '2rem',
-                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                 marginBottom: '2rem'
-               }}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                   <h2 style={{
-                     fontSize: '1.5rem',
-                     fontWeight: 600,
-                     color: '#1e293b',
-                     margin: 0
-                   }}>
-                     Personal Information
-                   </h2>
-                   <button
-                     onClick={openProfileUpdate}
-                     style={{
-                       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                       color: 'white',
-                       border: 'none',
-                       borderRadius: '8px',
-                       padding: '0.75rem 1.5rem',
-                       fontSize: '0.875rem',
-                       fontWeight: 600,
-                       cursor: 'pointer',
-                       transition: 'transform 0.2s'
-                     }}
-                     onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                     onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                   >
-                     ✏️ Update Profile
-                   </button>
-                 </div>
-                 <div style={{
-                   display: 'grid',
-                   gridTemplateColumns: '1fr 1fr',
-                   gap: '1rem'
-                 }}>
-                   <div>
-                     <label style={{
-                       display: 'block',
-                       fontSize: '0.875rem',
-                       fontWeight: 500,
-                       color: '#374151',
-                       marginBottom: '0.25rem'
-                     }}>First Name</label>
-                     <div style={{
-                       padding: '0.75rem',
-                       border: '1px solid #d1d5db',
-                       borderRadius: '8px',
-                       fontSize: '0.875rem',
-                       background: '#f9fafb'
-                     }}>
-                       {customer?.user?.firstName || 'N/A'}
-                     </div>
-                   </div>
-                   <div>
-                     <label style={{
-                       display: 'block',
-                       fontSize: '0.875rem',
-                       fontWeight: 500,
-                       color: '#374151',
-                       marginBottom: '0.25rem'
-                     }}>Last Name</label>
-                     <div style={{
-                       padding: '0.75rem',
-                       border: '1px solid #d1d5db',
-                       borderRadius: '8px',
-                       fontSize: '0.875rem',
-                       background: '#f9fafb'
-                     }}>
-                       {customer?.user?.lastName || 'N/A'}
-                     </div>
-                   </div>
-                   <div>
-                     <label style={{
-                       display: 'block',
-                       fontSize: '0.875rem',
-                       fontWeight: 500,
-                       color: '#374151',
-                       marginBottom: '0.25rem'
-                     }}>Email</label>
-                     <div style={{
-                       padding: '0.75rem',
-                       border: '1px solid #d1d5db',
-                       borderRadius: '8px',
-                       fontSize: '0.875rem',
-                       background: '#f9fafb'
-                     }}>
-                       {customer?.user?.email || 'N/A'}
-                     </div>
-                   </div>
-                   <div>
-                     <label style={{
-                       display: 'block',
-                       fontSize: '0.875rem',
-                       fontWeight: 500,
-                       color: '#374151',
-                       marginBottom: '0.25rem'
-                     }}>Customer Number</label>
-                     <div style={{
-                       padding: '0.75rem',
-                       border: '1px solid #d1d5db',
-                       borderRadius: '8px',
-                       fontSize: '0.875rem',
-                       background: '#f9fafb'
-                     }}>
-                       {customer?.customerNumber || 'N/A'}
-                     </div>
-                   </div>
-                 </div>
-               </div>
+              {/* Profile Overview Card */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.95)',
+                borderRadius: '20px',
+                padding: '1.5rem',
+                boxShadow: '0 15px 35px rgba(0, 0, 0, 0.08)',
+                marginBottom: '1.5rem',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                backdropFilter: 'blur(10px)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Decorative background element */}
+                <div style={{
+                  position: 'absolute',
+                  top: '-50px',
+                  right: '-50px',
+                  width: '150px',
+                  height: '150px',
+                  background: 'linear-gradient(135deg, #667eea20, #764ba220)',
+                  borderRadius: '50%',
+                  zIndex: 0
+                }}></div>
+                
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  marginBottom: '1.5rem',
+                  position: 'relative',
+                  zIndex: 1
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.5rem',
+                      color: 'white',
+                      boxShadow: '0 6px 15px rgba(102, 126, 234, 0.3)'
+                    }}>
+                      👨‍💼
+                    </div>
+                    <div>
+                      <h2 style={{
+                        fontSize: '1.8rem',
+                        fontWeight: 700,
+                        color: '#1e293b',
+                        margin: 0,
+                        letterSpacing: '-0.01em'
+                      }}>
+                        Personal Information
+                      </h2>
+                      <p style={{
+                        fontSize: '0.95rem',
+                        color: '#64748b',
+                        margin: '0.25rem 0 0 0'
+                      }}>
+                        Your basic profile details
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={openProfileUpdate}
+                    style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '12px',
+                      padding: '0.875rem 1.75rem',
+                      fontSize: '0.95rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 6px 20px rgba(102, 126, 234, 0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-3px)';
+                      e.currentTarget.style.boxShadow = '0 10px 30px rgba(102, 126, 234, 0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.3)';
+                    }}
+                  >
+                    <span>✏️</span>
+                    Update Profile
+                  </button>
+                </div>
+                
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: '1.5rem',
+                  position: 'relative',
+                  zIndex: 1
+                }}>
+                  {[
+                    { label: 'First Name', value: customer?.user?.firstName, icon: '👤' },
+                    { label: 'Last Name', value: customer?.user?.lastName, icon: '👤' },
+                    { label: 'Email Address', value: customer?.user?.email, icon: '📧' },
+                    { label: 'Customer ID', value: customer?.customerNumber, icon: '🆔' }
+                  ].map((field, index) => (
+                    <div key={index} style={{
+                      background: 'rgba(248, 250, 252, 0.8)',
+                      borderRadius: '16px',
+                      padding: '1.5rem',
+                      border: '1px solid rgba(226, 232, 240, 0.5)',
+                      transition: 'all 0.3s ease',
+                      cursor: 'default'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.08)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(248, 250, 252, 0.8)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <span style={{ fontSize: '1.2rem' }}>{field.icon}</span>
+                        <label style={{
+                          fontSize: '0.9rem',
+                          fontWeight: 600,
+                          color: '#475569',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}>{field.label}</label>
+                      </div>
+                      <div style={{
+                        fontSize: '1.1rem',
+                        fontWeight: 500,
+                        color: '#1e293b',
+                        wordBreak: 'break-word'
+                      }}>
+                        {field.value || 'Not provided'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-               <div style={{ marginBottom: '2rem' }}>
-                 <h2 style={{
-                   fontSize: '1.5rem',
-                   fontWeight: 600,
-                   color: '#1e293b',
-                   marginBottom: '1rem'
-                 }}>
-                   Address Information
-                 </h2>
-                 <div style={{
-                   display: 'grid',
-                   gridTemplateColumns: '1fr 1fr',
-                   gap: '1rem'
-                 }}>
-                   <div>
-                     <label style={{
-                       display: 'block',
-                       fontSize: '0.875rem',
-                       fontWeight: 500,
-                       color: '#374151',
-                       marginBottom: '0.25rem'
-                     }}>Address</label>
-                     <div style={{
-                       padding: '0.75rem',
-                       border: '1px solid #d1d5db',
-                       borderRadius: '8px',
-                       fontSize: '0.875rem',
-                       background: '#f9fafb'
-                     }}>
-                       {customer?.address || 'N/A'}
-                     </div>
-                   </div>
-                   <div>
-                     <label style={{
-                       display: 'block',
-                       fontSize: '0.875rem',
-                       fontWeight: 500,
-                       color: '#374151',
-                       marginBottom: '0.25rem'
-                     }}>City</label>
-                     <div style={{
-                       padding: '0.75rem',
-                       border: '1px solid #d1d5db',
-                       borderRadius: '8px',
-                       fontSize: '0.875rem',
-                       background: '#f9fafb'
-                     }}>
-                       {customer?.city || 'N/A'}
-                     </div>
-                   </div>
-                   <div>
-                     <label style={{
-                       display: 'block',
-                       fontSize: '0.875rem',
-                       fontWeight: 500,
-                       color: '#374151',
-                       marginBottom: '0.25rem'
-                     }}>Country</label>
-                     <div style={{
-                       padding: '0.75rem',
-                       border: '1px solid #d1d5db',
-                       borderRadius: '8px',
-                       fontSize: '0.875rem',
-                       background: '#f9fafb'
-                     }}>
-                       {customer?.country || 'N/A'}
-                     </div>
-                   </div>
-                   <div>
-                     <label style={{
-                       display: 'block',
-                       fontSize: '0.875rem',
-                       fontWeight: 500,
-                       color: '#374151',
-                       marginBottom: '0.25rem'
-                     }}>Postal Code</label>
-                     <div style={{
-                       padding: '0.75rem',
-                       border: '1px solid #d1d5db',
-                       borderRadius: '8px',
-                       fontSize: '0.875rem',
-                       background: '#f9fafb'
-                     }}>
-                       {customer?.postalCode || 'N/A'}
-                     </div>
-                   </div>
-                 </div>
-               </div>
-             </div>
-           </div>
-         );
+              {/* Address Information Card */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.95)',
+                borderRadius: '20px',
+                padding: '1.5rem',
+                boxShadow: '0 15px 35px rgba(0, 0, 0, 0.08)',
+                marginBottom: '1rem',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                backdropFilter: 'blur(10px)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Decorative background element */}
+                <div style={{
+                  position: 'absolute',
+                  top: '-50px',
+                  left: '-50px',
+                  width: '150px',
+                  height: '150px',
+                  background: 'linear-gradient(135deg, #10b98120, #059f0f20)',
+                  borderRadius: '50%',
+                  zIndex: 0
+                }}></div>
+                
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '1rem',
+                  marginBottom: '1.5rem',
+                  position: 'relative',
+                  zIndex: 1
+                }}>
+                  <div style={{
+                    width: '50px',
+                    height: '50px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.5rem',
+                    color: 'white',
+                    boxShadow: '0 6px 15px rgba(16, 185, 129, 0.3)'
+                  }}>
+                    📍
+                  </div>
+                  <div>
+                    <h2 style={{
+                      fontSize: '1.8rem',
+                      fontWeight: 700,
+                      color: '#1e293b',
+                      margin: 0,
+                      letterSpacing: '-0.01em'
+                    }}>
+                      Address Information
+                    </h2>
+                    <p style={{
+                      fontSize: '0.95rem',
+                      color: '#64748b',
+                      margin: '0.25rem 0 0 0'
+                    }}>
+                      Your location and contact details
+                    </p>
+                  </div>
+                </div>
+                
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: '1.5rem',
+                  position: 'relative',
+                  zIndex: 1
+                }}>
+                  {[
+                    { label: 'Street Address', value: customer?.address, icon: '🏠' },
+                    { label: 'City', value: customer?.city, icon: '🏙️' },
+                    { label: 'Country', value: customer?.country, icon: '🌍' },
+                    { label: 'Postal Code', value: customer?.postalCode, icon: '📮' }
+                  ].map((field, index) => (
+                    <div key={index} style={{
+                      background: 'rgba(248, 250, 252, 0.8)',
+                      borderRadius: '16px',
+                      padding: '1.5rem',
+                      border: '1px solid rgba(226, 232, 240, 0.5)',
+                      transition: 'all 0.3s ease',
+                      cursor: 'default'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.08)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(248, 250, 252, 0.8)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <span style={{ fontSize: '1.2rem' }}>{field.icon}</span>
+                        <label style={{
+                          fontSize: '0.9rem',
+                          fontWeight: 600,
+                          color: '#475569',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}>{field.label}</label>
+                      </div>
+                      <div style={{
+                        fontSize: '1.1rem',
+                        fontWeight: 500,
+                        color: '#1e293b',
+                        wordBreak: 'break-word'
+                      }}>
+                        {field.value || 'Not provided'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       default:
         return renderDashboard();
     }
   };
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', width: '100vw', position: 'fixed', top: 0, left: 0 }}>
+    <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
       {/* Modern Sidebar */}
       <div style={{
         width: '280px',
@@ -4433,227 +4681,414 @@ export default function CustomerPage() {
            left: 0,
            right: 0,
            bottom: 0,
-           background: 'rgba(0, 0, 0, 0.5)',
+           background: 'rgba(15, 23, 42, 0.6)',
+           backdropFilter: 'blur(8px)',
            display: 'flex',
            alignItems: 'center',
            justifyContent: 'center',
-           zIndex: 1000
+           zIndex: 1000,
+           padding: '1rem'
          }}>
            <div style={{
-             background: 'white',
-             borderRadius: '16px',
-             padding: '2rem',
-             width: '90%',
-             maxWidth: '500px',
-             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+             background: 'rgba(255, 255, 255, 0.95)',
+             backdropFilter: 'blur(20px)',
+             borderRadius: '24px',
+             padding: '2.5rem',
+             width: '100%',
+             maxWidth: '600px',
+             maxHeight: '90vh',
+             overflowY: 'auto',
+             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+             border: '1px solid rgba(226, 232, 240, 0.6)'
            }}>
-             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-               <h2 style={{
-                 fontSize: '1.5rem',
-                 fontWeight: 700,
-                 color: '#1e293b',
-                 margin: 0
-               }}>
-                 File New Claim
-               </h2>
+             {/* Header */}
+             <div style={{ 
+               display: 'flex', 
+               justifyContent: 'space-between', 
+               alignItems: 'center', 
+               marginBottom: '2rem',
+               paddingBottom: '1.5rem',
+               borderBottom: '1px solid rgba(226, 232, 240, 0.6)'
+             }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                 <div style={{
+                   width: '50px',
+                   height: '50px',
+                   background: 'linear-gradient(135deg, #0f172a 0%, #475569 100%)',
+                   borderRadius: '16px',
+                   display: 'flex',
+                   alignItems: 'center',
+                   justifyContent: 'center',
+                   fontSize: '1.5rem',
+                   color: 'white'
+                 }}>
+                   📋
+                 </div>
+                 <div>
+                   <h2 style={{
+                     fontSize: '1.75rem',
+                     fontWeight: 800,
+                     background: 'linear-gradient(135deg, #0f172a 0%, #475569 100%)',
+                     backgroundClip: 'text',
+                     WebkitBackgroundClip: 'text',
+                     WebkitTextFillColor: 'transparent',
+                     margin: 0,
+                     letterSpacing: '-0.025em'
+                   }}>
+                     File New Claim
+                   </h2>
+                   <p style={{
+                     fontSize: '0.875rem',
+                     color: '#64748b',
+                     margin: '0.25rem 0 0 0'
+                   }}>
+                     Submit your insurance claim with required documentation
+                   </p>
+                 </div>
+               </div>
                <button
                  onClick={() => setShowClaimForm(false)}
                  style={{
-                   background: 'none',
-                   border: 'none',
-                   fontSize: '1.5rem',
+                   background: 'rgba(248, 250, 252, 0.8)',
+                   border: '1px solid rgba(226, 232, 240, 0.6)',
+                   borderRadius: '12px',
+                   width: '40px',
+                   height: '40px',
+                   display: 'flex',
+                   alignItems: 'center',
+                   justifyContent: 'center',
+                   fontSize: '1.25rem',
                    cursor: 'pointer',
-                   color: '#64748b'
+                   color: '#64748b',
+                   transition: 'all 0.2s ease'
+                 }}
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                   e.currentTarget.style.color = '#dc2626';
+                   e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.background = 'rgba(248, 250, 252, 0.8)';
+                   e.currentTarget.style.color = '#64748b';
+                   e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.6)';
                  }}
                >
                  ✕
                </button>
              </div>
+             
 
-             <div style={{ marginBottom: '1.5rem' }}>
-               <label style={{
-                 display: 'block',
-                 fontSize: '0.875rem',
-                 fontWeight: 500,
-                 color: '#374151',
-                 marginBottom: '0.5rem'
+             {/* Form Fields Grid */}
+             <div style={{
+               display: 'grid',
+               gap: '2rem'
+             }}>
+               {/* Policy Selection */}
+               <div style={{
+                 background: 'rgba(248, 250, 252, 0.6)',
+                 borderRadius: '16px',
+                 padding: '1.5rem',
+                 border: '1px solid rgba(226, 232, 240, 0.6)'
                }}>
-                 Select Policy
-               </label>
-               <select
-                 value={selectedPolicyId || ''}
-                 onChange={(e) => setSelectedPolicyId(Number(e.target.value))}
-                 style={{
-                   width: '100%',
-                   padding: '0.75rem',
-                   border: '1px solid #d1d5db',
-                   borderRadius: '8px',
+                 <label style={{
+                   display: 'block',
                    fontSize: '0.875rem',
-                   background: 'white'
-                 }}
-               >
-                 <option value="">Select a policy...</option>
-                 {policies.map((policy) => (
-                   <option key={policy.id} value={policy.id}>
-                     {policy.policyNumber} - {policy.insuranceType}
-                   </option>
-                 ))}
-               </select>
-             </div>
+                   fontWeight: 600,
+                   color: '#0f172a',
+                   marginBottom: '0.75rem',
+                   textTransform: 'uppercase',
+                   letterSpacing: '0.05em'
+                 }}>
+                   Select Policy
+                 </label>
+                 <select
+                   value={selectedPolicyId || ''}
+                   onChange={(e) => setSelectedPolicyId(Number(e.target.value))}
+                   style={{
+                     width: '100%',
+                     padding: '1rem',
+                     border: '2px solid rgba(226, 232, 240, 0.8)',
+                     borderRadius: '12px',
+                     fontSize: '1rem',
+                     background: 'rgba(255, 255, 255, 0.8)',
+                     backdropFilter: 'blur(10px)',
+                     transition: 'all 0.2s ease',
+                     fontWeight: 500
+                   }}
+                   onFocus={(e) => {
+                     e.currentTarget.style.borderColor = '#0f172a';
+                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(15, 23, 42, 0.1)';
+                   }}
+                   onBlur={(e) => {
+                     e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.8)';
+                     e.currentTarget.style.boxShadow = 'none';
+                   }}
+                 >
+                   <option value="">Choose your policy...</option>
+                   {policies.map((policy) => (
+                     <option key={policy.id} value={policy.id}>
+                       {policy.policyNumber} - {policy.insuranceType}
+                     </option>
+                   ))}
+                 </select>
+               </div>
 
-             <div style={{ marginBottom: '1.5rem' }}>
-               <label style={{
-                 display: 'block',
-                 fontSize: '0.875rem',
-                 fontWeight: 500,
-                 color: '#374151',
-                 marginBottom: '0.5rem'
+               {/* Description */}
+               <div style={{
+                 background: 'rgba(248, 250, 252, 0.6)',
+                 borderRadius: '16px',
+                 padding: '1.5rem',
+                 border: '1px solid rgba(226, 232, 240, 0.6)'
                }}>
-                 Description *
-               </label>
-               <textarea
-                 value={claimFormData.description}
-                 onChange={(e) => setClaimFormData({ ...claimFormData, description: e.target.value })}
-                 placeholder="Describe your claim..."
-                 style={{
-                   width: '100%',
-                   padding: '0.75rem',
-                   border: '1px solid #d1d5db',
-                   borderRadius: '8px',
+                 <label style={{
+                   display: 'block',
                    fontSize: '0.875rem',
-                   minHeight: '100px',
-                   resize: 'vertical'
-                 }}
-                 required
-               />
-             </div>
+                   fontWeight: 600,
+                   color: '#0f172a',
+                   marginBottom: '0.75rem',
+                   textTransform: 'uppercase',
+                   letterSpacing: '0.05em'
+                 }}>
+                   Description *
+                 </label>
+                 <textarea
+                   value={claimFormData.description}
+                   onChange={(e) => setClaimFormData({ ...claimFormData, description: e.target.value })}
+                   placeholder="Provide detailed information about your claim..."
+                   style={{
+                     width: '100%',
+                     padding: '1rem',
+                     border: '2px solid rgba(226, 232, 240, 0.8)',
+                     borderRadius: '12px',
+                     fontSize: '1rem',
+                     minHeight: '120px',
+                     resize: 'vertical',
+                     background: 'rgba(255, 255, 255, 0.8)',
+                     backdropFilter: 'blur(10px)',
+                     transition: 'all 0.2s ease',
+                     fontFamily: 'inherit'
+                   }}
+                   onFocus={(e) => {
+                     e.currentTarget.style.borderColor = '#0f172a';
+                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(15, 23, 42, 0.1)';
+                   }}
+                   onBlur={(e) => {
+                     e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.8)';
+                     e.currentTarget.style.boxShadow = 'none';
+                   }}
+                   required
+                 />
+               </div>
 
-             <div style={{ marginBottom: '1.5rem' }}>
-               <label style={{
-                 display: 'block',
-                 fontSize: '0.875rem',
-                 fontWeight: 500,
-                 color: '#374151',
-                 marginBottom: '0.5rem'
+               {/* Date and Amount Grid */}
+               <div style={{
+                 display: 'grid',
+                 gridTemplateColumns: '1fr 1fr',
+                 gap: '1.5rem'
                }}>
-                 Incident Date
-               </label>
-               <input
-                 type="date"
-                 value={claimFormData.incidentDate}
-                 onChange={(e) => setClaimFormData({ ...claimFormData, incidentDate: e.target.value })}
-                 style={{
-                   width: '100%',
-                   padding: '0.75rem',
-                   border: '1px solid #d1d5db',
-                   borderRadius: '8px',
-                   fontSize: '0.875rem'
-                 }}
-               />
-             </div>
+                 <div style={{
+                   background: 'rgba(248, 250, 252, 0.6)',
+                   borderRadius: '16px',
+                   padding: '1.5rem',
+                   border: '1px solid rgba(226, 232, 240, 0.6)'
+                 }}>
+                   <label style={{
+                     display: 'block',
+                     fontSize: '0.875rem',
+                     fontWeight: 600,
+                     color: '#0f172a',
+                     marginBottom: '0.75rem',
+                     textTransform: 'uppercase',
+                     letterSpacing: '0.05em'
+                   }}>
+                     Incident Date
+                   </label>
+                   <input
+                     type="date"
+                     value={claimFormData.incidentDate}
+                     onChange={(e) => setClaimFormData({ ...claimFormData, incidentDate: e.target.value })}
+                     style={{
+                       width: '100%',
+                       padding: '1rem',
+                       border: '2px solid rgba(226, 232, 240, 0.8)',
+                       borderRadius: '12px',
+                       fontSize: '1rem',
+                       background: 'rgba(255, 255, 255, 0.8)',
+                       backdropFilter: 'blur(10px)',
+                       transition: 'all 0.2s ease'
+                     }}
+                     onFocus={(e) => {
+                       e.currentTarget.style.borderColor = '#0f172a';
+                       e.currentTarget.style.boxShadow = '0 0 0 3px rgba(15, 23, 42, 0.1)';
+                     }}
+                     onBlur={(e) => {
+                       e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.8)';
+                       e.currentTarget.style.boxShadow = 'none';
+                     }}
+                   />
+                 </div>
 
-             <div style={{ marginBottom: '1.5rem' }}>
-               <label style={{
-                 display: 'block',
-                 fontSize: '0.875rem',
-                 fontWeight: 500,
-                 color: '#374151',
-                 marginBottom: '0.5rem'
+                 <div style={{
+                   background: 'rgba(248, 250, 252, 0.6)',
+                   borderRadius: '16px',
+                   padding: '1.5rem',
+                   border: '1px solid rgba(226, 232, 240, 0.6)'
+                 }}>
+                   <label style={{
+                     display: 'block',
+                     fontSize: '0.875rem',
+                     fontWeight: 600,
+                     color: '#0f172a',
+                     marginBottom: '0.75rem',
+                     textTransform: 'uppercase',
+                     letterSpacing: '0.05em'
+                   }}>
+                     Estimated Amount (€)
+                   </label>
+                   <input
+                     type="number"
+                     value={claimFormData.estimatedAmount || ''}
+                     onChange={(e) => {
+                       const value = e.target.value;
+                       if (value === '') {
+                         setClaimFormData({ ...claimFormData, estimatedAmount: undefined });
+                       } else {
+                         const numValue = parseFloat(value);
+                         if (!isNaN(numValue) && numValue >= 0) {
+                           setClaimFormData({ ...claimFormData, estimatedAmount: numValue });
+                         }
+                       }
+                     }}
+                     placeholder="0.00"
+                     min="0"
+                     step="0.01"
+                     style={{
+                       width: '100%',
+                       padding: '1rem',
+                       border: '2px solid rgba(226, 232, 240, 0.8)',
+                       borderRadius: '12px',
+                       fontSize: '1rem',
+                       background: 'rgba(255, 255, 255, 0.8)',
+                       backdropFilter: 'blur(10px)',
+                       transition: 'all 0.2s ease',
+                       WebkitAppearance: 'none',
+                       MozAppearance: 'textfield'
+                     }}
+                     onFocus={(e) => {
+                       e.currentTarget.style.borderColor = '#0f172a';
+                       e.currentTarget.style.boxShadow = '0 0 0 3px rgba(15, 23, 42, 0.1)';
+                     }}
+                     onBlur={(e) => {
+                       e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.8)';
+                       e.currentTarget.style.boxShadow = 'none';
+                     }}
+                   />
+                 </div>
+               </div>
+
+               {/* Claim Type */}
+               <div style={{
+                 background: 'rgba(248, 250, 252, 0.6)',
+                 borderRadius: '16px',
+                 padding: '1.5rem',
+                 border: '1px solid rgba(226, 232, 240, 0.6)'
                }}>
-                 Estimated Amount (€)
-               </label>
-               <input
-                 type="number"
-                 value={claimFormData.estimatedAmount || ''}
-                 onChange={(e) => {
-                   const value = e.target.value;
-                   if (value === '') {
-                     setClaimFormData({ ...claimFormData, estimatedAmount: undefined });
-                   } else {
-                     const numValue = parseFloat(value);
-                     if (!isNaN(numValue) && numValue >= 0) {
-                       setClaimFormData({ ...claimFormData, estimatedAmount: numValue });
-                     }
-                   }
-                 }}
-                 placeholder="Enter estimated amount"
-                 min="0"
-                 step="0.01"
-                 style={{
-                   width: '100%',
-                   padding: '0.75rem',
-                   border: '1px solid #d1d5db',
-                   borderRadius: '8px',
+                 <label style={{
+                   display: 'block',
                    fontSize: '0.875rem',
-                   WebkitAppearance: 'none',
-                   MozAppearance: 'textfield'
-                 }}
-               />
-             </div>
+                   fontWeight: 600,
+                   color: '#0f172a',
+                   marginBottom: '0.75rem',
+                   textTransform: 'uppercase',
+                   letterSpacing: '0.05em'
+                 }}>
+                   Claim Type *
+                 </label>
+                 <select
+                   value={claimFormData.claimType || 'CLAIM_DOCUMENT'}
+                   onChange={(e) => setClaimFormData({ ...claimFormData, claimType: e.target.value })}
+                   style={{
+                     width: '100%',
+                     padding: '1rem',
+                     border: '2px solid rgba(226, 232, 240, 0.8)',
+                     borderRadius: '12px',
+                     fontSize: '1rem',
+                     background: 'rgba(255, 255, 255, 0.8)',
+                     backdropFilter: 'blur(10px)',
+                     transition: 'all 0.2s ease',
+                     fontWeight: 500
+                   }}
+                   onFocus={(e) => {
+                     e.currentTarget.style.borderColor = '#0f172a';
+                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(15, 23, 42, 0.1)';
+                   }}
+                   onBlur={(e) => {
+                     e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.8)';
+                     e.currentTarget.style.boxShadow = 'none';
+                   }}
+                   required
+                 >
+                   <option value="">Select claim type...</option>
+                   <option value="CLAIM_DOCUMENT">📄 Claim Document</option>
+                   <option value="CLAIM_INVOICE">🧾 Claim Invoice</option>
+                   <option value="CLAIM_PHOTO">📸 Claim Photo</option>
+                 </select>
+               </div>
 
-
-
-             <div style={{ marginBottom: '1.5rem' }}>
-               <label style={{
-                 display: 'block',
-                 fontSize: '0.875rem',
-                 fontWeight: 500,
-                 color: '#374151',
-                 marginBottom: '0.5rem'
+               {/* File Upload */}
+               <div style={{
+                 background: 'rgba(248, 250, 252, 0.6)',
+                 borderRadius: '16px',
+                 padding: '1.5rem',
+                 border: '1px solid rgba(226, 232, 240, 0.6)'
                }}>
-                 Claim Type *
-               </label>
-               <select
-                 value={claimFormData.claimType || 'CLAIM_DOCUMENT'}
-                 onChange={(e) => setClaimFormData({ ...claimFormData, claimType: e.target.value })}
-                 style={{
-                   width: '100%',
-                   border: '1px solid #d1d5db',
-                   borderRadius: '8px',
+                 <label style={{
+                   display: 'block',
                    fontSize: '0.875rem',
-                   background: 'white'
-                 }}
-                 required
-               >
-                 <option value="">Select a claim type</option>
-                 <option value="CLAIM_DOCUMENT">Claim Document</option>
-                 <option value="CLAIM_INVOICE">Claim Invoice</option>
-                 <option value="CLAIM_PHOTO">Claim Photo</option>
-               </select>
+                   fontWeight: 600,
+                   color: '#0f172a',
+                   marginBottom: '0.75rem',
+                   textTransform: 'uppercase',
+                   letterSpacing: '0.05em'
+                 }}>
+                   Upload Claim Document *
+                 </label>
+                 <input
+                   type="file"
+                   onChange={(e) => setClaimFormData({ ...claimFormData, documentFile: e.target.files?.[0] || null })}
+                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                   style={{
+                     width: '100%',
+                     padding: '1rem',
+                     border: '2px dashed rgba(226, 232, 240, 0.8)',
+                     borderRadius: '12px',
+                     fontSize: '1rem',
+                     background: 'rgba(255, 255, 255, 0.8)',
+                     backdropFilter: 'blur(10px)',
+                     transition: 'all 0.2s ease',
+                     cursor: 'pointer'
+                   }}
+                   onFocus={(e) => {
+                     e.currentTarget.style.borderColor = '#0f172a';
+                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(15, 23, 42, 0.1)';
+                   }}
+                   onBlur={(e) => {
+                     e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.8)';
+                     e.currentTarget.style.boxShadow = 'none';
+                   }}
+                   required
+                 />
+                 <p style={{
+                   fontSize: '0.75rem',
+                   color: '#64748b',
+                   marginTop: '0.75rem',
+                   textAlign: 'center'
+                 }}>
+                   📎 Supported formats: PDF, DOC, DOCX, JPG, JPEG, PNG
+                 </p>
+               </div>
              </div>
 
-             <div style={{ marginBottom: '1.5rem' }}>
-               <label style={{
-                 display: 'block',
-                 fontSize: '0.875rem',
-                 fontWeight: 500,
-                 color: '#374151',
-                 marginBottom: '0.5rem'
-               }}>
-                 Upload Claim Document *
-               </label>
-               <input
-                 type="file"
-                 onChange={(e) => setClaimFormData({ ...claimFormData, documentFile: e.target.files?.[0] || null })}
-                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                 style={{
-                   width: '100%',
-                   padding: '0.75rem',
-                   border: '1px solid #d1d5db',
-                   borderRadius: '8px',
-                   fontSize: '0.875rem',
-                   background: 'white'
-                 }}
-                 required
-               />
-               <p style={{
-                 fontSize: '0.75rem',
-                 color: '#6b7280',
-                 marginTop: '0.25rem'
-               }}>
-                 Supported formats: PDF, DOC, DOCX, JPG, JPEG, PNG
-               </p>
-             </div>
 
              <div style={{ marginBottom: '1.5rem' }}>
                <label style={{
@@ -4678,36 +5113,85 @@ export default function CustomerPage() {
                </label>
              </div>
 
-             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+             <div style={{
+               display: 'flex',
+               gap: '1rem',
+               justifyContent: 'flex-end',
+               paddingTop: '2rem',
+               marginTop: '2rem',
+               borderTop: '2px solid rgba(226, 232, 240, 0.3)'
+             }}>
                <button
+                 type="button"
                  onClick={() => setShowClaimForm(false)}
                  style={{
-                   padding: '0.75rem 1.5rem',
-                   border: '1px solid #d1d5db',
-                   borderRadius: '8px',
-                   background: 'white',
-                   color: '#374151',
-                   fontSize: '0.875rem',
-                   fontWeight: 500,
-                   cursor: 'pointer'
+                   padding: '1rem 2rem',
+                   border: '2px solid rgba(226, 232, 240, 0.8)',
+                   borderRadius: '12px',
+                   background: 'rgba(248, 250, 252, 0.8)',
+                   backdropFilter: 'blur(10px)',
+                   color: '#64748b',
+                   fontSize: '1rem',
+                   fontWeight: 600,
+                   cursor: 'pointer',
+                   transition: 'all 0.2s ease',
+                   textTransform: 'uppercase',
+                   letterSpacing: '0.05em'
+                 }}
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.background = 'rgba(226, 232, 240, 0.8)';
+                   e.currentTarget.style.color = '#0f172a';
+                   e.currentTarget.style.transform = 'translateY(-1px)';
+                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.background = 'rgba(248, 250, 252, 0.8)';
+                   e.currentTarget.style.color = '#64748b';
+                   e.currentTarget.style.transform = 'translateY(0)';
+                   e.currentTarget.style.boxShadow = 'none';
                  }}
                >
                  Cancel
                </button>
                <button
                  onClick={handleCreateClaim}
+                 disabled={!claimFormData.description || !selectedPolicyId || !claimFormData.documentFile}
                  style={{
-                   padding: '0.75rem 1.5rem',
-                   background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                   color: 'white',
+                   padding: '1rem 2rem',
                    border: 'none',
-                   borderRadius: '8px',
-                   fontSize: '0.875rem',
-                   fontWeight: 500,
-                   cursor: 'pointer'
+                   borderRadius: '12px',
+                   background: (!claimFormData.description || !selectedPolicyId || !claimFormData.documentFile) 
+                     ? 'rgba(226, 232, 240, 0.8)' 
+                     : 'linear-gradient(135deg, #0f172a 0%, #334155 100%)',
+                   color: (!claimFormData.description || !selectedPolicyId || !claimFormData.documentFile) 
+                     ? '#94a3b8' 
+                     : 'white',
+                   fontSize: '1rem',
+                   fontWeight: 600,
+                   cursor: (!claimFormData.description || !selectedPolicyId || !claimFormData.documentFile) 
+                     ? 'not-allowed' 
+                     : 'pointer',
+                   transition: 'all 0.2s ease',
+                   textTransform: 'uppercase',
+                   letterSpacing: '0.05em',
+                   boxShadow: (!claimFormData.description || !selectedPolicyId || !claimFormData.documentFile) 
+                     ? 'none' 
+                     : '0 4px 12px rgba(15, 23, 42, 0.3)'
+                 }}
+                 onMouseEnter={(e) => {
+                   if (!e.currentTarget.disabled) {
+                     e.currentTarget.style.transform = 'translateY(-2px)';
+                     e.currentTarget.style.boxShadow = '0 8px 20px rgba(15, 23, 42, 0.4)';
+                   }
+                 }}
+                 onMouseLeave={(e) => {
+                   if (!e.currentTarget.disabled) {
+                     e.currentTarget.style.transform = 'translateY(0)';
+                     e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 23, 42, 0.3)';
+                   }
                  }}
                >
-                 File Claim
+                 🚀 Submit Claim
                </button>
              </div>
            </div>
