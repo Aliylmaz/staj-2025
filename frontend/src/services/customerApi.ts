@@ -250,9 +250,11 @@ export interface DocumentDto {
 export interface AgentDto {
   id: string;
   agentNumber: string;
-  firstName: string;
-  lastName: string;
-  email: string;
+  user: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
   phone: string;
   address: string;
   city: string;

@@ -875,6 +875,12 @@ export default function CustomerPage() {
         getMyDocuments(),
         getAllAgents()
       ]);
+      
+      console.log('🔍 Agents data received:', agentsData);
+      console.log('🔍 Number of agents:', agentsData?.length || 0);
+      if (agentsData && agentsData.length > 0) {
+        console.log('🔍 First agent sample:', agentsData[0]);
+      }
       setOffers(offersData);
       setPolicies(policiesData);
       console.log('🔍 CustomerPage - Policies data:', policiesData);
@@ -4053,7 +4059,7 @@ export default function CustomerPage() {
                  <option value="">Select an agent...</option>
                  {agents.map((agent) => (
                    <option key={agent.id} value={agent.id}>
-                     {agent.firstName}
+                     {agent.user?.firstName} {agent.user?.lastName}
                    </option>
                  ))}
                </select>
