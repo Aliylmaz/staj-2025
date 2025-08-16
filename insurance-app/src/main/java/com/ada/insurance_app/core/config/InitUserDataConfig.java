@@ -14,7 +14,7 @@
 //public class InitUserDataConfig {
 //
 //    private final PasswordEncoder passwordEncoder;
-//n
+//
 //    @Bean
 //    CommandLineRunner initUsers(IUserRepository userRepository) {
 //        return args -> {
@@ -32,18 +32,6 @@
 //                userRepository.save(admin);
 //            }
 //
-//            if (!userRepository.existsByUsername("agentuser")) {
-//                User agent = new User();
-//                agent.setUsername("agentuser");
-//                agent.setEmail("agent@example.com");
-//                agent.setFirstName("Mehmet");
-//                agent.setLastName("Kaya");
-//                agent.setPassword(passwordEncoder.encode("agent123"));
-//                agent.setPhoneNumber("5559876543");
-//                agent.setRole(Role.AGENT);
-//                agent.setActive(true);
-//                userRepository.save(agent);
-//            }
 //        };
 //    }
 //}

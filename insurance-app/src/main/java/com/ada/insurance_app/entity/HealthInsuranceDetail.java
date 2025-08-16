@@ -57,6 +57,10 @@ public class HealthInsuranceDetail {
     @OneToOne(mappedBy = "healthInsuranceDetail")
     private Policy policy;
 
+    @OneToOne
+    @JoinColumn(name = "offer_id", nullable = false, unique = true)
+    private Offer offer;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;

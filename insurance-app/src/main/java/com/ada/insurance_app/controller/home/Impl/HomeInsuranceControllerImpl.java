@@ -29,6 +29,10 @@ public class HomeInsuranceControllerImpl implements IHomeInsuranceController {
     @Override
     public ResponseEntity<GeneralResponse<HomeInsuranceDetailDto>> create(CreateHomeInsuranceDetailRequest request) {
         try {
+            if (request.getOfferId() == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(GeneralResponse.error(
+                        "OfferId is required for home insurance detail creation", HttpStatus.BAD_REQUEST));
+            }
             HomeInsuranceDetailDto createdDetail = homeInsuranceDetailService.create(request);
             return ResponseEntity.ok(GeneralResponse.success("Home insurance detail created successfully", createdDetail));
         } catch (Exception e) {
@@ -40,6 +44,10 @@ public class HomeInsuranceControllerImpl implements IHomeInsuranceController {
     @Override
     public ResponseEntity<GeneralResponse<HomeInsuranceDetailDto>> update(UUID id, UpdateHomeInsuranceDetailRequest request) {
         try {
+            if (request.getOfferId() == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(GeneralResponse.error(
+                        "OfferId is required for home insurance detail update", HttpStatus.BAD_REQUEST));
+            }
             HomeInsuranceDetailDto updatedDetail = homeInsuranceDetailService.update(id, request);
             return ResponseEntity.ok(GeneralResponse.success("Home insurance detail updated successfully", updatedDetail));
         } catch (Exception e) {

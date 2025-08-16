@@ -61,8 +61,8 @@ public class Policy {
     @Column(length = 500)
     private  String  cancellationReason;
 
-    @OneToOne
-    @JoinColumn(name = "vehicle_id", nullable = false)
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "vehicle_id")
     private Vehicle vehicle;
 
     @OneToOne(cascade = CascadeType.ALL)
@@ -89,6 +89,10 @@ public class Policy {
 
     @OneToOne(mappedBy = "policy", cascade = CascadeType.ALL, orphanRemoval = true)
     private Payment payment;
+
+    @OneToOne
+    @JoinColumn(name = "offer_id", unique = true)
+    private Offer offer;
 
     @CreationTimestamp
     @Column(updatable = false)

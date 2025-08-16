@@ -2,6 +2,18 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCustomer } from '../contexts/CustomerContext';
 import html2pdf from 'html2pdf.js';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js';
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 // CSS Animations
 const spinAnimation = `
@@ -41,10 +53,7 @@ import type { AgentDto, CoverageDto } from '../services/customerApi';
 export default function CustomerPage() {
   const [currentModule, setCurrentModule] = useState<'dashboard' | 'offers' | 'policies' | 'claims' | 'payments' | 'documents' | 'profile'>('dashboard');
   const navigate = useNavigate();
-  
-  console.log('🔍 CustomerPage - About to call useCustomer hook');
   const { customer, customerId, loading: contextLoading, error: contextError, isReady, refreshCustomer } = useCustomer();
-  console.log('🔍 CustomerPage - useCustomer hook result:', { customer, customerId, contextLoading, contextError, isReady });
 
   // Data states
   const [offers, setOffers] = useState<any[]>([]);
@@ -155,21 +164,46 @@ export default function CustomerPage() {
             <div style="font-size: 0.875rem; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 0.5rem;">
               Status
             </div>
-            <div style="
-              font-size: 1.25rem; font-weight: 700; 
-              color: ${selectedOffer.status === 'PENDING' ? '#f59e0b' : 
-                       selectedOffer.status === 'APPROVED' ? '#059669' : 
-                       selectedOffer.status === 'REJECTED' ? '#dc2626' : '#6b7280'};
-              background: ${selectedOffer.status === 'PENDING' ? '#fef3c7' : 
-                          selectedOffer.status === 'APPROVED' ? '#d1fae5' : 
-                          selectedOffer.status === 'REJECTED' ? '#fee2e2' : '#f1f5f9'};
-              padding: 0.5rem 1rem;
-              border-radius: 8px;
-              display: inline-block;
-              border: 2px solid ${selectedOffer.status === 'PENDING' ? '#f59e0b' : 
-                                selectedOffer.status === 'APPROVED' ? '#059669' : 
-                                selectedOffer.status === 'REJECTED' ? '#dc2626' : '#6b7280'};
-            ">
+            <div
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                color:
+                  selectedOffer.status === 'PENDING'
+                    ? '#f59e0b'
+                    : selectedOffer.status === 'APPROVED'
+                    ? '#059669'
+                    : selectedOffer.status === 'REJECTED'
+                    ? '#dc2626'
+                    : selectedOffer.status === 'PAID'
+                    ? '#059669'
+                    : '#6b7280',
+                background:
+                  selectedOffer.status === 'PENDING'
+                    ? '#fef3c7'
+                    : selectedOffer.status === 'APPROVED'
+                    ? '#d1fae5'
+                    : selectedOffer.status === 'REJECTED'
+                    ? '#fee2e2'
+                    : selectedOffer.status === 'PAID'
+                    ? '#bbf7d0'
+                    : '#f1f5f9',
+                padding: '0.5rem 1rem',
+                borderRadius: 8,
+                display: 'inline-block',
+                border:
+                  '2px solid ' +
+                  (selectedOffer.status === 'PENDING'
+                    ? '#f59e0b'
+                    : selectedOffer.status === 'APPROVED'
+                    ? '#059669'
+                    : selectedOffer.status === 'REJECTED'
+                    ? '#dc2626'
+                    : selectedOffer.status === 'PAID'
+                    ? '#059669'
+                    : '#6b7280'),
+              }}
+            >
               ${selectedOffer.status || 'N/A'}
             </div>
           </div>
@@ -216,16 +250,36 @@ export default function CustomerPage() {
           </div>
           <div>
             <div style="font-size: 0.875rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem;">Status</div>
-            <div style="
-              font-size: 1.125rem; font-weight: 700; text-align: center;
-              background: ${selectedOffer.status === 'PENDING' ? '#fef3c7' : 
-                          selectedOffer.status === 'APPROVED' ? '#dcfce7' : 
-                          selectedOffer.status === 'REJECTED' ? '#fee2e2' : '#e0e7ff'};
-              color: ${selectedOffer.status === 'PENDING' ? '#92400e' : 
-                      selectedOffer.status === 'APPROVED' ? '#166534' : 
-                      selectedOffer.status === 'REJECTED' ? '#991b1b' : '#3730a3'};
-              padding: 0.75rem; border-radius: 8px; border: 1px solid #e5e7eb;
-            ">
+            <div
+              style={{
+                fontSize: '1.125rem',
+                fontWeight: 700,
+                textAlign: 'center',
+                background:
+                  selectedOffer.status === 'PENDING'
+                    ? '#fef3c7'
+                    : selectedOffer.status === 'APPROVED'
+                    ? '#dcfce7'
+                    : selectedOffer.status === 'REJECTED'
+                    ? '#fee2e2'
+                    : selectedOffer.status === 'PAID'
+                    ? '#bbf7d0'
+                    : '#e0e7ff',
+                color:
+                  selectedOffer.status === 'PENDING'
+                    ? '#92400e'
+                    : selectedOffer.status === 'APPROVED'
+                    ? '#166534'
+                    : selectedOffer.status === 'REJECTED'
+                    ? '#991b1b'
+                    : selectedOffer.status === 'PAID'
+                    ? '#059669'
+                    : '#3730a3',
+                padding: '0.75rem',
+                borderRadius: 8,
+                border: '1px solid #e5e7eb',
+              }}
+            >
               ${selectedOffer.status || 'N/A'}
             </div>
           </div>
@@ -487,8 +541,8 @@ export default function CustomerPage() {
           backgroundColor: '#ffffff'
         },
         jsPDF: { 
-          unit: 'in', 
-          format: 'a4', 
+          unit: 'in',
+          format: 'a4',
           orientation: 'portrait',
           compress: true
         }
@@ -511,7 +565,6 @@ export default function CustomerPage() {
       }
     }
   };
-  
   // PDF export function for all policies
   const handleExportPoliciesToPDF = async () => {
     try {
@@ -753,7 +806,6 @@ export default function CustomerPage() {
     cvv: ''
   });
   const [documentFormData, setDocumentFormData] = useState({ file: null as File | null });
-
   // Profile update form state
   const [showProfileUpdate, setShowProfileUpdate] = useState(false);
   const [profileFormData, setProfileFormData] = useState({
@@ -1141,7 +1193,6 @@ export default function CustomerPage() {
       alert('Failed to create claim. Please try again.');
     }
   };
-
   const handleMakePayment = async () => {
     if (!isReady || !selectedPolicyId) {
       console.log('⏳ CustomerPage - Context not ready or no policy selected');
@@ -1392,463 +1443,283 @@ export default function CustomerPage() {
       </div>
     );
   }
+  const renderDashboard = () => {
+    // Son 6 ay için poliçe verisi
+    const last6Months = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - (5 - i));
+      return d.toLocaleString('default', { month: 'short', year: '2-digit' });
+    });
+    const policyData = last6Months.map((label) => (
+      policies.filter(p => {
+        if (!p.startDate) return false;
+        const date = new Date(p.startDate);
+        return date.toLocaleString('default', { month: 'short', year: '2-digit' }) === label;
+      }).length
+    ));
+    const chartData = {
+      labels: last6Months,
+      datasets: [
+        {
+          label: 'Policies',
+          data: policyData,
+          fill: true,
+          backgroundColor: 'rgba(37, 99, 235, 0.15)',
+          borderColor: '#2563eb',
+          tension: 0.4,
+          pointRadius: 5,
+          pointBackgroundColor: '#2563eb',
+        },
+      ],
+    };
+    const chartOptions = {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: { display: false },
+        tooltip: { mode: 'index' as const, intersect: false },
+      },
+      scales: {
+        x: { grid: { color: '#e5e7eb' }, ticks: { color: '#64748b', font: { size: 13 } } },
+        y: { grid: { color: '#e5e7eb' }, ticks: { color: '#64748b', font: { size: 13 }, precision: 0 } },
+      },
+    };
 
-
-
-  const renderDashboard = () => (
-    <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
-      {/* Header Section */}
-      <div style={{ 
-        marginBottom: '3rem',
-        background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-        padding: '2rem',
-        borderRadius: '20px',
-        boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-          <div style={{
-            width: '60px',
-            height: '60px',
-            background: 'rgba(255, 255, 255, 0.2)',
-            borderRadius: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 16px rgba(255, 255, 255, 0.2)'
-          }}>
-            <span style={{ fontSize: '2rem', color: 'white' }}>👋</span>
-          </div>
-          <div>
-            <h1 style={{ 
-              fontSize: '2.5rem', 
-              fontWeight: 700, 
-              color: '#ffffff',
-              marginBottom: '0.5rem'
-            }}>
-              Welcome back, {customer?.user?.firstName || 'Customer'}!
-            </h1>
-            <p style={{ 
-              fontSize: '1.1rem', 
-              color: 'rgba(255, 255, 255, 0.9)',
-              margin: 0
-            }}>
-              Here's your comprehensive insurance overview and quick actions
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-        gap: '2rem',
-        marginBottom: '3rem'
-      }}>
-        {/* My Policies */}
+    return (
+      <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh', overflowY: 'auto' }}>
+        {/* Header Section */}
         <div style={{
-          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-          borderRadius: '20px',
-          padding: '2rem',
-          color: 'white',
-          boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          transition: 'all 0.3s ease',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-8px)';
-          e.currentTarget.style.boxShadow = '0 16px 40px rgba(59, 130, 246, 0.4)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3)';
-        }}
-        >
-          <div style={{ 
-            position: 'absolute', 
-            top: '-20px', 
-            right: '-20px', 
-            width: '80px', 
-            height: '80px', 
-            background: 'rgba(255, 255, 255, 0.1)', 
-            borderRadius: '50%' 
-          }}></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-            <div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.75rem', fontWeight: 500 }}>
-                Active Policies
-              </div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>
-                {policies.length}
-              </div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>
-                {policies.length === 0 ? 'No active policies' : 'Policies in force'}
-              </div>
-            </div>
-            <div style={{ 
-              fontSize: '3rem',
-              opacity: 0.9,
-              filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2))'
-            }}>📄</div>
-          </div>
-        </div>
-
-        {/* Active Offers */}
-        <div style={{
-          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-          borderRadius: '20px',
-          padding: '2rem',
-          color: 'white',
-          boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          transition: 'all 0.3s ease',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-8px)';
-          e.currentTarget.style.boxShadow = '0 16px 40px rgba(59, 130, 246, 0.4)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3)';
-        }}
-        >
-          <div style={{ 
-            position: 'absolute', 
-            top: '-20px', 
-            right: '-20px', 
-            width: '80px', 
-            height: '80px', 
-            background: 'rgba(255, 255, 255, 0.1)', 
-            borderRadius: '50%' 
-          }}></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-            <div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.75rem', fontWeight: 500 }}>
-                Pending Offers
-              </div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>
-                {offers.filter(o => o.status === 'PENDING').length}
-              </div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>
-                {offers.filter(o => o.status === 'PENDING').length === 0 ? 'No pending offers' : 'Awaiting review'}
-              </div>
-            </div>
-            <div style={{ 
-              fontSize: '3rem',
-              opacity: 0.9,
-              filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2))'
-            }}>📋</div>
-          </div>
-        </div>
-
-        {/* My Claims */}
-        <div style={{
-          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-          borderRadius: '20px',
-          padding: '2rem',
-          color: 'white',
-          boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          transition: 'all 0.3s ease',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-8px)';
-          e.currentTarget.style.boxShadow = '0 16px 40px rgba(59, 130, 246, 0.4)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3)';
-        }}
-        >
-          <div style={{ 
-            position: 'absolute', 
-            top: '-20px', 
-            right: '-20px', 
-            width: '80px', 
-            height: '80px', 
-            background: 'rgba(255, 255, 255, 0.1)', 
-            borderRadius: '50%' 
-          }}></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-            <div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.75rem', fontWeight: 500 }}>
-                Active Claims
-              </div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>
-                {claims.length}
-              </div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>
-                {claims.length === 0 ? 'No active claims' : 'Claims in progress'}
-              </div>
-            </div>
-            <div style={{ 
-              fontSize: '3rem',
-              opacity: 0.9,
-              filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2))'
-            }}>🔑</div>
-          </div>
-        </div>
-
-        {/* Total Premium */}
-        <div style={{
-          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-          borderRadius: '20px',
-          padding: '2rem',
-          color: 'white',
-          boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          transition: 'all 0.3s ease',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-8px)';
-          e.currentTarget.style.boxShadow = '0 16px 40px rgba(59, 130, 246, 0.4)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3)';
-        }}
-        >
-          <div style={{ 
-            position: 'absolute', 
-            top: '-20px', 
-            right: '-20px', 
-            width: '80px', 
-            height: '80px', 
-            background: 'rgba(255, 255, 255, 0.1)', 
-            borderRadius: '50%' 
-          }}></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-            <div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.75rem', fontWeight: 500 }}>
-                Total Premium
-              </div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>
-                €{policies
-                  .filter(p => p.payment && p.payment.status === 'SUCCESS')
-                  .reduce((sum, p) => sum + p.premium, 0)
-                }
-              </div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>
-                Total paid amount
-              </div>
-            </div>
-            <div style={{ 
-              fontSize: '3rem',
-              opacity: 0.9,
-              filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2))'
-            }}>💳</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div style={{ 
-        marginBottom: '3rem',
-        background: 'white',
-        padding: '2rem',
-        borderRadius: '20px',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-        border: '1px solid #e2e8f0'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white'
-          }}>
-            <span style={{ fontSize: '1.25rem' }}>⚡</span>
-          </div>
-          <h2 style={{ 
-            fontSize: '1.5rem', 
-            fontWeight: 600, 
-            color: '#3b82f6',
-            margin: 0
-          }}>
-            Quick Actions
-          </h2>
-        </div>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '1.5rem'
+          marginBottom: '2.5rem',
+          background: '#fff',
+          padding: '2rem 2.5rem',
+          borderRadius: '18px',
+          boxShadow: '0 4px 24px rgba(59, 130, 246, 0.07)',
+          border: '1px solid #e5e7eb',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: '0.5rem'
         }}>
-          <button 
+          <h1 style={{ fontSize: '2.2rem', fontWeight: 700, color: '#2563eb', margin: 0 }}>
+            Customer Dashboard
+          </h1>
+          <span style={{ fontSize: '1.1rem', color: '#64748b' }}>
+            Welcome back! Here's what's happening with your insurance.
+          </span>
+        </div>
+
+        {/* Stats Cards */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: '2rem',
+          marginBottom: '2.5rem'
+        }}>
+          {/* My Policies */}
+          <div style={{
+            background: '#fff',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            color: '#1e293b',
+            boxShadow: '0 2px 12px rgba(59, 130, 246, 0.07)',
+            border: '1px solid #e5e7eb',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            alignItems: 'flex-start',
+          }}>
+            <span style={{ fontSize: '1.7rem', marginBottom: '0.5rem' }}>📑</span>
+            <span style={{ fontSize: '0.95rem', color: '#64748b', fontWeight: 500 }}>My Policies</span>
+            <span style={{ fontSize: '2.2rem', fontWeight: 700 }}>{policies.length}</span>
+          </div>
+          {/* Pending Offers */}
+          <div style={{
+            background: '#fff',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            color: '#1e293b',
+            boxShadow: '0 2px 12px rgba(59, 130, 246, 0.07)',
+            border: '1px solid #e5e7eb',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            alignItems: 'flex-start',
+          }}>
+            <span style={{ fontSize: '1.7rem', marginBottom: '0.5rem' }}>📋</span>
+            <span style={{ fontSize: '0.95rem', color: '#64748b', fontWeight: 500 }}>Pending Offers</span>
+            <span style={{ fontSize: '2.2rem', fontWeight: 700 }}>{offers.filter(o => o.status === 'PENDING').length}</span>
+          </div>
+          {/* My Claims */}
+          <div style={{
+            background: '#fff',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            color: '#1e293b',
+            boxShadow: '0 2px 12px rgba(59, 130, 246, 0.07)',
+            border: '1px solid #e5e7eb',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            alignItems: 'flex-start',
+          }}>
+            <span style={{ fontSize: '1.7rem', marginBottom: '0.5rem' }}>📝</span>
+            <span style={{ fontSize: '0.95rem', color: '#64748b', fontWeight: 500 }}>My Claims</span>
+            <span style={{ fontSize: '2.2rem', fontWeight: 700 }}>{claims.length}</span>
+          </div>
+          {/* Total Premium */}
+          <div style={{
+            background: '#fff',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            color: '#1e293b',
+            boxShadow: '0 2px 12px rgba(59, 130, 246, 0.07)',
+            border: '1px solid #e5e7eb',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            alignItems: 'flex-start',
+          }}>
+            <span style={{ fontSize: '1.7rem', marginBottom: '0.5rem' }}>💶</span>
+            <span style={{ fontSize: '0.95rem', color: '#64748b', fontWeight: 500 }}>Total Premium</span>
+            <span style={{ fontSize: '2.2rem', fontWeight: 700 }}>
+              €{policies.filter(p => p.payment && p.payment.status === 'SUCCESS').reduce((sum, p) => sum + p.premium, 0)}
+            </span>
+          </div>
+          {/* Total Payments */}
+          <div style={{
+            background: '#fff',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            color: '#1e293b',
+            boxShadow: '0 2px 12px rgba(59, 130, 246, 0.07)',
+            border: '1px solid #e5e7eb',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            alignItems: 'flex-start',
+          }}>
+            <span style={{ fontSize: '1.7rem', marginBottom: '0.5rem' }}>💳</span>
+            <span style={{ fontSize: '0.95rem', color: '#64748b', fontWeight: 500 }}>Total Payments</span>
+            <span style={{ fontSize: '2.2rem', fontWeight: 700 }}>{payments.length}</span>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div style={{
+          marginBottom: '2.5rem',
+          background: '#fff',
+          padding: '1.5rem 2rem',
+          borderRadius: '16px',
+          boxShadow: '0 2px 12px rgba(59, 130, 246, 0.07)',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '1.5rem',
+          alignItems: 'center',
+          justifyContent: 'flex-start'
+        }}>
+          <span style={{ fontWeight: 600, fontSize: '1.15rem', color: '#2563eb', marginRight: '2rem' }}>
+            Quick Actions
+          </span>
+          <button
+            style={{
+              background: '#2563eb',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '0.6rem 1.5rem',
+              fontWeight: 600,
+              fontSize: '1rem',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.08)',
+              transition: 'background 0.2s',
+            }}
             onClick={() => setCurrentModule('offers')}
-            style={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '16px',
-              padding: '1.5rem',
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '0.75rem',
-              boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 8px 30px rgba(59, 130, 246, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(59, 130, 246, 0.3)';
-            }}
           >
-            <span style={{ fontSize: '2rem' }}>📋</span>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontWeight: 600 }}>Request New Offer</div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.8, marginTop: '0.25rem' }}>
-                Get insurance quote
-              </div>
-            </div>
+            + New Offer
           </button>
-
-          <button 
-            onClick={() => setCurrentModule('documents')}
+          <button
             style={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '16px',
-              padding: '1.5rem',
-              fontSize: '1rem',
+              background: '#fff',
+              color: '#2563eb',
+              border: '1.5px solid #2563eb',
+              borderRadius: 8,
+              padding: '0.6rem 1.5rem',
               fontWeight: 600,
+              fontSize: '1rem',
               cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '0.75rem',
-              boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3)',
-              position: 'relative',
-              overflow: 'hidden'
+              marginLeft: '0.5rem',
+              transition: 'background 0.2s, color 0.2s',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 8px 30px rgba(59, 130, 246, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(59, 130, 246, 0.3)';
-            }}
-          >
-            <span style={{ fontSize: '2rem' }}>📁</span>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontWeight: 600 }}>Upload Document</div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.8, marginTop: '0.25rem' }}>
-                Submit files
-              </div>
-            </div>
-          </button>
-
-          <button 
             onClick={() => setCurrentModule('claims')}
-            style={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '16px',
-              padding: '1.5rem',
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '0.75rem',
-              boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 8px 30px rgba(59, 130, 246, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(59, 130, 246, 0.3)';
-            }}
           >
-            <span style={{ fontSize: '2rem' }}>🔑</span>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontWeight: 600 }}>File New Claim</div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.8, marginTop: '0.25rem' }}>
-                Report incident
-              </div>
-            </div>
+            + New Claim
           </button>
-
-          <button 
-            onClick={() => setCurrentModule('profile')}
+          <button
             style={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '16px',
-              padding: '1.5rem',
-              fontSize: '1rem',
+              background: '#fff',
+              color: '#2563eb',
+              border: '1.5px solid #2563eb',
+              borderRadius: 8,
+              padding: '0.6rem 1.5rem',
               fontWeight: 600,
+              fontSize: '1rem',
               cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '0.75rem',
-              boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3)',
-              position: 'relative',
-              overflow: 'hidden'
+              marginLeft: '0.5rem',
+              transition: 'background 0.2s, color 0.2s',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 8px 30px rgba(59, 130, 246, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(59, 130, 246, 0.3)';
-            }}
+            onClick={() => setCurrentModule('payments')}
           >
-            <span style={{ fontSize: '2rem' }}>👤</span>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontWeight: 600 }}>Manage Profile</div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.8, marginTop: '0.25rem' }}>
-                Update information
-              </div>
-            </div>
+            + New Payment
+          </button>
+          <button
+            style={{
+              background: '#fff',
+              color: '#2563eb',
+              border: '1.5px solid #2563eb',
+              borderRadius: 8,
+              padding: '0.6rem 1.5rem',
+              fontWeight: 600,
+              fontSize: '1rem',
+              cursor: 'pointer',
+              marginLeft: '0.5rem',
+              transition: 'background 0.2s, color 0.2s',
+            }}
+            onClick={() => setCurrentModule('documents')}
+          >
+            + Upload Document
           </button>
         </div>
-      </div>
-    </div>
-  );
 
+        {/* Poliçelerin Son 6 Aylık Dağılımı Grafiği */}
+        <div style={{
+          background: '#fff',
+          borderRadius: '16px',
+          padding: '2.5rem',
+          boxShadow: '0 2px 12px rgba(59, 130, 246, 0.07)',
+          border: '1px solid #e2e8f0',
+          marginBottom: '2.5rem',
+          maxWidth: 700,
+          marginLeft: 'auto',
+          marginRight: 'auto'
+        }}>
+          <h3 style={{ color: '#2563eb', fontWeight: 600, fontSize: '1.15rem', marginBottom: '1.5rem' }}>
+            Policies Created in the Last 6 Months
+          </h3>
+          <div style={{height: '100%', minHeight: 300}}>
+            <Line data={chartData} options={chartOptions} />
+          </div>
+        </div>
+      </div>
+    );
+  };
   const renderModuleContent = () => {
     switch (currentModule) {
       case 'dashboard':
         return renderDashboard();
              case 'offers':
          return (
-           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
+           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh', overflowY: 'auto' }}>
              {/* Header Section */}
              <div style={{ 
                marginBottom: '3rem',
@@ -2304,7 +2175,7 @@ export default function CustomerPage() {
                        )}
                      </div>
 
-                      {offer.status === 'APPROVED' && (
+                      {offer.status === 'APPROVED' && !offer.policyId && (
                         <button
                           onClick={() => handleConvertOfferToPolicy(offer.id)}
                           style={{
@@ -2360,32 +2231,100 @@ export default function CustomerPage() {
                          Rejected
                        </button>
                      )}
-                     {offer.status === 'CONVERTED' && (
-                       <button
-                         onClick={() => {
-                           console.log('🔍 Go to Policy clicked for offer:', offer);
-                           console.log('🔍 Current token:', localStorage.getItem('token'));
-                           console.log('🔍 Current user role:', localStorage.getItem('userRole'));
-                           console.log('🔍 Current customer ID:', localStorage.getItem('customerId'));
-                           setCurrentModule('policies');
-                         }}
-                         style={{
+                     {offer.policyId && (
+                       <>
+                         <div style={{
                            width: '100%',
-                           padding: '0.75rem 1rem',
-                           background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                           color: 'white',
-                           border: 'none',
+                           background: '#d1fae5',
+                           border: '1px solid #10b981',
                            borderRadius: '8px',
+                           padding: '1rem',
+                           marginBottom: '1rem',
+                           color: '#065f46',
                            fontSize: '0.875rem',
-                           fontWeight: 600,
-                           cursor: 'pointer',
-                           transition: 'transform 0.2s'
-                         }}
-                         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                       >
-                         Go to Policy
-                       </button>
+                           display: 'flex',
+                           alignItems: 'center',
+                           gap: '0.5rem'
+                         }}>
+                           <span style={{ fontSize: '1.25rem' }}>✅</span>
+                           <div>
+                             <strong>Policy Created Successfully!</strong><br />
+                             Your offer has been converted to a policy. You can now view policy details and make payments.
+                           </div>
+                         </div>
+                         <div style={{
+                           display: 'flex',
+                           gap: '1rem',
+                           flexWrap: 'wrap'
+                         }}>
+                           <button
+                             onClick={() => handleViewPolicy(offer.policyId)}
+                             disabled={viewingPolicy}
+                             style={{
+                               background: viewingPolicy ? '#6b7280' : '#3b82f6',
+                               color: 'white',
+                               border: 'none',
+                               borderRadius: '8px',
+                               padding: '0.75rem 1.5rem',
+                               fontSize: '0.875rem',
+                               fontWeight: 600,
+                               cursor: viewingPolicy ? 'not-allowed' : 'pointer',
+                               transition: 'all 0.2s ease-in-out',
+                               boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                               opacity: viewingPolicy ? 0.6 : 1
+                             }}
+                             onMouseEnter={(e) => {
+                               if (!viewingPolicy) {
+                                 e.currentTarget.style.background = '#2563eb';
+                                 e.currentTarget.style.transform = 'translateY(-1px)';
+                                 e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                               }
+                             }}
+                             onMouseLeave={(e) => {
+                               if (!viewingPolicy) {
+                                 e.currentTarget.style.background = '#3b82f6';
+                                 e.currentTarget.style.transform = 'translateY(0)';
+                                 e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
+                               }
+                             }}
+                           >
+                             {viewingPolicy ? '⏳ Loading...' : '📄 View Policy'}
+                           </button>
+                           {/* Only show Make Payment if policy is PENDING_PAYMENT */}
+                           {offer.policyId && policies.find(p => p.id === offer.policyId)?.status === 'PENDING_PAYMENT' && (
+                             <button
+                               onClick={() => {
+                                 setSelectedPolicyId(offer.policyId);
+                                 setShowPaymentForm(true);
+                               }}
+                               style={{
+                                 background: '#10b981',
+                                 color: 'white',
+                                 border: 'none',
+                                 borderRadius: '8px',
+                                 padding: '0.75rem 1.5rem',
+                                 fontSize: '0.875rem',
+                                 fontWeight: 600,
+                                 cursor: 'pointer',
+                                 transition: 'all 0.2s ease-in-out',
+                                 boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                               }}
+                               onMouseEnter={(e) => {
+                                 e.currentTarget.style.background = '#059669';
+                                 e.currentTarget.style.transform = 'translateY(-1px)';
+                                 e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                               }}
+                               onMouseLeave={(e) => {
+                                 e.currentTarget.style.background = '#10b981';
+                                 e.currentTarget.style.transform = 'translateY(0)';
+                                 e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
+                               }}
+                             >
+                               💳 Make Payment
+                             </button>
+                           )}
+                         </div>
+                       </>
                      )}
                    </div>
                  ))}
@@ -2395,7 +2334,7 @@ export default function CustomerPage() {
          );
              case 'policies':
          return (
-           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
+           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh', overflowY: 'auto' }}>
              <div style={{ marginBottom: '2rem' }}>
                <div style={{ 
                  display: 'flex', 
@@ -2544,90 +2483,6 @@ export default function CustomerPage() {
                </div>
              ) : (
                <div>
-                 {/* Show approved offers that can be converted to policies */}
-                 {offers.filter(offer => offer.status === 'APPROVED').map((offer) => (
-                   <div key={`offer-${offer.id}`} style={{
-                     background: 'white',
-                     borderRadius: '16px',
-                     padding: '1.5rem',
-                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                     border: '2px solid #10b981',
-                     transition: 'transform 0.2s, box-shadow 0.2s'
-                   }}
-                   onMouseEnter={(e) => {
-                     e.currentTarget.style.transform = 'translateY(-4px)';
-                     e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
-                   }}
-                   onMouseLeave={(e) => {
-                     e.currentTarget.style.transform = 'translateY(0)';
-                     e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-                   }}
-                   >
-                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                       <div style={{
-                         width: '3rem',
-                         height: '3rem',
-                         background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                         borderRadius: '12px',
-                         display: 'flex',
-                         alignItems: 'center',
-                         justifyContent: 'center',
-                         color: 'white',
-                         fontSize: '1.5rem'
-                       }}>
-                         ✅
-                       </div>
-                       <span style={{
-                         padding: '0.25rem 0.75rem',
-                         borderRadius: '9999px',
-                         fontSize: '0.75rem',
-                         fontWeight: 500,
-                         background: '#dcfce7',
-                         color: '#166534'
-                       }}>
-                         APPROVED OFFER
-                       </span>
-                     </div>
-                     <h3 style={{
-                       fontSize: '1.25rem',
-                       fontWeight: 700,
-                       color: '#1e293b',
-                       marginBottom: '1rem'
-                     }}>
-                       {offer.offerNumber}
-                     </h3>
-                     <div style={{ marginBottom: '1.5rem' }}>
-                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Insurance Type:</span>
-                         <span style={{ fontWeight: 600, color: '#1e293b' }}>{offer.insuranceType}</span>
-                       </div>
-                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                         <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Total Premium:</span>
-                         <span style={{ fontWeight: 600, color: '#1e293b' }}>€{offer.totalPremium}</span>
-                       </div>
-                     </div>
-                     <button
-                       onClick={() => handleConvertOfferToPolicy(offer.id)}
-                       style={{
-                         width: '100%',
-                         background: '#10b981',
-                         color: 'white',
-                         border: 'none',
-                         borderRadius: '8px',
-                         padding: '0.75rem 1rem',
-                         fontSize: '0.875rem',
-                         fontWeight: 600,
-                         cursor: 'pointer',
-                         transition: 'all 0.2s'
-                       }}
-                       onMouseEnter={(e) => e.currentTarget.style.background = '#059669'}
-                       onMouseLeave={(e) => e.currentTarget.style.background = '#10b981'}
-                     >
-                       📋 Convert to Policy
-                     </button>
-                   </div>
-                 ))}
-                 
                  {/* Show existing policies */}
                  {policies.map((policy) => (
                                         <div key={policy.id} style={{
@@ -2862,7 +2717,7 @@ export default function CustomerPage() {
          );
              case 'claims':
          return (
-           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
+           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh', overflowY: 'auto' }}>
              <div style={{ marginBottom: '2rem' }}>
                <h1 style={{
                  fontSize: '2.5rem',
@@ -3072,7 +2927,7 @@ export default function CustomerPage() {
          );
              case 'payments':
          return (
-           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
+           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh', overflowY: 'auto' }}>
              <div style={{ marginBottom: '2rem' }}>
                <h1 style={{
                  fontSize: '2.5rem',
@@ -3212,7 +3067,7 @@ export default function CustomerPage() {
          );
        case 'documents':
          return (
-           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
+           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh', overflowY: 'auto' }}>
              <div style={{ marginBottom: '2rem' }}>
                <h1 style={{
                  fontSize: '2.5rem',
@@ -3425,13 +3280,8 @@ export default function CustomerPage() {
            </div>
          );
        case 'profile':
-         console.log('🔍 Profile render - customer data:', customer);
-         console.log('🔍 Profile render - customerId:', customerId);
-         console.log('🔍 Profile render - isReady:', isReady);
-         console.log('🔍 Profile render - contextLoading:', contextLoading);
-         
          return (
-           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh', display: 'flex', justifyContent: 'center' }}>
+           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh', display: 'flex', justifyContent: 'center', overflowY: 'auto' }}>
              <div style={{ maxWidth: '800px', width: '100%' }}>
                <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
                  <h1 style={{
@@ -3661,7 +3511,6 @@ export default function CustomerPage() {
         return renderDashboard();
     }
   };
-
   return (
     <div style={{ display: 'flex', minHeight: '100vh', width: '100vw', position: 'fixed', top: 0, left: 0 }}>
       {/* Modern Sidebar */}
@@ -3956,7 +3805,7 @@ export default function CustomerPage() {
                  <option value="">Select an agent...</option>
                  {agents.map((agent) => (
                    <option key={agent.id} value={agent.id}>
-                     {agent.firstName} {agent.lastName} - {agent.email}
+                     {agent.firstName}
                    </option>
                  ))}
                </select>
@@ -4266,7 +4115,6 @@ export default function CustomerPage() {
                  </div>
                </div>
              )}
-
              {insuranceType === 'HEALTH' && (
                <div style={{ marginBottom: '1.5rem' }}>
                  <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b', marginBottom: '1rem' }}>
@@ -4404,7 +4252,6 @@ export default function CustomerPage() {
                  </div>
                </div>
              )}
-
              {insuranceType === 'HOME' && (
                <div style={{ marginBottom: '1.5rem' }}>
                  <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b', marginBottom: '1rem' }}>
@@ -4866,7 +4713,6 @@ export default function CustomerPage() {
            </div>
          </div>
        )}
-
        {/* Payment Form Modal */}
        {showPaymentForm && (
          <div style={{
@@ -4879,7 +4725,8 @@ export default function CustomerPage() {
            display: 'flex',
            alignItems: 'center',
            justifyContent: 'center',
-           zIndex: 1000
+           zIndex: 1000,
+           overflowY: 'auto'
          }}>
            <div style={{
              background: 'white',
@@ -5269,7 +5116,6 @@ export default function CustomerPage() {
            </div>
          </div>
        )}
-
        {/* Document Upload Modal */}
        {showDocumentUpload && (
          <div style={{
@@ -5282,7 +5128,8 @@ export default function CustomerPage() {
            display: 'flex',
            alignItems: 'center',
            justifyContent: 'center',
-           zIndex: 1000
+           zIndex: 1000,
+           overflowY: 'auto'
          }}>
            <div style={{
              background: 'white',
@@ -5425,7 +5272,7 @@ export default function CustomerPage() {
                </select>
                
                {/* Helper text based on document type */}
-               <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+               <p style={{ fontSize: '0.75rem', color: '#6b728b', marginTop: '0.25rem' }}>
                  {selectedDocumentType === 'POLICY_DOCUMENT' && 'Policy seçimi zorunlu'}
                  {selectedDocumentType === 'CLAIM_DOCUMENT' && 'Policy ve Claim seçimi zorunlu'}
                  {selectedDocumentType === 'IDENTITY_DOCUMENT' && 'Genel müşteri belgesi'}
@@ -5520,7 +5367,6 @@ export default function CustomerPage() {
            </div>
          </div>
        )}
-
        {/* Offer Details Modal */}
        {showOfferDetails && selectedOffer && (
          <div style={{
@@ -5533,7 +5379,8 @@ export default function CustomerPage() {
            display: 'flex',
            alignItems: 'center',
            justifyContent: 'center',
-           zIndex: 1000
+           zIndex: 1000,
+           overflowY: 'auto'
          }}>
            <div 
              ref={offerDetailsRef}
@@ -5669,17 +5516,46 @@ export default function CustomerPage() {
                  }}>
                    Status
                  </div>
-                 <div style={{
-                   fontSize: '1.125rem',
-                   fontWeight: 700,
-                   color: selectedOffer.status === 'PENDING' ? '#f59e0b' : 
-                          selectedOffer.status === 'APPROVED' ? '#059669' : '#dc2626',
-                   background: selectedOffer.status === 'PENDING' ? '#fef3c7' : 
-                             selectedOffer.status === 'ACCEPTED' ? '#d1fae5' : '#fee2e2',
-                   padding: '0.25rem 0.75rem',
-                   borderRadius: '6px',
-                   display: 'inline-block'
-                 }}>
+                 <div
+                   style={{
+                     fontSize: '1.25rem',
+                     fontWeight: 700,
+                     color:
+                       selectedOffer.status === 'PENDING'
+                         ? '#f59e0b'
+                         : selectedOffer.status === 'APPROVED'
+                         ? '#059669'
+                         : selectedOffer.status === 'REJECTED'
+                         ? '#dc2626'
+                         : selectedOffer.status === 'PAID'
+                         ? '#059669'
+                         : '#6b7280',
+                     background:
+                       selectedOffer.status === 'PENDING'
+                         ? '#fef3c7'
+                         : selectedOffer.status === 'APPROVED'
+                         ? '#d1fae5'
+                         : selectedOffer.status === 'REJECTED'
+                         ? '#fee2e2'
+                         : selectedOffer.status === 'PAID'
+                         ? '#bbf7d0'
+                         : '#f1f5f9',
+                     padding: '0.5rem 1rem',
+                     borderRadius: 8,
+                     display: 'inline-block',
+                     border:
+                       '2px solid ' +
+                       (selectedOffer.status === 'PENDING'
+                         ? '#f59e0b'
+                         : selectedOffer.status === 'APPROVED'
+                         ? '#059669'
+                         : selectedOffer.status === 'REJECTED'
+                         ? '#dc2626'
+                         : selectedOffer.status === 'PAID'
+                         ? '#059669'
+                         : '#6b7280'),
+                   }}
+                 >
                    {selectedOffer.status}
                  </div>
                </div>
@@ -5793,8 +5669,8 @@ export default function CustomerPage() {
                        fontSize: '0.875rem',
                        fontWeight: 500,
                        textAlign: 'center',
-                       background: selectedOffer.status === "PENDING" ? '#fef3c7' : selectedOffer.status === "APPROVED" ? '#dcfce7' : selectedOffer.status === "REJECTED" ? '#fee2e2' : '#e0e7ff',
-                       color: selectedOffer.status === "PENDING" ? '#92400e' : selectedOffer.status === "APPROVED" ? '#166534' : selectedOffer.status === "REJECTED" ? '#991b1b' : '#3730a3'
+                       background: selectedOffer.status === "PENDING" ? '#fef3c7' : selectedOffer.status === "APPROVED" ? '#dcfce7' : selectedOffer.status === "REJECTED" ? '#fee2e2' : selectedOffer.status === "PAID" ? '#bbf7d0' : '#e0e7ff',
+                       color: selectedOffer.status === "PENDING" ? '#92400e' : selectedOffer.status === "APPROVED" ? '#166534' : selectedOffer.status === "REJECTED" ? '#991b1b' : selectedOffer.status === "PAID" ? '#059669' : '#3730a3'
                      }}>
                        {selectedOffer.status}
                      </div>
@@ -5828,6 +5704,17 @@ export default function CustomerPage() {
                          fontWeight: 500
                        }}>
                          ✗ Offer rejected
+                       </div>
+                     )}
+                     {selectedOffer.status === "PAID" && (
+                       <div style={{
+                         marginTop: '0.5rem',
+                         fontSize: '0.75rem',
+                         color: '#059669',
+                         textAlign: 'center',
+                         fontWeight: 500
+                       }}>
+                         ✓ Offer paid
                        </div>
                      )}
                    </div>
@@ -6080,7 +5967,6 @@ export default function CustomerPage() {
                    </div>
                  </div>
                )}
-
                <div style={{ marginBottom: '1.5rem' }}>
                  <div style={{
                    display: 'flex',
@@ -6256,7 +6142,6 @@ export default function CustomerPage() {
                    </div>
                  )}
                </div>
-
                {/* Additional Offer Information */}
                <div style={{ marginBottom: '1.5rem' }}>
                  <h3 style={{
@@ -6457,36 +6342,39 @@ export default function CustomerPage() {
                      </div>
                    )}
                    
-                   {selectedOffer.status === "APPROVED" && (
-                                            <button
-                         onClick={() => handleConvertOfferToPolicy(selectedOffer.id)}
-                         style={{
-                           background: '#059669',
-                           color: 'white',
-                           border: 'none',
-                           borderRadius: '8px',
-                           padding: '0.75rem 1.5rem',
-                           fontSize: '0.875rem',
-                           fontWeight: 600,
-                           cursor: 'pointer',
-                           transition: 'all 0.2s ease-in-out',
-                           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-                         }}
-                         onMouseEnter={(e) => {
-                           e.currentTarget.style.background = '#047857';
-                           e.currentTarget.style.transform = 'translateY(-1px)';
-                           e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-                         }}
-                         onMouseLeave={(e) => {
-                           e.currentTarget.style.background = '#059669';
-                           e.currentTarget.style.transform = 'translateY(0)';
-                           e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
-                         }}
-                       >
-                         📋 Convert to Policy
-                       </button>
+                   {/* Convert to Policy button: Only show if offer is approved and not yet converted */}
+                   {selectedOffer.status === "APPROVED" && !selectedOffer.policyId && (
+                     <button
+                       onClick={() => handleConvertOfferToPolicy(selectedOffer.id)}
+                       style={{
+                         background: '#059669',
+                         color: 'white',
+                         border: 'none',
+                         borderRadius: '8px',
+                         padding: '0.75rem 1.5rem',
+                         fontSize: '0.875rem',
+                         fontWeight: 600,
+                         cursor: 'pointer',
+                         transition: 'all 0.2s ease-in-out',
+                         boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                       }}
+                       onMouseEnter={(e) => {
+                         e.currentTarget.style.background = '#047857';
+                         e.currentTarget.style.transform = 'translateY(-1px)';
+                         e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                       }}
+                       onMouseLeave={(e) => {
+                         e.currentTarget.style.background = '#059669';
+                         e.currentTarget.style.transform = 'translateY(0)';
+                         e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
+                       }}
+                     >
+                       📋 Convert to Policy
+                     </button>
                    )}
-                   {selectedOffer.status === "APPROVED" && (
+
+                   {/* View Policy & Make Payment: Only show if policyId exists (policy created) */}
+                   {selectedOffer.policyId && (
                      <>
                        <div style={{
                          width: '100%',
@@ -6514,7 +6402,7 @@ export default function CustomerPage() {
                          flexWrap: 'wrap'
                        }}>
                          <button
-                           onClick={() => handleViewPolicy(0)}
+                           onClick={() => handleViewPolicy(selectedOffer.policyId)}
                            disabled={viewingPolicy}
                            style={{
                              background: viewingPolicy ? '#6b7280' : '#3b82f6',
@@ -6547,36 +6435,39 @@ export default function CustomerPage() {
                            {viewingPolicy ? '⏳ Loading...' : '📄 View Policy'}
                          </button>
                          
-                         <button
-                           onClick={() => {
-                             setSelectedPolicyId(0);
-                             setShowPaymentForm(true);
-                           }}
-                           style={{
-                             background: '#10b981',
-                             color: 'white',
-                             border: 'none',
-                             borderRadius: '8px',
-                             padding: '0.75rem 1.5rem',
-                             fontSize: '0.875rem',
-                             fontWeight: 600,
-                             cursor: 'pointer',
-                             transition: 'all 0.2s ease-in-out',
-                             boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-                           }}
-                           onMouseEnter={(e) => {
-                             e.currentTarget.style.background = '#059669';
-                             e.currentTarget.style.transform = 'translateY(-1px)';
-                             e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-                           }}
-                           onMouseLeave={(e) => {
-                             e.currentTarget.style.background = '#10b981';
-                             e.currentTarget.style.transform = 'translateY(0)';
-                             e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
-                           }}
-                         >
-                           💳 Make Payment
-                         </button>
+                         {/* Only show Make Payment if policy is PENDING_PAYMENT */}
+                         {policies.find(p => p.id === selectedOffer.policyId)?.status === 'PENDING_PAYMENT' && (
+                           <button
+                             onClick={() => {
+                               setSelectedPolicyId(selectedOffer.policyId);
+                               setShowPaymentForm(true);
+                             }}
+                             style={{
+                               background: '#10b981',
+                               color: 'white',
+                               border: 'none',
+                               borderRadius: '8px',
+                               padding: '0.75rem 1.5rem',
+                               fontSize: '0.875rem',
+                               fontWeight: 600,
+                               cursor: 'pointer',
+                               transition: 'all 0.2s ease-in-out',
+                               boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                             }}
+                             onMouseEnter={(e) => {
+                               e.currentTarget.style.background = '#059669';
+                               e.currentTarget.style.transform = 'translateY(-1px)';
+                               e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                             }}
+                             onMouseLeave={(e) => {
+                               e.currentTarget.style.background = '#10b981';
+                               e.currentTarget.style.transform = 'translateY(0)';
+                               e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
+                             }}
+                           >
+                             💳 Make Payment
+                           </button>
+                         )}
                        </div>
                      </>
                    )}
@@ -6613,7 +6504,6 @@ export default function CustomerPage() {
            </div>
          </div>
        )}
-
        {/* Profile Update Modal */}
        {showProfileUpdate && (
          <div style={{
@@ -6626,7 +6516,8 @@ export default function CustomerPage() {
            display: 'flex',
            alignItems: 'center',
            justifyContent: 'center',
-           zIndex: 1000
+           zIndex: 1000,
+           overflowY: 'auto'
          }}>
            <div style={{
              background: 'white',

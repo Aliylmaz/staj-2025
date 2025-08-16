@@ -3,6 +3,8 @@ package com.ada.insurance_app.service.HomeInsuranceDetail.Impl;
 import com.ada.insurance_app.core.exception.ResourceNotFoundException;
 import com.ada.insurance_app.dto.HomeInsuranceDetailDto;
 import com.ada.insurance_app.entity.HomeInsuranceDetail;
+import com.ada.insurance_app.entity.Offer;
+import com.ada.insurance_app.entity.Customer;
 import com.ada.insurance_app.mapper.HomeInsuranceDetailMapper;
 import com.ada.insurance_app.repository.IHomeInsuranceDetailRepository;
 import com.ada.insurance_app.request.home.CreateHomeInsuranceDetailRequest;
@@ -23,20 +25,37 @@ public class HomeInsuranceDetailServiceImpl implements IHomeInsuranceDetailServi
 
     @Override
     public HomeInsuranceDetailDto create(CreateHomeInsuranceDetailRequest request) {
-
         HomeInsuranceDetail detail = mapper.toEntity(request);
+        // offerId ile ilişkilendir
+        Offer offer = new Offer();
+        offer.setId(request.getOfferId());
+        detail.setOffer(offer);
+        // (Opsiyonel) customerId ile ilişkiyi de koru
+        if (request.getCustomerId() != null) {
+            Customer customer = new Customer();
+            customer.setId(request.getCustomerId());
+            detail.setCustomer(customer);
+        }
         HomeInsuranceDetail savedDetail = repository.save(detail);
         return mapper.toDto(savedDetail);
-
-
     }
 
     @Override
     public HomeInsuranceDetailDto update(UUID id, UpdateHomeInsuranceDetailRequest request) {
         HomeInsuranceDetail existing = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("HomeInsuranceDetail not found"));
-
         mapper.updateEntityFromRequest(existing, request);
+        // offerId güncellemesi (isteğe bağlı, genelde değişmez)
+        if (request.getOfferId() != null) {
+            Offer offer = new Offer();
+            offer.setId(request.getOfferId());
+            existing.setOffer(offer);
+        }
+        if (request.getCustomerId() != null) {
+            Customer customer = new Customer();
+            customer.setId(request.getCustomerId());
+            existing.setCustomer(customer);
+        }
         HomeInsuranceDetail updated = repository.save(existing);
         return mapper.toDto(updated);
     }

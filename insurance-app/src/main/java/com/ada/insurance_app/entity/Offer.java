@@ -79,4 +79,14 @@ public class Offer {
     
     @Column(nullable = true)
     private LocalDateTime convertedAt; // Set when offer is converted to policy
+
+    /** Offer ile detail arasında birebir ilişki (mappedBy = "offer") */
+    @OneToOne(mappedBy = "offer")
+    private HealthInsuranceDetail healthDetail;
+
+    @OneToOne(mappedBy = "offer")
+    private HomeInsuranceDetail homeDetail;
+
+    @OneToOne(mappedBy = "offer")
+    private Vehicle vehicleDetail;
 }

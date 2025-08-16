@@ -19,4 +19,5 @@ public class CreateHealthInsuranceDetailRequest {
     private String allergies;
     private String familyMedicalHistory;
     private String bloodType;
+    private Long offerId;
 }

@@ -34,4 +34,6 @@ public class UpdateVehicleRequest {
     private Integer kilometers;
 
     private String registrationDate;
+
+    private Long offerId;
 }

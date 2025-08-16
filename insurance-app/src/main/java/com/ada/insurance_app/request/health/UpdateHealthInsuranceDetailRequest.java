@@ -19,5 +19,6 @@ public class UpdateHealthInsuranceDetailRequest {
     private String allergies;
     private String familyMedicalHistory;
     private String bloodType;
+    private Long offerId;
 
 }

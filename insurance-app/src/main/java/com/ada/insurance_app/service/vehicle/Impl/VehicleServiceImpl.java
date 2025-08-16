@@ -5,6 +5,7 @@ import com.ada.insurance_app.core.exception.DuplicateEntityException;
 import com.ada.insurance_app.core.exception.VehicleNotFoundException;
 import com.ada.insurance_app.dto.VehicleDto;
 import com.ada.insurance_app.entity.Customer;
+import com.ada.insurance_app.entity.Offer;
 import com.ada.insurance_app.entity.Vehicle;
 import com.ada.insurance_app.mapper.VehicleMapper;
 import com.ada.insurance_app.repository.ICustomerRepository;
@@ -33,35 +34,6 @@ public class VehicleServiceImpl implements IVehicleService {
     private final IVehicleRepository vehicleRepository;
     private final ICustomerRepository customerRepository;
     private final VehicleMapper vehicleMapper;
-
-    @Override
-    @Transactional
-    public VehicleDto addVehicle(VehicleDto vehicleDto, UUID customerId) {
-        // Validate input
-        validateVehicleDto(vehicleDto);
-        
-        // Check if customer exists
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new CustomerNotFoundException("Customer not found with id: " + customerId));
-        
-        // Check for duplicate plate number
-        if (vehicleRepository.existsByPlateNumber(vehicleDto.getPlateNumber())) {
-            throw new DuplicateEntityException("Vehicle with plate number " + vehicleDto.getPlateNumber() + " already exists");
-        }
-        
-        // Check for duplicate VIN
-        if (vehicleDto.getVin() != null && vehicleRepository.existsByVin(vehicleDto.getVin())) {
-            throw new DuplicateEntityException("Vehicle with VIN " + vehicleDto.getVin() + " already exists");
-        }
-        
-        Vehicle vehicle = vehicleMapper.toEntity(vehicleDto);
-        vehicle.setCustomer(customer);
-        
-        Vehicle savedVehicle = vehicleRepository.save(vehicle);
-        log.info("Vehicle added successfully: {} for customer: {}", vehicle.getPlateNumber(), customerId);
-        
-        return vehicleMapper.toDto(savedVehicle);
-    }
 
     @Override
     @Transactional
@@ -167,7 +139,7 @@ public class VehicleServiceImpl implements IVehicleService {
             throw new CustomerNotFoundException("Customer not found with id: " + customerId);
         }
         
-        Optional<Vehicle> vehicles = vehicleRepository.findByCustomerId(customerId);
+        List<Vehicle> vehicles = vehicleRepository.findAllByCustomer_Id(customerId);
         return vehicles.stream()
                 .map(vehicleMapper::toDto)
                 .collect(Collectors.toList());
@@ -223,15 +195,12 @@ public class VehicleServiceImpl implements IVehicleService {
 
     @Override
     public long countByCustomerId(UUID customerId) {
-        if (!customerRepository.existsById(customerId)) {
-            throw new CustomerNotFoundException("Customer not found with id: " + customerId);
-        }
-        return vehicleRepository.countByCustomerId(customerId);
+        return vehicleRepository.findAllByCustomer_Id(customerId).size();
     }
 
     @Override
     @Transactional
-    public VehicleDto createVehicleFromRequest(AddVehicleRequest request, UUID customerId) {
+    public VehicleDto createVehicleFromRequest(AddVehicleRequest request, UUID customerId, Long offerId) {
         // Validate request
         validateAddVehicleRequest(request);
         
@@ -271,6 +240,13 @@ public class VehicleServiceImpl implements IVehicleService {
             vehicle.setRegistrationDate(LocalDate.parse(request.getRegistrationDate()));
         }
         vehicle.setCreatedAt(LocalDateTime.now());
+        
+        // offerId ile ilişkilendir
+        if (offerId != null) {
+            Offer offer = new Offer();
+            offer.setId(offerId);
+            vehicle.setOffer(offer);
+        }
         
         Vehicle savedVehicle = vehicleRepository.save(vehicle);
         log.info("Vehicle created from request successfully: {} for customer: {}", savedVehicle.getPlateNumber(), customerId);

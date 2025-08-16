@@ -13,4 +13,5 @@ public class UpdateHomeInsuranceDetailRequest {
     private Integer floorNumber;
     private Integer totalFloors;
     private UUID customerId;
+    private Long offerId;
 }

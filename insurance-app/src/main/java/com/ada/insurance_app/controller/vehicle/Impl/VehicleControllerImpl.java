@@ -23,13 +23,7 @@ public class VehicleControllerImpl implements IVehicleController {
 
     private final IVehicleService vehicleService;
 
-    @Override
-    @PostMapping("/add/{customerId}")
-    public ResponseEntity<GeneralResponse<VehicleDto>> addVehicle(@RequestBody VehicleDto vehicleDto,
-                                                                 @PathVariable UUID customerId) {
-        VehicleDto savedVehicle = vehicleService.addVehicle(vehicleDto, customerId);
-        return ResponseEntity.ok(GeneralResponse.success("Vehicle added successfully", savedVehicle));
-    }
+    // addVehicle endpointi kaldırıldı, sadece createVehicle kullanılacak.
 
     @Override
     @PutMapping("/update/{vehicleId}")
@@ -127,8 +121,13 @@ public class VehicleControllerImpl implements IVehicleController {
     @PostMapping("/create")
     public ResponseEntity<GeneralResponse<VehicleDto>> createVehicle(@RequestBody AddVehicleRequest request) {
         try {
+            if (request.getOfferId() == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                        GeneralResponse.error("OfferId is required for vehicle creation", HttpStatus.BAD_REQUEST)
+                );
+            }
             log.info("Creating vehicle for customer: {} with plate: {}", request.getCustomerId(), request.getPlateNumber());
-            VehicleDto vehicle = vehicleService.createVehicleFromRequest(request, request.getCustomerId());
+            VehicleDto vehicle = vehicleService.createVehicleFromRequest(request, request.getCustomerId(), request.getOfferId());
             
             return ResponseEntity.ok(GeneralResponse.success("Vehicle created successfully", vehicle));
         } catch (Exception e) {

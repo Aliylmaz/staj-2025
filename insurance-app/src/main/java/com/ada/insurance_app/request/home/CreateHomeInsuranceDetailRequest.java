@@ -13,6 +13,7 @@ public class CreateHomeInsuranceDetailRequest {
     private Integer floorNumber;
     private Integer totalFloors;
     private UUID customerId;
+    private Long offerId;
     
     public boolean getEarthquakeResistance() {
         return earthquakeResistance;

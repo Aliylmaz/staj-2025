@@ -12,8 +12,6 @@ import java.util.UUID;
 
 public interface IVehicleController {
 
-    ResponseEntity<GeneralResponse<VehicleDto>> addVehicle(VehicleDto vehicleDto, UUID customerId);
-
     ResponseEntity<GeneralResponse<VehicleDto>> updateVehicle(UUID vehicleId, VehicleDto vehicleDto);
 
     ResponseEntity<GeneralResponse<Void>> deleteVehicle(UUID vehicleId);

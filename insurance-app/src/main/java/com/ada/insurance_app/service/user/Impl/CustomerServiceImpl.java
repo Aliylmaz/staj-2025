@@ -32,6 +32,9 @@ import java.util.stream.Collectors;
 
 import com.ada.insurance_app.repository.IAgentRepository;
 import com.ada.insurance_app.service.document.IDocumentService;
+import com.ada.insurance_app.service.vehicle.IVehicleService;
+import com.ada.insurance_app.service.HealthInsuranceDetail.IHealthInsuranceDetailService;
+import com.ada.insurance_app.service.HomeInsuranceDetail.IHomeInsuranceDetailService;
 
 @Slf4j
 @Service
@@ -57,6 +60,9 @@ public class CustomerServiceImpl implements ICustomerService {
     private final PaymentMapper paymentMapper;
     private final IUserRepository userRepository;
     private final IDocumentService documentService;
+    private final IVehicleService vehicleService;
+    private final IHealthInsuranceDetailService healthInsuranceDetailService;
+    private final IHomeInsuranceDetailService homeInsuranceDetailService;
 
     @Override
     public List<PolicyDto> getMyPolicies(UUID customerId) {
@@ -131,7 +137,7 @@ public class CustomerServiceImpl implements ICustomerService {
         offer.setOfferNumber("OFF-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         offer.setCustomer(customer);
         offer.setInsuranceType(request.getInsuranceType());
-        
+
         // Handle agent if provided
         if (request.getAgentId() != null && !request.getAgentId().toString().trim().isEmpty()) {
             Agent agent = agentRepository.findById(request.getAgentId())
@@ -160,70 +166,41 @@ public class CustomerServiceImpl implements ICustomerService {
             offer.setCoverages(new HashSet<>());
         }
 
-
         offer.setStatus(OfferStatus.PENDING);
         offer.setNote(request.getNote());
         offer.setCreatedAt(LocalDateTime.now());
 
+        Offer saved = offerRepository.save(offer);
+        Long offerId = saved.getId();
 
-        // Handle dynamic insurance type details
+        // Handle dynamic insurance type details (request + service pattern)
         switch (request.getInsuranceType()) {
             case VEHICLE:
                 if (request.getVehicleRequest() != null) {
-                    Vehicle vehicle = new Vehicle();
-                    vehicle.setMake(request.getVehicleRequest().getMake());
-                    vehicle.setModel(request.getVehicleRequest().getModel());
-                    vehicle.setYear(request.getVehicleRequest().getYear());
-                    vehicle.setPlateNumber(request.getVehicleRequest().getPlateNumber());
-                    vehicle.setVin(request.getVehicleRequest().getVin());
-                    vehicle.setEngineNumber(request.getVehicleRequest().getEngineNumber());
-                    vehicle.setFuelType(request.getVehicleRequest().getFuelType());
-                    vehicle.setGearType(request.getVehicleRequest().getGearType());
-                    vehicle.setUsageType(request.getVehicleRequest().getUsageType());
-                    vehicle.setKilometers(request.getVehicleRequest().getKilometers());
-                    if (request.getVehicleRequest().getRegistrationDate() != null && StringUtils.hasText(request.getVehicleRequest().getRegistrationDate())) {
-                        vehicle.setRegistrationDate(LocalDate.parse(request.getVehicleRequest().getRegistrationDate()));
-                    }
-                    vehicle.setCustomer(customer);
-                    vehicleRepository.save(vehicle);
+                    var vehicleReq = request.getVehicleRequest();
+                    vehicleReq.setCustomerId(customerId);
+                    vehicleReq.setOfferId(offerId);
+                    vehicleService.createVehicleFromRequest(vehicleReq, customerId, offerId);
                 }
                 break;
             case HEALTH:
                 if (request.getHealthDetailRequest() != null) {
-                    HealthInsuranceDetail healthDetail = new HealthInsuranceDetail();
-                    if (request.getHealthDetailRequest().getDateOfBirth() != null && StringUtils.hasText(request.getHealthDetailRequest().getDateOfBirth())) {
-                        healthDetail.setDateOfBirth(LocalDate.parse(request.getHealthDetailRequest().getDateOfBirth()));
-                    }
-                    healthDetail.setGender(request.getHealthDetailRequest().getGender());
-                    healthDetail.setMedicalHistory(request.getHealthDetailRequest().getMedicalHistory());
-                    healthDetail.setHeight(request.getHealthDetailRequest().getHeight());
-                    healthDetail.setWeight(request.getHealthDetailRequest().getWeight());
-                    healthDetail.setSmoker(request.getHealthDetailRequest().getSmoker());
-                    healthDetail.setChronicDiseases(request.getHealthDetailRequest().getChronicDiseases());
-                    healthDetail.setCurrentMedications(request.getHealthDetailRequest().getCurrentMedications());
-                    healthDetail.setAllergies(request.getHealthDetailRequest().getAllergies());
-                    healthDetail.setFamilyMedicalHistory(request.getHealthDetailRequest().getFamilyMedicalHistory());
-                    healthDetail.setBloodType(request.getHealthDetailRequest().getBloodType());
-                    healthDetail.setCustomer(customer);
-                    healthInsuranceDetailRepository.save(healthDetail);
+                    var healthReq = request.getHealthDetailRequest();
+                    healthReq.setCustomerId(customerId);
+                    healthReq.setOfferId(offerId);
+                    healthInsuranceDetailService.create(healthReq);
                 }
                 break;
             case HOME:
                 if (request.getHomeDetailRequest() != null) {
-                    HomeInsuranceDetail homeDetail = new HomeInsuranceDetail();
-                    homeDetail.setAddress(request.getHomeDetailRequest().getAddress());
-                    homeDetail.setBuildingAge(request.getHomeDetailRequest().getBuildingAge());
-                    homeDetail.setSquareMeters(request.getHomeDetailRequest().getSquareMeters());
-                    homeDetail.setEarthquakeResistance(request.getHomeDetailRequest().getEarthquakeResistance());
-                    homeDetail.setFloorNumber(request.getHomeDetailRequest().getFloorNumber());
-                    homeDetail.setTotalFloors(request.getHomeDetailRequest().getTotalFloors());
-                    homeDetail.setCustomer(customer);
-                    homeInsuranceDetailRepository.save(homeDetail);
+                    var homeReq = request.getHomeDetailRequest();
+                    homeReq.setCustomerId(customerId);
+                    homeReq.setOfferId(offerId);
+                    homeInsuranceDetailService.create(homeReq);
                 }
                 break;
         }
 
-        Offer saved = offerRepository.save(offer);
         // Fetch the saved offer with all associations loaded to avoid lazy loading issues
         Offer offerWithDetails = offerRepository.findByIdWithDetails(saved.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Failed to retrieve saved offer"));
@@ -267,67 +244,52 @@ public class CustomerServiceImpl implements ICustomerService {
     @Override
     @Transactional
     public PolicyDto acceptOfferAndCreatePolicy(Long offerId, UUID customerId) {
-        // Teklifi getir
         Offer offer = offerRepository.findByIdWithDetails(offerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Offer not found with ID: " + offerId));
 
-
-
-        // Teklifi oluşturan müşteriyle şu anki müşteri aynı mı?
         if (!offer.getCustomer().getId().equals(customerId)) {
             throw new UnauthorizedAccessException("You are not authorized to convert this offer");
         }
-
-        // Teklif sadece APPROVED durumunda mı?
         if (offer.getStatus() != OfferStatus.APPROVED) {
             throw new InvalidRequestException("Only APPROVED offers can be converted to policy. Current status: " + offer.getStatus());
         }
+        if (policyRepository.existsByOffer_Id(offer.getId())) {
+            throw new InvalidRequestException("Policy already created for this offer");
+        }
 
-        // Yeni poliçe oluştur
         Policy policy = new Policy();
         policy.setPolicyNumber("POL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         policy.setCustomer(offer.getCustomer());
-        policy.setAgent(offer.getAgent()); // Agent'ı offer'dan al
-        
-        // Debug logging for agent assignment
-        log.info("Converting offer to policy - Offer agent: {}, Policy agent set to: {}", 
-                offer.getAgent() != null ? offer.getAgent().getId() : "NULL",
-                policy.getAgent() != null ? policy.getAgent().getId() : "NULL");
-        
-        policy.setStatus(PolicyStatus.PENDING_PAYMENT); // Başlangıçta ödeme bekliyor
+        policy.setAgent(offer.getAgent());
+        policy.setStatus(PolicyStatus.PENDING_PAYMENT);
         policy.setStartDate(LocalDate.now());
         policy.setEndDate(LocalDate.now().plusYears(1));
         policy.setPremium(offer.getTotalPremium());
         policy.setInsuranceType(offer.getInsuranceType());
-        
+        policy.setOffer(offer); // yeni ilişki
 
-
-        // Detayları InsuranceType'a göre ayarla
         switch (offer.getInsuranceType()) {
             case VEHICLE -> policy.setVehicle(
-                    vehicleRepository.findByCustomerId(customerId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found for customer"))
+                vehicleRepository.findByOfferId(offer.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Vehicle detail not found for offer"))
             );
             case HEALTH -> policy.setHealthInsuranceDetail(
-                    healthInsuranceDetailRepository.findByCustomer_Id(customerId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Health insurance detail not found for customer"))
+                healthInsuranceDetailRepository.findByOfferId(offer.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Health insurance detail not found for offer"))
             );
             case HOME -> policy.setHomeInsuranceDetail(
-                    homeInsuranceDetailRepository.findByCustomer_Id(customerId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Home insurance detail not found for customer"))
+                homeInsuranceDetailRepository.findByOfferId(offer.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Home insurance detail not found for offer"))
             );
+            default -> throw new InvalidRequestException("Unsupported insurance type");
         }
 
-        // Kaydet
         Policy savedPolicy = policyRepository.save(policy);
 
-
-        // Teklifi CONVERTED durumuna güncelle
         offer.setStatus(OfferStatus.CONVERTED);
         offer.setConvertedAt(LocalDateTime.now());
         offer.setPolicy(savedPolicy);
         offerRepository.save(offer);
-
 
         return policyMapper.toDto(savedPolicy);
     }
@@ -363,11 +325,10 @@ public class CustomerServiceImpl implements ICustomerService {
         return claimMapper.toDto(savedClaim);
     }
 
+    @Transactional
     @Override
     public PaymentDto makePayment(Long policyId, CreatePaymentRequest request, UUID customerId) {
 
-        
-        // Poliçeyi bul ve doğrula
         Policy policy = policyRepository.findById(policyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Policy not found with ID: " + policyId));
 
@@ -375,63 +336,48 @@ public class CustomerServiceImpl implements ICustomerService {
             throw new UnauthorizedAccessException("Policy does not belong to this customer");
         }
 
-
-        // Check if payment already exists for this policy
         List<Payment> existingPayments = paymentRepository.findByPolicy_Id(policyId);
         Payment payment;
-        
-        if (!existingPayments.isEmpty()) {
-            payment = existingPayments.get(0); // Get the first (most recent) payment
 
-            
-            // Check if there's already a successful payment - only prevent if SUCCESS
+        if (!existingPayments.isEmpty()) {
+            payment = existingPayments.get(0); // tekrar findById gerek yok
             if (payment.getStatus() == PaymentStatus.SUCCESS) {
-                throw new RuntimeException("A successful payment has already been made for this policy. No further payments are required.");
+                throw new RuntimeException("A successful payment has already been made for this policy.");
             }
-            
-            // If payment is FAILED, we can retry it
             if (payment.getStatus() == PaymentStatus.FAILED) {
-                payment.setStatus(PaymentStatus.FAILED);
-                throw new RuntimeException("Payment for this policy has been failed. Please try again.");
+                throw new RuntimeException("Payment for this policy has failed previously. Please try again.");
             }
+            // existing -> createdAt dokunma
         } else {
             payment = new Payment();
             payment.setPolicy(policy);
             payment.setCustomer(policy.getCustomer());
-            payment.setId(UUID.randomUUID()); // Generate new UUID for new payment
+            // ID’yi ELLE SET ETME! JPA üretsin.
+            payment.setCreatedAt(LocalDateTime.now());
         }
-        
-        // Update payment details
+
         payment.setAmount(policy.getPremium());
         payment.setPaymentDate(LocalDateTime.now());
         payment.setTransactionReference("TRX-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
-        
-        boolean paymentSuccess = simulateCardPayment(request);
-        payment.setStatus(paymentSuccess ? PaymentStatus.SUCCESS : PaymentStatus.FAILED);
-        payment.setCreatedAt(LocalDateTime.now());
-        payment.setUpdatedAt(LocalDateTime.now());
-        
-        log.info("makePayment: Payment simulation result: {}, status: {}", paymentSuccess, payment.getStatus());
 
-        if (payment.getStatus() == PaymentStatus.SUCCESS
-                && policy.getStatus() != PolicyStatus.ACTIVE) {
+        boolean ok = simulateCardPayment(request);
+        payment.setStatus(ok ? PaymentStatus.SUCCESS : PaymentStatus.FAILED);
+        payment.setUpdatedAt(LocalDateTime.now());
+
+        if (ok && policy.getStatus() != PolicyStatus.ACTIVE) {
             policy.setStatus(PolicyStatus.ACTIVE);
             policy.setUpdatedAt(LocalDateTime.now());
             policyRepository.save(policy);
-            log.info("makePayment: Policy status updated to ACTIVE");
-        }
 
-        try {
-            paymentRepository.save(payment);
-            log.info("makePayment: Payment saved with ID: {}", payment.getId());
-        } catch (Exception e) {
-            log.error("makePayment: Error saving payment: {}", e.getMessage());
-            if (e.getMessage().contains("duplicate key") || e.getMessage().contains("constraint")) {
-                throw new RuntimeException("Payment already exists for this policy. Please contact support if you need to update payment details.");
+            // OFFER STATUS GÜNCELLE
+            Offer offer = policy.getOffer();
+            if (offer != null && offer.getStatus() == OfferStatus.CONVERTED) {
+                offer.setStatus(OfferStatus.PAID);
+                offerRepository.save(offer);
             }
-            throw e;
         }
 
+        paymentRepository.save(payment);
         return paymentMapper.toDto(payment);
     }
 

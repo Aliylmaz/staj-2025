@@ -27,9 +27,8 @@ public interface IHomeInsuranceDetailRepository extends JpaRepository<HomeInsura
             @Param("minSize") double minSize,
             @Param("isResistant") boolean isResistant);
 
-    Optional<HomeInsuranceDetail> findByCustomer_Id(UUID customerİd);
-
-
+    @Query("SELECT h FROM HomeInsuranceDetail h WHERE h.offer.id = :offerId")
+    Optional<HomeInsuranceDetail> findByOfferId(@Param("offerId") Long offerId);
 
 
 }

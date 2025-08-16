@@ -14,6 +14,7 @@ import java.util.UUID;
 import com.ada.insurance_app.core.exception.ResourceNotFoundException;
 import com.ada.insurance_app.dto.HealthInsuranceDetailDto;
 import com.ada.insurance_app.entity.Customer;
+import com.ada.insurance_app.entity.Offer;
 
 import com.ada.insurance_app.mapper.HealthInsuranceDetailMapper;
 
@@ -31,12 +32,16 @@ public class HealthInsuranceDetailServiceImpl implements IHealthInsuranceDetailS
     @Override
     public HealthInsuranceDetailDto create(CreateHealthInsuranceDetailRequest request) {
         HealthInsuranceDetail detail = mapper.toEntity(request);
-
-        // customerId -> Customer bağlama
-        Customer customer = new Customer();
-        customer.setId(request.getCustomerId());
-        detail.setCustomer(customer);
-
+        // offerId ile ilişkilendir
+        Offer offer = new Offer();
+        offer.setId(request.getOfferId());
+        detail.setOffer(offer);
+        // (Opsiyonel) customerId ile ilişkiyi de koru
+        if (request.getCustomerId() != null) {
+            Customer customer = new Customer();
+            customer.setId(request.getCustomerId());
+            detail.setCustomer(customer);
+        }
         HealthInsuranceDetail saved = repository.save(detail);
         return mapper.toDto(saved);
     }
@@ -45,13 +50,18 @@ public class HealthInsuranceDetailServiceImpl implements IHealthInsuranceDetailS
     public HealthInsuranceDetailDto update(UUID id, UpdateHealthInsuranceDetailRequest request) {
         HealthInsuranceDetail existing = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("HealthInsuranceDetail not found"));
-
         mapper.updateEntityFromRequest(existing, request);
-
-        Customer customer = new Customer();
-        customer.setId(request.getCustomerId());
-        existing.setCustomer(customer);
-
+        // offerId güncellemesi (isteğe bağlı, genelde değişmez)
+        if (request.getOfferId() != null) {
+            Offer offer = new Offer();
+            offer.setId(request.getOfferId());
+            existing.setOffer(offer);
+        }
+        if (request.getCustomerId() != null) {
+            Customer customer = new Customer();
+            customer.setId(request.getCustomerId());
+            existing.setCustomer(customer);
+        }
         HealthInsuranceDetail updated = repository.save(existing);
         return mapper.toDto(updated);
     }

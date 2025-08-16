@@ -46,6 +46,54 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // --- Agent oluşturma için state ---
+  const [newAgent, setNewAgent] = useState({
+    agentName: '',
+    email: '',
+    phoneNumber: '',
+    username: '',
+    password: ''
+  });
+  const [creatingAgent, setCreatingAgent] = useState(false);
+
+  const handleNewAgentChange = (field: string, value: string) => {
+    setNewAgent((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleCreateAgent = async () => {
+    setCreatingAgent(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8080/api/v1/admin/create-agent', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newAgent.agentName,
+          email: newAgent.email,
+          phoneNumber: newAgent.phoneNumber,
+          user: {
+            username: newAgent.username,
+            password: newAgent.password
+          }
+        })
+      });
+      if (response.ok) {
+        alert('Agent created successfully!');
+        setCurrentAgentSubModule('view-agents');
+        setNewAgent({ agentName: '', email: '', phoneNumber: '', username: '', password: '' });
+      } else {
+        alert('Failed to create agent.');
+      }
+    } catch (error) {
+      alert('Error creating agent.');
+    } finally {
+      setCreatingAgent(false);
+    }
+  };
+
   useEffect(() => {
     // Admin kontrolü
     const userRole = localStorage.getItem('userRole');
@@ -212,163 +260,110 @@ export default function AdminPage() {
     setCurrentAgentSubModule(subModule);
   };
 
+  // --- RENK SABİTİ ---
+  const MAIN_COLOR = '#2563eb';
+  const BG_COLOR = '#f8fafc';
+  const CARD_BG = 'white';
+  const CARD_BORDER = '#e2e8f0';
+  const CARD_RADIUS = '12px';
+  const CARD_SHADOW = '0 1px 3px 0 rgba(0,0,0,0.07)';
+
   const renderDashboard = () => (
-    <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
+    <div style={{ padding: '2rem', background: BG_COLOR, minHeight: '100vh' }}>
       {/* Header */}
       <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ 
-          fontSize: '2.5rem', 
-          fontWeight: 700, 
-          color: '#1e293b',
-          marginBottom: '0.5rem'
-        }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: MAIN_COLOR, marginBottom: '0.5rem' }}>
           Admin Dashboard
         </h1>
-        <p style={{ 
-          fontSize: '1.1rem', 
-          color: '#64748b',
-          margin: 0
-        }}>
+        <p style={{ fontSize: '1.1rem', color: '#64748b', margin: 0 }}>
           Welcome back! Here's what's happening with your insurance platform.
         </p>
       </div>
-
       {/* Stats Cards */}
       {loading ? (
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: '200px' 
-        }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
           <div style={{ fontSize: '1.2rem', color: '#64748b' }}>Loading dashboard data...</div>
         </div>
       ) : (
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-          gap: '1.5rem',
-          marginBottom: '2rem'
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
           {/* Total Customers */}
-          <div style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            borderRadius: '16px',
-            padding: '1.5rem',
-            color: 'white',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-          }}>
+          <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', color: MAIN_COLOR, boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', color: '#64748b' }}>
                   Total Users in System
                 </div>
-                <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+                <div style={{ fontSize: '2rem', fontWeight: 700, color: MAIN_COLOR }}>
                   {dashboardData?.totalCustomers || 0}
                 </div>
               </div>
               <div style={{ fontSize: '2rem' }}>👥</div>
             </div>
           </div>
-
           {/* Total Policies */}
-          <div style={{
-            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-            borderRadius: '16px',
-            padding: '1.5rem',
-            color: 'white',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-          }}>
+          <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', color: MAIN_COLOR, boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', color: '#64748b' }}>
                   Total Policies
                 </div>
-                <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+                <div style={{ fontSize: '2rem', fontWeight: 700, color: MAIN_COLOR }}>
                   {dashboardData?.totalPolicies || 0}
                 </div>
               </div>
               <div style={{ fontSize: '2rem' }}>📋</div>
             </div>
           </div>
-
           {/* Total Claims */}
-          <div style={{
-            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-            borderRadius: '16px',
-            padding: '1.5rem',
-            color: 'white',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-          }}>
+          <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', color: MAIN_COLOR, boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', color: '#64748b' }}>
                   Total Claims
                 </div>
-                <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+                <div style={{ fontSize: '2rem', fontWeight: 700, color: MAIN_COLOR }}>
                   {dashboardData?.totalClaims || 0}
                 </div>
               </div>
               <div style={{ fontSize: '2rem' }}>🔧</div>
             </div>
           </div>
-
           {/* Total Premium */}
-          <div style={{
-            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-            borderRadius: '16px',
-            padding: '1.5rem',
-            color: 'white',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-          }}>
+          <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', color: MAIN_COLOR, boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', color: '#64748b' }}>
                   Total Premium
                 </div>
-                <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+                <div style={{ fontSize: '2rem', fontWeight: 700, color: MAIN_COLOR }}>
                   ${dashboardData?.totalPremium?.toFixed(2) || '0.00'}
                 </div>
               </div>
               <div style={{ fontSize: '2rem' }}>💰</div>
             </div>
           </div>
-
           {/* Total Payments */}
-          <div style={{
-            background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-            borderRadius: '16px',
-            padding: '1.5rem',
-            color: 'white',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-          }}>
+          <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', color: MAIN_COLOR, boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', color: '#64748b' }}>
                   Total Payments
                 </div>
-                <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+                <div style={{ fontSize: '2rem', fontWeight: 700, color: MAIN_COLOR }}>
                   {dashboardData?.totalPayments || 0}
                 </div>
               </div>
               <div style={{ fontSize: '2rem' }}>💳</div>
             </div>
           </div>
-
           {/* Total Offers */}
-          <div style={{
-            background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-            borderRadius: '16px',
-            padding: '1.5rem',
-            color: '#1e293b',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-          }}>
+          <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', color: MAIN_COLOR, boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: '0.875rem', opacity: 0.7, marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', color: '#64748b' }}>
                   Total Offers
                 </div>
-                <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+                <div style={{ fontSize: '2rem', fontWeight: 700, color: MAIN_COLOR }}>
                   {dashboardData?.totalOffers || 0}
                 </div>
               </div>
@@ -377,26 +372,16 @@ export default function AdminPage() {
           </div>
         </div>
       )}
-
       {/* Quick Actions */}
       <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ 
-          fontSize: '1.5rem', 
-          fontWeight: 600, 
-          color: '#1e293b',
-          marginBottom: '1rem'
-        }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: MAIN_COLOR, marginBottom: '1rem' }}>
           Quick Actions
         </h2>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-          gap: '1rem'
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
           <button 
             onClick={() => setCurrentModule('users')}
             style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: MAIN_COLOR,
               color: 'white',
               border: 'none',
               borderRadius: '12px',
@@ -415,11 +400,10 @@ export default function AdminPage() {
             <span>👥</span>
             Manage Users
           </button>
-
           <button 
             onClick={() => setCurrentModule('agents')}
             style={{
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              background: MAIN_COLOR,
               color: 'white',
               border: 'none',
               borderRadius: '12px',
@@ -440,79 +424,34 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
-
       {/* System Status */}
       <div>
-        <h2 style={{ 
-          fontSize: '1.5rem', 
-          fontWeight: 600, 
-          color: '#1e293b',
-          marginBottom: '1rem'
-        }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: MAIN_COLOR, marginBottom: '1rem' }}>
           System Status
         </h2>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-          gap: '1rem'
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: '12px',
-            padding: '1.5rem',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-            border: '1px solid #e2e8f0'
-          }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+          <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ 
-                width: '12px', 
-                height: '12px', 
-                borderRadius: '50%', 
-                background: '#10b981' 
-              }}></div>
-              <span style={{ fontWeight: 600, color: '#1e293b' }}>System Online</span>
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#10b981' }}></div>
+              <span style={{ fontWeight: 600, color: MAIN_COLOR }}>System Online</span>
             </div>
             <p style={{ color: '#64748b', margin: 0 }}>
               All services are running smoothly. No issues detected.
             </p>
           </div>
-
-          <div style={{
-            background: 'white',
-            borderRadius: '12px',
-            padding: '1.5rem',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-            border: '1px solid #e2e8f0'
-          }}>
+          <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ 
-                width: '12px', 
-                height: '12px', 
-                borderRadius: '50%', 
-                background: '#f59e0b' 
-              }}></div>
-              <span style={{ fontWeight: 600, color: '#1e293b' }}>Database</span>
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#f59e0b' }}></div>
+              <span style={{ fontWeight: 600, color: MAIN_COLOR }}>Database</span>
             </div>
             <p style={{ color: '#64748b', margin: 0 }}>
               Connected and synchronized. Last backup: 2 hours ago.
             </p>
           </div>
-
-          <div style={{
-            background: 'white',
-            borderRadius: '12px',
-            padding: '1.5rem',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-            border: '1px solid #e2e8f0'
-          }}>
+          <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ 
-                width: '12px', 
-                height: '12px', 
-                borderRadius: '50%', 
-                background: '#10b981' 
-              }}></div>
-              <span style={{ fontWeight: 600, color: '#1e293b' }}>API Services</span>
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#10b981' }}></div>
+              <span style={{ fontWeight: 600, color: MAIN_COLOR }}>API Services</span>
             </div>
             <p style={{ color: '#64748b', margin: 0 }}>
               All endpoints responding normally. Average response time: 120ms.
@@ -524,53 +463,40 @@ export default function AdminPage() {
   );
 
   const renderChangeRoles = () => (
-    <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
+    <div style={{ padding: '2rem', background: BG_COLOR, minHeight: '100vh' }}>
       <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ 
-          fontSize: '2.5rem', 
-          fontWeight: 700, 
-          color: '#1e293b',
-          marginBottom: '0.5rem'
-        }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: MAIN_COLOR, marginBottom: '0.5rem' }}>
           Change User Roles
         </h1>
-        <p style={{ 
-          fontSize: '1.1rem', 
-          color: '#64748b',
-          margin: 0
-        }}>
+        <p style={{ fontSize: '1.1rem', color: '#64748b', margin: 0 }}>
           Manage user roles and permissions in the system.
         </p>
       </div>
 
       <div style={{
-        background: 'white',
-        borderRadius: '12px',
+        background: CARD_BG,
+        borderRadius: CARD_RADIUS,
         padding: '1.5rem',
-        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-        border: '1px solid #e2e8f0'
+        boxShadow: CARD_SHADOW,
+        border: `1px solid ${CARD_BORDER}`
       }}>
-        <h3 style={{ marginBottom: '1.5rem', color: '#1e293b' }}>Role Management</h3>
+        <h3 style={{ marginBottom: '1.5rem', color: MAIN_COLOR }}>Role Management</h3>
         
         {users.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
             No users found. Please check the "View All Users" section first.
           </div>
         ) : (
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-            gap: '1rem'
-          }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
             {users.map((user) => (
               <div key={user.id} style={{
-                border: '1px solid #e2e8f0',
+                border: `1px solid ${CARD_BORDER}`,
                 borderRadius: '8px',
                 padding: '1rem',
-                background: '#f8fafc'
+                background: BG_COLOR
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#1e293b' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: MAIN_COLOR }}>
                     {user.firstName} {user.lastName}
                   </h4>
                   <span style={{
@@ -622,42 +548,28 @@ export default function AdminPage() {
   );
 
   const renderUserStats = () => (
-    <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
+    <div style={{ padding: '2rem', background: BG_COLOR, minHeight: '100vh' }}>
       <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ 
-          fontSize: '2.5rem', 
-          fontWeight: 700, 
-          color: '#1e293b',
-          marginBottom: '0.5rem'
-        }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: MAIN_COLOR, marginBottom: '0.5rem' }}>
           User Statistics
         </h1>
-        <p style={{ 
-          fontSize: '1.1rem', 
-          color: '#64748b',
-          margin: 0
-        }}>
+        <p style={{ fontSize: '1.1rem', color: '#64748b', margin: 0 }}>
           Overview of user distribution and activity in the system.
         </p>
       </div>
 
       <div style={{
-        background: 'white',
-        borderRadius: '12px',
+        background: CARD_BG,
+        borderRadius: CARD_RADIUS,
         padding: '1.5rem',
-        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-        border: '1px solid #e2e8f0'
+        boxShadow: CARD_SHADOW,
+        border: `1px solid ${CARD_BORDER}`
       }}>
-        <h3 style={{ marginBottom: '1.5rem', color: '#1e293b' }}>User Distribution</h3>
+        <h3 style={{ marginBottom: '1.5rem', color: MAIN_COLOR }}>User Distribution</h3>
         
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-          gap: '1rem',
-          marginBottom: '2rem'
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
           <div style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: MAIN_COLOR,
             borderRadius: '12px',
             padding: '1.5rem',
             color: 'white',
@@ -670,7 +582,7 @@ export default function AdminPage() {
           </div>
 
           <div style={{
-            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            background: '#f093fb',
             borderRadius: '12px',
             padding: '1.5rem',
             color: 'white',
@@ -683,7 +595,7 @@ export default function AdminPage() {
           </div>
 
           <div style={{
-            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            background: '#4facfe',
             borderRadius: '12px',
             padding: '1.5rem',
             color: 'white',
@@ -696,7 +608,7 @@ export default function AdminPage() {
           </div>
 
           <div style={{
-            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            background: '#43e97b',
             borderRadius: '12px',
             padding: '1.5rem',
             color: 'white',
@@ -710,9 +622,9 @@ export default function AdminPage() {
         </div>
 
         <div style={{ marginTop: '2rem' }}>
-          <h4 style={{ marginBottom: '1rem', color: '#1e293b' }}>Recent User Activity</h4>
+          <h4 style={{ marginBottom: '1rem', color: MAIN_COLOR }}>Recent User Activity</h4>
           <div style={{ 
-            background: '#f8fafc', 
+            background: BG_COLOR, 
             borderRadius: '8px', 
             padding: '1rem',
             fontSize: '0.875rem',
@@ -749,34 +661,17 @@ export default function AdminPage() {
 
   // Agent render functions
   const renderCreateAgent = () => (
-    <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
+    <div style={{ padding: '2rem', background: BG_COLOR, minHeight: '100vh' }}>
       <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ 
-          fontSize: '2.5rem', 
-          fontWeight: 700, 
-          color: '#1e293b',
-          marginBottom: '0.5rem'
-        }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: MAIN_COLOR, marginBottom: '0.5rem' }}>
           Create New Agent
         </h1>
-        <p style={{ 
-          fontSize: '1.1rem', 
-          color: '#64748b',
-          margin: 0
-        }}>
+        <p style={{ fontSize: '1.1rem', color: '#64748b', margin: 0 }}>
           Add a new insurance agent to the system.
         </p>
       </div>
-
-      <div style={{
-        background: 'white',
-        borderRadius: '12px',
-        padding: '2rem',
-        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-        border: '1px solid #e2e8f0'
-      }}>
-        <h3 style={{ marginBottom: '1.5rem', color: '#1e293b' }}>Agent Information</h3>
-        
+      <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '2rem', boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
+        <h3 style={{ marginBottom: '1.5rem', color: MAIN_COLOR }}>Agent Information</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#374151' }}>
@@ -784,115 +679,72 @@ export default function AdminPage() {
             </label>
             <input
               type="text"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                borderRadius: '8px',
-                border: '1px solid #d1d5db',
-                fontSize: '0.875rem'
-              }}
+              value={newAgent.agentName}
+              onChange={e => handleNewAgentChange('agentName', e.target.value)}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.875rem' }}
               placeholder="Enter agent name"
             />
           </div>
-
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#374151' }}>
               Email
             </label>
             <input
               type="email"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                borderRadius: '8px',
-                border: '1px solid #d1d5db',
-                fontSize: '0.875rem'
-              }}
+              value={newAgent.email}
+              onChange={e => handleNewAgentChange('email', e.target.value)}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.875rem' }}
               placeholder="Enter email"
             />
           </div>
-
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#374151' }}>
               Phone Number
             </label>
             <input
               type="text"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                borderRadius: '8px',
-                border: '1px solid #d1d5db',
-                fontSize: '0.875rem'
-              }}
+              value={newAgent.phoneNumber}
+              onChange={e => handleNewAgentChange('phoneNumber', e.target.value)}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.875rem' }}
               placeholder="Enter phone number"
             />
           </div>
-
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#374151' }}>
               Username
             </label>
             <input
               type="text"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                borderRadius: '8px',
-                border: '1px solid #d1d5db',
-                fontSize: '0.875rem'
-              }}
+              value={newAgent.username}
+              onChange={e => handleNewAgentChange('username', e.target.value)}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.875rem' }}
               placeholder="Enter username"
             />
           </div>
-
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#374151' }}>
               Password
             </label>
             <input
               type="password"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                borderRadius: '8px',
-                border: '1px solid #d1d5db',
-                fontSize: '0.875rem'
-              }}
+              value={newAgent.password}
+              onChange={e => handleNewAgentChange('password', e.target.value)}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.875rem' }}
               placeholder="Enter password"
             />
           </div>
-
-
         </div>
-
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button
-            style={{
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '0.75rem 1.5rem',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
+            onClick={handleCreateAgent}
+            disabled={creatingAgent}
+            style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', padding: '0.75rem 1.5rem', fontSize: '0.875rem', fontWeight: 600, cursor: creatingAgent ? 'not-allowed' : 'pointer', opacity: creatingAgent ? 0.7 : 1 }}
           >
-            Create Agent
+            {creatingAgent ? 'Creating...' : 'Create Agent'}
           </button>
           <button
             onClick={() => handleAgentSubModuleClick('view-agents')}
-            style={{
-              background: '#6b7280',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '0.75rem 1.5rem',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
+            style={{ background: '#6b7280', color: 'white', border: 'none', borderRadius: '8px', padding: '0.75rem 1.5rem', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}
           >
             Cancel
           </button>
@@ -903,50 +755,37 @@ export default function AdminPage() {
 
   const renderAgentStatistics = () => {
     return (
-      <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
+      <div style={{ padding: '2rem', background: BG_COLOR, minHeight: '100vh' }}>
         <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ 
-            fontSize: '2.5rem', 
-            fontWeight: 700, 
-            color: '#1e293b',
-            marginBottom: '0.5rem'
-          }}>
+          <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: MAIN_COLOR, marginBottom: '0.5rem' }}>
             Agent Statistics
           </h1>
-          <p style={{ 
-            fontSize: '1.1rem', 
-            color: '#64748b',
-            margin: 0
-          }}>
+          <p style={{ fontSize: '1.1rem', color: '#64748b', margin: 0 }}>
             View detailed performance statistics for all agents.
           </p>
         </div>
 
         <div style={{
-          background: 'white',
-          borderRadius: '12px',
+          background: CARD_BG,
+          borderRadius: CARD_RADIUS,
           padding: '1.5rem',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-          border: '1px solid #e2e8f0'
+          boxShadow: CARD_SHADOW,
+          border: `1px solid ${CARD_BORDER}`
         }}>
-          <h3 style={{ marginBottom: '1.5rem', color: '#1e293b' }}>Agent Performance Overview</h3>
+          <h3 style={{ marginBottom: '1.5rem', color: MAIN_COLOR }}>Agent Performance Overview</h3>
           
           {agentStats.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
               No agent statistics available. Please check back later.
             </div>
           ) : (
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
-              gap: '1.5rem'
-            }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
               {agentStats.map((stat) => (
                 <div key={stat.agentNumber} style={{
-                  border: '1px solid #e2e8f0',
+                  border: `1px solid ${CARD_BORDER}`,
                   borderRadius: '12px',
                   padding: '1.5rem',
-                  background: '#f8fafc',
+                  background: BG_COLOR,
                   transition: 'transform 0.2s, box-shadow 0.2s'
                 }}
                 onMouseEnter={(e) => {
@@ -958,7 +797,7 @@ export default function AdminPage() {
                   e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, color: '#1e293b' }}>
+                    <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, color: MAIN_COLOR }}>
                       {stat.agentName}
                     </h4>
                     <span style={{
@@ -1000,12 +839,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                   
-                  <div style={{ 
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    marginBottom: '1rem'
-                  }}>
+                  <div style={{ background: MAIN_COLOR, borderRadius: '8px', padding: '1rem', marginBottom: '1rem' }}>
                     <div style={{ textAlign: 'center', color: 'white' }}>
                       <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
                         ${stat.totalPremium.toLocaleString()}
@@ -1036,46 +870,33 @@ export default function AdminPage() {
   };
 
   const renderUsers = () => (
-    <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
+    <div style={{ padding: '2rem', background: BG_COLOR, minHeight: '100vh' }}>
       <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ 
-          fontSize: '2.5rem', 
-          fontWeight: 700, 
-          color: '#1e293b',
-          marginBottom: '0.5rem'
-        }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: MAIN_COLOR, marginBottom: '0.5rem' }}>
           User Management
         </h1>
-        <p style={{ 
-          fontSize: '1.1rem', 
-          color: '#64748b',
-          margin: 0
-        }}>
+        <p style={{ fontSize: '1.1rem', color: '#64748b', margin: 0 }}>
           View all users in the system. For role management, use the "Change User Roles" section.
         </p>
       </div>
 
       <div style={{
-        background: 'white',
-        borderRadius: '12px',
+        background: CARD_BG,
+        borderRadius: CARD_RADIUS,
         padding: '1.5rem',
-        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-        border: '1px solid #e2e8f0'
+        boxShadow: CARD_SHADOW,
+        border: `1px solid ${CARD_BORDER}`
       }}>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-          gap: '1rem'
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
           {users.map((user) => (
             <div key={user.id} style={{
-              border: '1px solid #e2e8f0',
+              border: `1px solid ${CARD_BORDER}`,
               borderRadius: '8px',
               padding: '1rem',
-              background: '#f8fafc'
+              background: BG_COLOR
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#1e293b' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: MAIN_COLOR }}>
                   {user.firstName} {user.lastName}
                 </h3>
                 <span style={{
@@ -1122,22 +943,22 @@ export default function AdminPage() {
     <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
       {/* Sidebar */}
       <div style={{
-        width: '280px',
-        background: 'linear-gradient(180deg, #1e293b 0%, #334155 100%)',
+        width: '260px',
+        background: MAIN_COLOR,
         color: 'white',
         padding: '2rem 1rem',
-        boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
+        boxShadow: '2px 0 4px rgba(0,0,0,0.07)',
         position: 'sticky',
         top: 0,
         height: '100vh',
-        overflowY: 'auto'
+        overflowY: 'auto',
+        borderRight: `1px solid ${CARD_BORDER}`
       }}>
         {/* Logo */}
         <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Insurceed</h2>
           <p style={{ fontSize: '0.875rem', opacity: 0.7, margin: '0.5rem 0 0 0' }}>Admin Portal</p>
         </div>
-
         {/* Navigation */}
         <nav>
           <div style={{ marginBottom: '1rem' }}>
@@ -1145,7 +966,6 @@ export default function AdminPage() {
               MAIN MODULES
             </h3>
           </div>
-          
           {/* Dashboard */}
           <button
             onClick={() => handleModuleClick('dashboard')}
@@ -1153,7 +973,7 @@ export default function AdminPage() {
               width: '100%',
               padding: '0.75rem 1rem',
               marginBottom: '0.5rem',
-              background: currentModule === 'dashboard' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+              background: currentModule === 'dashboard' ? 'rgba(255,255,255,0.12)' : 'transparent',
               border: 'none',
               borderRadius: '8px',
               color: 'white',
@@ -1167,7 +987,7 @@ export default function AdminPage() {
             }}
             onMouseEnter={(e) => {
               if (currentModule !== 'dashboard') {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
               }
             }}
             onMouseLeave={(e) => {
@@ -1179,7 +999,6 @@ export default function AdminPage() {
             <span style={{ fontSize: '1.1rem' }}>📊</span>
             Dashboard
           </button>
-
           {/* User Management Accordion */}
           <div style={{ marginBottom: '0.5rem' }}>
             <button
@@ -1187,7 +1006,7 @@ export default function AdminPage() {
               style={{
                 width: '100%',
                 padding: '0.75rem 1rem',
-                background: currentModule === 'users' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+                background: currentModule === 'users' ? 'rgba(255,255,255,0.12)' : 'transparent',
                 border: 'none',
                 borderRadius: '8px',
                 color: 'white',
@@ -1201,7 +1020,7 @@ export default function AdminPage() {
               }}
               onMouseEnter={(e) => {
                 if (currentModule !== 'users') {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
                 }
               }}
               onMouseLeave={(e) => {
@@ -1214,15 +1033,10 @@ export default function AdminPage() {
                 <span style={{ fontSize: '1.1rem' }}>👥</span>
                 User Management
               </div>
-              <span style={{ 
-                fontSize: '0.75rem', 
-                transition: 'transform 0.2s',
-                transform: expandedModules.has('users') ? 'rotate(180deg)' : 'rotate(0deg)'
-              }}>
+              <span style={{ fontSize: '0.75rem', transition: 'transform 0.2s', transform: expandedModules.has('users') ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                 ▼
               </span>
             </button>
-            
             {expandedModules.has('users') && (
               <div style={{ marginLeft: '1rem', marginTop: '0.25rem' }}>
                 {[
@@ -1237,7 +1051,7 @@ export default function AdminPage() {
                       width: '100%',
                       padding: '0.5rem 0.75rem',
                       marginBottom: '0.25rem',
-                      background: currentModule === 'users' && currentUserSubModule === subModule.id ? 'rgba(59, 130, 246, 0.3)' : 'transparent',
+                      background: currentModule === 'users' && currentUserSubModule === subModule.id ? 'rgba(255,255,255,0.18)' : 'transparent',
                       border: 'none',
                       borderRadius: '6px',
                       color: 'white',
@@ -1251,7 +1065,7 @@ export default function AdminPage() {
                     }}
                     onMouseEnter={(e) => {
                       if (!(currentModule === 'users' && currentUserSubModule === subModule.id)) {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -1267,7 +1081,6 @@ export default function AdminPage() {
               </div>
             )}
           </div>
-
           {/* Agent Management Accordion */}
           <div style={{ marginBottom: '0.5rem' }}>
             <button
@@ -1275,7 +1088,7 @@ export default function AdminPage() {
               style={{
                 width: '100%',
                 padding: '0.75rem 1rem',
-                background: currentModule === 'agents' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+                background: currentModule === 'agents' ? 'rgba(255,255,255,0.12)' : 'transparent',
                 border: 'none',
                 borderRadius: '8px',
                 color: 'white',
@@ -1289,7 +1102,7 @@ export default function AdminPage() {
               }}
               onMouseEnter={(e) => {
                 if (currentModule !== 'agents') {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
                 }
               }}
               onMouseLeave={(e) => {
@@ -1302,15 +1115,10 @@ export default function AdminPage() {
                 <span style={{ fontSize: '1.1rem' }}>👨‍💼</span>
                 Agent Management
               </div>
-              <span style={{ 
-                fontSize: '0.75rem', 
-                transition: 'transform 0.2s',
-                transform: expandedModules.has('agents') ? 'rotate(180deg)' : 'rotate(0deg)'
-              }}>
+              <span style={{ fontSize: '0.75rem', transition: 'transform 0.2s', transform: expandedModules.has('agents') ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                 ▼
               </span>
             </button>
-            
             {expandedModules.has('agents') && (
               <div style={{ marginLeft: '1rem', marginTop: '0.25rem' }}>
                 {[
@@ -1325,7 +1133,7 @@ export default function AdminPage() {
                       width: '100%',
                       padding: '0.5rem 0.75rem',
                       marginBottom: '0.25rem',
-                      background: currentModule === 'agents' && currentAgentSubModule === subModule.id ? 'rgba(59, 130, 246, 0.3)' : 'transparent',
+                      background: currentModule === 'agents' && currentAgentSubModule === subModule.id ? 'rgba(255,255,255,0.18)' : 'transparent',
                       border: 'none',
                       borderRadius: '6px',
                       color: 'white',
@@ -1339,7 +1147,7 @@ export default function AdminPage() {
                     }}
                     onMouseEnter={(e) => {
                       if (!(currentModule === 'agents' && currentAgentSubModule === subModule.id)) {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -1356,7 +1164,6 @@ export default function AdminPage() {
             )}
           </div>
         </nav>
-
         {/* Logout */}
         <div style={{ marginTop: 'auto', paddingTop: '2rem' }}>
           <button
@@ -1364,7 +1171,7 @@ export default function AdminPage() {
             style={{
               width: '100%',
               padding: '0.75rem 1rem',
-              background: 'rgba(239, 68, 68, 0.2)',
+              background: 'rgba(239,68,68,0.18)',
               border: 'none',
               borderRadius: '8px',
               color: 'white',
@@ -1376,17 +1183,16 @@ export default function AdminPage() {
               gap: '0.75rem',
               transition: 'background 0.2s'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239,68,68,0.28)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(239,68,68,0.18)'}
           >
             <span>🚪</span>
             Logout
           </button>
         </div>
       </div>
-
       {/* Main Content */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '2rem', background: '#f8fafc' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: '2rem', background: BG_COLOR }}>
         {renderModuleContent()}
       </div>
     </div>

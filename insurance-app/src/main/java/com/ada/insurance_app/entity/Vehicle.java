@@ -66,6 +66,10 @@ public class Vehicle {
     @OneToOne(mappedBy = "vehicle", cascade = CascadeType.ALL)
     private Policy policy;
 
+    @OneToOne
+    @JoinColumn(name = "offer_id", nullable = false, unique = true)
+    private Offer offer;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

@@ -26,7 +26,8 @@ public interface IHealthInsuranceDetailRepository extends JpaRepository<HealthIn
            "LOWER(h.medicalHistory) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<HealthInsuranceDetail> searchByMedicalHistory(@Param("keyword") String keyword);
 
-    Optional<HealthInsuranceDetail> findByCustomer_Id(UUID customerİd);
+    @Query("SELECT h FROM HealthInsuranceDetail h WHERE h.offer.id = :offerId")
+    Optional<HealthInsuranceDetail> findByOfferId(@Param("offerId") Long offerId);
     
     
 

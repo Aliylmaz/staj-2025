@@ -28,6 +28,10 @@ public class HealthInsuranceControllerImpl implements IHealthInsuranceController
     @Override
     public ResponseEntity<GeneralResponse<HealthInsuranceDetailDto>> create(CreateHealthInsuranceDetailRequest request) {
         try {
+            if (request.getOfferId() == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(GeneralResponse.error(
+                        "OfferId is required for health insurance detail creation", HttpStatus.BAD_REQUEST));
+            }
             HealthInsuranceDetailDto createdDetail = healthInsuranceDetailService.create(request);
             return ResponseEntity.ok(GeneralResponse.success("Health insurance detail created successfully", createdDetail));
         } catch (Exception e) {
@@ -39,6 +43,10 @@ public class HealthInsuranceControllerImpl implements IHealthInsuranceController
     @Override
     public ResponseEntity<GeneralResponse<HealthInsuranceDetailDto>> update(UUID id, UpdateHealthInsuranceDetailRequest request) {
         try {
+            if (request.getOfferId() == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(GeneralResponse.error(
+                        "OfferId is required for health insurance detail update", HttpStatus.BAD_REQUEST));
+            }
             HealthInsuranceDetailDto updatedDetail = healthInsuranceDetailService.update(id, request);
             return ResponseEntity.ok(GeneralResponse.success("Health insurance detail updated successfully", updatedDetail));
         } catch (Exception e) {

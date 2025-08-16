@@ -4,6 +4,7 @@ import com.ada.insurance_app.entity.Vehicle;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -23,7 +24,8 @@ public interface IVehicleRepository extends JpaRepository<Vehicle, UUID> {
     Optional<Vehicle> findByEngineNumber(String engineNumber);
 
 
-    Optional<Vehicle> findByCustomerId(UUID customerId);
+    @Query("SELECT v FROM Vehicle v WHERE v.offer.id = :offerId")
+    Optional<Vehicle> findByOfferId(@Param("offerId") Long offerId);
 
 
     List<Vehicle> findByMakeContainingIgnoreCase(String make);
@@ -35,7 +37,7 @@ public interface IVehicleRepository extends JpaRepository<Vehicle, UUID> {
 
     boolean existsByVin(String vin);
 
-    long countByCustomerId(UUID customerId);
+    List<Vehicle> findAllByCustomer_Id(UUID customerId);
 
 
     @Query("SELECT CASE WHEN COUNT(v) > 0 THEN true ELSE false END FROM Vehicle v WHERE v.engineNumber = :engineNumber")

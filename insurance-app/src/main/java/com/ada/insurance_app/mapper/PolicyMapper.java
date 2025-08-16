@@ -27,7 +27,8 @@ public interface PolicyMapper {
     @Mapping(target = "agentId", source = "agent.id")
     @Mapping(target = "agentDto", source = "agent")
     @Mapping(target = "coverages", source = "coverages")
-
+    @Mapping(target = "healthInsuranceDetail", source = "healthInsuranceDetail")
+    @Mapping(target = "homeInsuranceDetail", source = "homeInsuranceDetail")
     PolicyDto toDto(Policy policy);
     
     @Mapping(target = "customer", ignore = true)
@@ -35,8 +36,8 @@ public interface PolicyMapper {
     @Mapping(target = "vehicle", ignore = true)
     @Mapping(target = "coverages", ignore = true)
     @Mapping(target = "payment", ignore = true)
-    @Mapping(target = "healthInsuranceDetail", ignore = true)
-    @Mapping(target = "homeInsuranceDetail", ignore = true)
+    @Mapping(target = "healthInsuranceDetail", source = "healthInsuranceDetail")
+    @Mapping(target = "homeInsuranceDetail", source = "homeInsuranceDetail")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Policy toEntity(PolicyDto policyDto);

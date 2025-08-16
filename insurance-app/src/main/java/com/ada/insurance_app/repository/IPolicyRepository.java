@@ -44,6 +44,9 @@ public interface IPolicyRepository extends JpaRepository<Policy, Long> {
     // Count approved policies by agent number
     @Query("SELECT COUNT(p) FROM Policy p WHERE p.agent.agentNumber = :agentNumber AND p.status = 'ACTIVE'")
     long countApprovedPoliciesByAgent_AgentNumber(@Param("agentNumber") String agentNumber);
+
+    boolean existsByOffer_Id(Long offerId);
+    Optional<Policy> findByOffer_Id(Long offerId);
 }
 
 

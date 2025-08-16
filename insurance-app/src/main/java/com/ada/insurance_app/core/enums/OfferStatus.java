@@ -4,5 +4,6 @@ public enum OfferStatus {
     PENDING,
     APPROVED,
     REJECTED,
-    CONVERTED
+    CONVERTED,
+    PAID
 }

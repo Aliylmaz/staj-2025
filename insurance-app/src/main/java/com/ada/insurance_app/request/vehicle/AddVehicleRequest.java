@@ -43,5 +43,6 @@ public class AddVehicleRequest {
 
     private String registrationDate;
 
+    private Long offerId;
 
 }

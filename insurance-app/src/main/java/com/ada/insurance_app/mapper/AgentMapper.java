@@ -19,7 +19,8 @@ public interface AgentMapper {
     @Mapping(target = "policyIds", expression = "java(mapPolicyIds(agent))")
     
     // Agent specific fields
-    @Mapping(target = "name", source = "name")
+
+    @Mapping(target = "name", source = "user.firstName")
     @Mapping(target = "email", source = "email")
     @Mapping(target = "phoneNumber", source = "phoneNumber")
     @Mapping(target = "address", source = "address")
