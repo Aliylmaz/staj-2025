@@ -202,16 +202,13 @@ public class VehicleServiceImpl implements IVehicleService {
     @Transactional
     public VehicleDto createVehicleFromRequest(AddVehicleRequest request, UUID customerId, Long offerId) {
         // Validate request
-        validateAddVehicleRequest(request);
+
         
         // Check if customer exists
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException("Customer not found with id: " + customerId));
         
-        // Check for duplicate plate number
-        if (vehicleRepository.existsByPlateNumber(request.getPlateNumber())) {
-            throw new DuplicateEntityException("Vehicle with plate number " + request.getPlateNumber() + " already exists");
-        }
+
         
         // Check for duplicate VIN
         if (vehicleRepository.existsByVin(request.getVin())) {
@@ -360,48 +357,7 @@ public class VehicleServiceImpl implements IVehicleService {
         }
     }
     
-    private void validateAddVehicleRequest(AddVehicleRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("AddVehicleRequest cannot be null");
-        }
-        
-        if (!StringUtils.hasText(request.getMake())) {
-            throw new IllegalArgumentException("Make is required");
-        }
-        
-        if (!StringUtils.hasText(request.getModel())) {
-            throw new IllegalArgumentException("Model is required");
-        }
-        
-        if (request.getYear() == null || request.getYear() < 1900 || request.getYear() > 2030) {
-            throw new IllegalArgumentException("Invalid year: must be between 1900 and 2030");
-        }
-        
-        if (!StringUtils.hasText(request.getPlateNumber())) {
-            throw new IllegalArgumentException("Plate number is required");
-        }
-        
-        if (!StringUtils.hasText(request.getVin())) {
-            throw new IllegalArgumentException("VIN is required");
-        }
-        
-        if (!StringUtils.hasText(request.getEngineNumber())) {
-            throw new IllegalArgumentException("Engine number is required");
-        }
-        
 
-        
-        // Validate plate number format (basic Turkish format)
-        if (!request.getPlateNumber().matches("^[0-9]{2}[A-Z]{1,3}[0-9]{2,4}$")) {
-            throw new IllegalArgumentException("Invalid plate number format");
-        }
-        
-        // Validate VIN format (17 characters)
-        if (request.getVin().length() != 17) {
-            throw new IllegalArgumentException("VIN must be exactly 17 characters");
-        }
-    }
-    
     private void validateUpdateVehicleRequest(UpdateVehicleRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("UpdateVehicleRequest cannot be null");

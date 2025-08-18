@@ -6,6 +6,7 @@ import com.ada.insurance_app.dto.VehicleDto;
 import com.ada.insurance_app.request.vehicle.AddVehicleRequest;
 import com.ada.insurance_app.request.vehicle.UpdateVehicleRequest;
 import com.ada.insurance_app.service.vehicle.IVehicleService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -119,7 +120,7 @@ public class VehicleControllerImpl implements IVehicleController {
     
     @Override
     @PostMapping("/create")
-    public ResponseEntity<GeneralResponse<VehicleDto>> createVehicle(@RequestBody AddVehicleRequest request) {
+    public ResponseEntity<GeneralResponse<VehicleDto>> createVehicle( @Valid @RequestBody AddVehicleRequest request) {
         try {
             if (request.getOfferId() == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(

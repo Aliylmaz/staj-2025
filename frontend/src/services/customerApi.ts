@@ -509,6 +509,5 @@ export const updateCorporateCustomer = async (customerId: string, request: Updat
     throw error;
   }
 };
-
 // Export the axios instance for use in other components
 export { axiosInstance }; 

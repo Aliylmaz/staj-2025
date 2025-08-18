@@ -260,24 +260,66 @@ export default function AdminPage() {
     setCurrentAgentSubModule(subModule);
   };
 
-  // --- RENK SABİTİ ---
-  const MAIN_COLOR = '#2563eb';
-  const BG_COLOR = '#f8fafc';
-  const CARD_BG = 'white';
-  const CARD_BORDER = '#e2e8f0';
-  const CARD_RADIUS = '12px';
-  const CARD_SHADOW = '0 1px 3px 0 rgba(0,0,0,0.07)';
+  // --- CLEAN DESIGN CONSTANTS ---
+  const MAIN_COLOR = '#0f172a';
+
+  const BG_COLOR = 'linear-gradient(135deg, #fafbfc 0%, #f1f5f9 100%)';
+  const CARD_BG = 'rgba(255, 255, 255, 0.95)';
+  const CARD_BORDER = 'rgba(226, 232, 240, 0.6)';
+  const CARD_RADIUS = '24px';
+  const CARD_SHADOW = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
+
+  const SIDEBAR_BLUR = 'blur(20px)';
 
   const renderDashboard = () => (
-    <div style={{ padding: '2rem', background: BG_COLOR, minHeight: '100vh' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: MAIN_COLOR, marginBottom: '0.5rem' }}>
-          Admin Dashboard
-        </h1>
-        <p style={{ fontSize: '1.1rem', color: '#64748b', margin: 0 }}>
-          Welcome back! Here's what's happening with your insurance platform.
-        </p>
+    <div style={{ padding: '1.5rem', background: BG_COLOR, minHeight: '100vh', overflowY: 'auto' }}>
+      {/* Header Section */}
+      <div style={{
+        background: CARD_BG,
+        backdropFilter: SIDEBAR_BLUR,
+        borderRadius: CARD_RADIUS,
+        padding: '2rem',
+        marginBottom: '2rem',
+        border: `1px solid ${CARD_BORDER}`,
+        boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h1 style={{
+              fontSize: '2.25rem',
+              fontWeight: 800,
+              background: 'linear-gradient(135deg, #0f172a 0%, #475569 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              marginBottom: '0.5rem',
+              letterSpacing: '-0.025em'
+            }}>
+              Admin Dashboard
+            </h1>
+            <p style={{
+              fontSize: '1rem',
+              color: '#64748b',
+              margin: 0,
+              fontWeight: 400
+            }}>
+              Welcome back! Here's what's happening with your insurance platform.
+            </p>
+          </div>
+          <div style={{
+            width: '50px',
+            height: '50px',
+            background: 'linear-gradient(135deg, #0f172a 0%, #475569 100%)',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.5rem',
+            color: 'white'
+          }}>
+            👨‍💼
+          </div>
+        </div>
       </div>
       {/* Stats Cards */}
       {loading ? (
@@ -285,9 +327,25 @@ export default function AdminPage() {
           <div style={{ fontSize: '1.2rem', color: '#64748b' }}>Loading dashboard data...</div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
           {/* Total Customers */}
-          <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', color: MAIN_COLOR, boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
+          <div style={{ 
+            background: CARD_BG, 
+            backdropFilter: SIDEBAR_BLUR,
+            borderRadius: CARD_RADIUS, 
+            padding: '1.5rem', 
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', 
+            border: `1px solid ${CARD_BORDER}`,
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)';
+            e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', color: '#64748b' }}>
@@ -301,7 +359,23 @@ export default function AdminPage() {
             </div>
           </div>
           {/* Total Policies */}
-          <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', color: MAIN_COLOR, boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
+          <div style={{ 
+            background: CARD_BG, 
+            backdropFilter: SIDEBAR_BLUR,
+            borderRadius: CARD_RADIUS, 
+            padding: '1.5rem', 
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', 
+            border: `1px solid ${CARD_BORDER}`,
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)';
+            e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', color: '#64748b' }}>
@@ -315,7 +389,23 @@ export default function AdminPage() {
             </div>
           </div>
           {/* Total Claims */}
-          <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', color: MAIN_COLOR, boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
+          <div style={{ 
+            background: CARD_BG, 
+            backdropFilter: SIDEBAR_BLUR,
+            borderRadius: CARD_RADIUS, 
+            padding: '1.5rem', 
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', 
+            border: `1px solid ${CARD_BORDER}`,
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)';
+            e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', color: '#64748b' }}>
@@ -329,7 +419,23 @@ export default function AdminPage() {
             </div>
           </div>
           {/* Total Premium */}
-          <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', color: MAIN_COLOR, boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
+          <div style={{ 
+            background: CARD_BG, 
+            backdropFilter: SIDEBAR_BLUR,
+            borderRadius: CARD_RADIUS, 
+            padding: '1.5rem', 
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', 
+            border: `1px solid ${CARD_BORDER}`,
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)';
+            e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', color: '#64748b' }}>
@@ -343,7 +449,23 @@ export default function AdminPage() {
             </div>
           </div>
           {/* Total Payments */}
-          <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', color: MAIN_COLOR, boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
+          <div style={{ 
+            background: CARD_BG, 
+            backdropFilter: SIDEBAR_BLUR,
+            borderRadius: CARD_RADIUS, 
+            padding: '1.5rem', 
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', 
+            border: `1px solid ${CARD_BORDER}`,
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)';
+            e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', color: '#64748b' }}>
@@ -357,7 +479,23 @@ export default function AdminPage() {
             </div>
           </div>
           {/* Total Offers */}
-          <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', color: MAIN_COLOR, boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
+          <div style={{ 
+            background: CARD_BG, 
+            backdropFilter: SIDEBAR_BLUR,
+            borderRadius: CARD_RADIUS, 
+            padding: '1.5rem', 
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', 
+            border: `1px solid ${CARD_BORDER}`,
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)';
+            e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem', color: '#64748b' }}>
@@ -373,29 +511,52 @@ export default function AdminPage() {
         </div>
       )}
       {/* Quick Actions */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: MAIN_COLOR, marginBottom: '1rem' }}>
+      <div style={{
+        background: CARD_BG,
+        backdropFilter: SIDEBAR_BLUR,
+        borderRadius: CARD_RADIUS,
+        padding: '2rem',
+        marginBottom: '2rem',
+        border: `1px solid ${CARD_BORDER}`,
+        boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)'
+      }}>
+        <h2 style={{
+          fontSize: '1.5rem',
+          fontWeight: 700,
+          background: 'linear-gradient(135deg, #0f172a 0%, #475569 100%)',
+          backgroundClip: 'text',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          marginBottom: '1.5rem'
+        }}>
           Quick Actions
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
           <button 
             onClick={() => setCurrentModule('users')}
             style={{
-              background: MAIN_COLOR,
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
               color: 'white',
               border: 'none',
-              borderRadius: '12px',
-              padding: '1rem',
-              fontSize: '1rem',
+              borderRadius: '16px',
+              padding: '1rem 1.5rem',
+              fontSize: '0.875rem',
               fontWeight: 600,
               cursor: 'pointer',
-              transition: 'transform 0.2s',
+              transition: 'all 0.3s ease',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem'
+              gap: '0.75rem',
+              boxShadow: '0 4px 16px rgba(59, 130, 246, 0.2)'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.2)';
+            }}
           >
             <span>👥</span>
             Manage Users
@@ -403,21 +564,28 @@ export default function AdminPage() {
           <button 
             onClick={() => setCurrentModule('agents')}
             style={{
-              background: MAIN_COLOR,
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
               color: 'white',
               border: 'none',
-              borderRadius: '12px',
-              padding: '1rem',
-              fontSize: '1rem',
+              borderRadius: '16px',
+              padding: '1rem 1.5rem',
+              fontSize: '0.875rem',
               fontWeight: 600,
               cursor: 'pointer',
-              transition: 'transform 0.2s',
+              transition: 'all 0.3s ease',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem'
+              gap: '0.75rem',
+              boxShadow: '0 4px 16px rgba(16, 185, 129, 0.2)'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 8px 32px rgba(16, 185, 129, 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(16, 185, 129, 0.2)';
+            }}
           >
             <span>👨‍💼</span>
             Manage Agents
@@ -425,15 +593,30 @@ export default function AdminPage() {
         </div>
       </div>
       {/* System Status */}
-      <div>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: MAIN_COLOR, marginBottom: '1rem' }}>
+      <div style={{
+        background: CARD_BG,
+        backdropFilter: SIDEBAR_BLUR,
+        borderRadius: CARD_RADIUS,
+        padding: '2rem',
+        border: `1px solid ${CARD_BORDER}`,
+        boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)'
+      }}>
+        <h2 style={{
+          fontSize: '1.5rem',
+          fontWeight: 700,
+          background: 'linear-gradient(135deg, #0f172a 0%, #475569 100%)',
+          backgroundClip: 'text',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          marginBottom: '1.5rem'
+        }}>
           System Status
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
           <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#10b981' }}></div>
-              <span style={{ fontWeight: 600, color: MAIN_COLOR }}>System Online</span>
+              <span style={{ fontWeight: 600, color: '#059669' }}>System Online</span>
             </div>
             <p style={{ color: '#64748b', margin: 0 }}>
               All services are running smoothly. No issues detected.
@@ -442,7 +625,7 @@ export default function AdminPage() {
           <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#f59e0b' }}></div>
-              <span style={{ fontWeight: 600, color: MAIN_COLOR }}>Database</span>
+              <span style={{ fontWeight: 600, color: '#d97706' }}>Database</span>
             </div>
             <p style={{ color: '#64748b', margin: 0 }}>
               Connected and synchronized. Last backup: 2 hours ago.
@@ -451,7 +634,7 @@ export default function AdminPage() {
           <div style={{ background: CARD_BG, borderRadius: CARD_RADIUS, padding: '1.5rem', boxShadow: CARD_SHADOW, border: `1px solid ${CARD_BORDER}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#10b981' }}></div>
-              <span style={{ fontWeight: 600, color: MAIN_COLOR }}>API Services</span>
+              <span style={{ fontWeight: 600, color: '#059669' }}>API Services</span>
             </div>
             <p style={{ color: '#64748b', margin: 0 }}>
               All endpoints responding normally. Average response time: 120ms.
@@ -548,90 +731,186 @@ export default function AdminPage() {
   );
 
   const renderUserStats = () => (
-    <div style={{ padding: '2rem', background: BG_COLOR, minHeight: '100vh' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: MAIN_COLOR, marginBottom: '0.5rem' }}>
-          User Statistics
-        </h1>
-        <p style={{ fontSize: '1.1rem', color: '#64748b', margin: 0 }}>
-          Overview of user distribution and activity in the system.
-        </p>
+    <div style={{ padding: '1.5rem', background: BG_COLOR, minHeight: '100vh', overflowY: 'auto' }}>
+      {/* Header Section */}
+      <div style={{
+        background: CARD_BG,
+        backdropFilter: SIDEBAR_BLUR,
+        borderRadius: CARD_RADIUS,
+        padding: '2rem',
+        marginBottom: '2rem',
+        border: `1px solid ${CARD_BORDER}`,
+        boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h1 style={{
+              fontSize: '2.25rem',
+              fontWeight: 800,
+              background: 'linear-gradient(135deg, #0f172a 0%, #475569 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              marginBottom: '0.5rem',
+              letterSpacing: '-0.025em'
+            }}>
+              User Statistics
+            </h1>
+            <p style={{
+              fontSize: '1rem',
+              color: '#64748b',
+              margin: 0,
+              fontWeight: 400
+            }}>
+              Overview of user distribution and activity in the system.
+            </p>
+          </div>
+          <div style={{
+            width: '50px',
+            height: '50px',
+            background: 'linear-gradient(135deg, #0f172a 0%, #475569 100%)',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.5rem',
+            color: 'white'
+          }}>
+            📊
+          </div>
+        </div>
       </div>
 
       <div style={{
         background: CARD_BG,
+        backdropFilter: SIDEBAR_BLUR,
         borderRadius: CARD_RADIUS,
-        padding: '1.5rem',
-        boxShadow: CARD_SHADOW,
-        border: `1px solid ${CARD_BORDER}`
+        padding: '2rem',
+        border: `1px solid ${CARD_BORDER}`,
+        boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)'
       }}>
-        <h3 style={{ marginBottom: '1.5rem', color: MAIN_COLOR }}>User Distribution</h3>
+        <h3 style={{
+          fontSize: '1.5rem',
+          fontWeight: 700,
+          background: 'linear-gradient(135deg, #0f172a 0%, #475569 100%)',
+          backgroundClip: 'text',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          marginBottom: '1.5rem'
+        }}>User Distribution</h3>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
           <div style={{
-            background: MAIN_COLOR,
-            borderRadius: '12px',
+            background: 'white',
+            borderRadius: '16px',
             padding: '1.5rem',
-            color: 'white',
-            textAlign: 'center'
+            textAlign: 'center',
+            border: '1px solid rgba(226, 232, 240, 0.6)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)';
+            e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
           }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem', color: MAIN_COLOR }}>
               {users.filter(u => u.role === 'CUSTOMER').length}
             </div>
-            <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>Customers</div>
+            <div style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 500 }}>Customers</div>
           </div>
 
           <div style={{
-            background: '#f093fb',
-            borderRadius: '12px',
+            background: 'white',
+            borderRadius: '16px',
             padding: '1.5rem',
-            color: 'white',
-            textAlign: 'center'
+            textAlign: 'center',
+            border: '1px solid rgba(226, 232, 240, 0.6)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)';
+            e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
           }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem', color: MAIN_COLOR }}>
               {users.filter(u => u.role === 'AGENT').length}
             </div>
-            <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>Agents</div>
+            <div style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 500 }}>Agents</div>
           </div>
 
           <div style={{
-            background: '#4facfe',
-            borderRadius: '12px',
+            background: 'white',
+            borderRadius: '16px',
             padding: '1.5rem',
-            color: 'white',
-            textAlign: 'center'
+            textAlign: 'center',
+            border: '1px solid rgba(226, 232, 240, 0.6)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)';
+            e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1.px rgba(0, 0, 0, 0.1)';
           }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem', color: MAIN_COLOR }}>
               {users.filter(u => u.role === 'ADMIN').length}
             </div>
-            <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>Admins</div>
+            <div style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 500 }}>Admins</div>
           </div>
 
           <div style={{
-            background: '#43e97b',
-            borderRadius: '12px',
+            background: 'white',
+            borderRadius: '16px',
             padding: '1.5rem',
-            color: 'white',
-            textAlign: 'center'
+            textAlign: 'center',
+            border: '1px solid rgba(226, 232, 240, 0.6)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)';
+            e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
           }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem', color: MAIN_COLOR }}>
               {users.length}
             </div>
-            <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>Total Users</div>
+            <div style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 500 }}>Total Users</div>
           </div>
         </div>
 
         <div style={{ marginTop: '2rem' }}>
-          <h4 style={{ marginBottom: '1rem', color: MAIN_COLOR }}>Recent User Activity</h4>
+          <h4 style={{
+            fontSize: '1.25rem',
+            fontWeight: 600,
+            color: MAIN_COLOR,
+            marginBottom: '1rem'
+          }}>Recent User Activity</h4>
           <div style={{ 
-            background: BG_COLOR, 
-            borderRadius: '8px', 
-            padding: '1rem',
+            background: 'white', 
+            borderRadius: '16px', 
+            padding: '1.5rem',
             fontSize: '0.875rem',
-            color: '#64748b'
+            color: '#374151',
+            border: '1px solid rgba(226, 232, 240, 0.6)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
           }}>
-            <p>• Last 7 days: {users.filter(u => new Date(u.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length} new users</p>
-            <p>• Most active role: {users.length > 0 ? (() => {
+            <p style={{ margin: '0 0 0.75rem 0', lineHeight: '1.5' }}>• Last 7 days: <strong>{users.filter(u => new Date(u.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length}</strong> new users</p>
+            <p style={{ margin: '0', lineHeight: '1.5' }}>• Most active role: <strong>{users.length > 0 ? (() => {
               const roleCounts = users.reduce((acc, user) => {
                 const role = user.role;
                 acc[role] = (acc[role] || 0) + 1;
@@ -639,7 +918,7 @@ export default function AdminPage() {
               }, {} as Record<string, number>);
               const mostActiveRole = Object.entries(roleCounts).reduce((a, b) => roleCounts[a[0]] > roleCounts[b[0]] ? a : b)[0];
               return mostActiveRole;
-            })() : 'No data'}</p>
+            })() : 'No data'}</strong></p>
           </div>
         </div>
       </div>

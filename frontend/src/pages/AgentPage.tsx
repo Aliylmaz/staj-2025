@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   updateOfferStatus,
-  reviseOfferPremium,
+
   getMyCustomers,
   type CustomerDto,
   type AgentDto,
@@ -39,10 +39,8 @@ export default function AgentPage() {
   const [policies, setPolicies] = useState<any[]>([]);
   const [policiesLoading, setPoliciesLoading] = useState(false);
   const [currentAgent, setCurrentAgent] = useState<AgentDto | null>(null);
-  const [selectedOfferId, setSelectedOfferId] = useState<number | null>(null);
-  const [reviseModalOpen, setReviseModalOpen] = useState(false);
-  const [newPremium, setNewPremium] = useState('');
-  const [reviseNote, setReviseNote] = useState('');
+
+
   
   // Policy management states
   const [selectedPolicy, setSelectedPolicy] = useState<any>(null);
@@ -284,44 +282,8 @@ export default function AgentPage() {
     }
   };
 
-  const handleReviseOffer = (offerId: number) => {
-    setSelectedOfferId(offerId);
-    setReviseModalOpen(true);
-    setNewPremium('');
-    setReviseNote('');
-  };
 
-  const handleSubmitRevision = async () => {
-    if (!selectedOfferId || !newPremium) {
-      alert('Please enter a new premium amount');
-      return;
-    }
 
-    try {
-      const premium = parseFloat(newPremium);
-      if (isNaN(premium) || premium <= 0) {
-        alert('Please enter a valid premium amount');
-        return;
-      }
-
-      await reviseOfferPremium(selectedOfferId, premium, reviseNote);
-      
-      // Remove from offers list and refresh
-      setOffers(prevOffers => 
-        prevOffers.filter(offer => offer.id !== selectedOfferId)
-      );
-      
-      setReviseModalOpen(false);
-      setSelectedOfferId(null);
-      setNewPremium('');
-      setReviseNote('');
-      
-      alert('Premium revised successfully! Customer will be notified.');
-    } catch (error) {
-      console.error('Error revising premium:', error);
-      alert('Failed to revise premium. Please try again.');
-    }
-  };
 
   const handleApproveClaim = async (claimId: string) => {
     if (!currentAgent?.id) return;
@@ -590,233 +552,151 @@ export default function AgentPage() {
           <div className="card-header">
             <h2 className="card-title">Performance Statistics</h2>
           </div>
-          <div className="grid grid-cols-3">
-            {/* Total Policies */}
-            <div className="card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{
-                  width: '3rem',
-                  height: '3rem',
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '1.5rem'
-                }}>
-                  📊
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+            {/* Top Left - Policy & Financial Metrics */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-700">Policy & Financial Overview</h3>
+              
+              {/* Total Policies */}
+              <div className="card bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-100 p-2 rounded-lg">
+                      <span className="text-blue-600 text-xl">📊</span>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Total Policies</div>
+                      <div className="text-lg font-bold text-gray-800">{agentStats.totalPolicies || 0}</div>
+                    </div>
+                  </div>
+                  
+                  {/* Approved Policies */}
+                  <div className="flex items-center gap-3">
+                    <div className="bg-purple-100 p-2 rounded-lg">
+                      <span className="text-purple-600 text-xl">✅</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500">Approved</div>
+                      <div className="text-lg font-bold text-gray-800">{agentStats.approvedPolicies || 0}</div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">Total Policies</div>
-                  <div className="text-xl font-bold">{agentStats.totalPolicies || 0}</div>
+                
+                {/* Conversion Rate */}
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-gray-500">Conversion Rate</div>
+                    <div className="text-sm font-medium text-gray-700">
+                      {(agentStats.conversionRate || 0).toFixed(1)}%
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1">
+                    <div 
+                      className="bg-gradient-to-r from-cyan-400 to-blue-500 h-1.5 rounded-full" 
+                      style={{ width: `${agentStats.conversionRate || 0}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Financial Summary */}
+              <div className="card bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-medium text-gray-700">Financial Summary</h4>
+                  <span className="text-xs px-2 py-1 bg-green-50 text-green-600 rounded-full">
+                    {(agentStats.netProfitability || 0).toFixed(1)}% Profit
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-green-50 p-2 rounded-lg">
+                    <div className="text-xs text-green-600 mb-1">Total Premium</div>
+                    <div className="font-bold text-gray-800">€{(agentStats.totalPremium || 0).toFixed(2)}</div>
+                  </div>
+                  
+                  <div className="bg-red-50 p-2 rounded-lg">
+                    <div className="text-xs text-red-600 mb-1">Claims Paid</div>
+                    <div className="font-bold text-gray-800">€{(agentStats.totalClaimPaid || 0).toFixed(2)}</div>
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* Total Claims */}
-            <div className="card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{
-                  width: '3rem',
-                  height: '3rem',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '1.5rem'
-                }}>
-                  🔑
+            
+            {/* Top Right - Performance & Activity */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-700">Performance & Activity</h3>
+              
+              {/* Performance Score */}
+              <div className="card bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-pink-100 p-2 rounded-lg">
+                      <span className="text-pink-500 text-xl">🏆</span>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Performance Score</div>
+                      <div className="text-lg font-bold text-gray-800">
+                        {(agentStats.performanceScore || 0).toFixed(1)}/100
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">Total Claims</div>
-                  <div className="text-xl font-bold">{agentStats.totalClaims || 0}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Total Offers */}
-            <div className="card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{
-                  width: '3rem',
-                  height: '3rem',
-                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '1.5rem'
-                }}>
-                  📝
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">Total Offers</div>
-                  <div className="text-xl font-bold">{agentStats.totalOffers || 0}</div>
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-pink-500 to-rose-500 h-2 rounded-full" 
+                    style={{ width: `${agentStats.performanceScore || 0}%` }}
+                  ></div>
                 </div>
               </div>
-            </div>
-
-            {/* Approved Policies */}
-            <div className="card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{
-                  width: '3rem',
-                  height: '3rem',
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '1.5rem'
-                }}>
-                  ✅
+              
+              {/* No Claim Rate */}
+              <div className="card bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-lime-100 p-2 rounded-lg">
+                      <span className="text-lime-500 text-xl">🛡️</span>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">No Claim Rate</div>
+                      <div className="text-lg font-bold text-gray-800">
+                        {(agentStats.noClaimPolicyRate || 0).toFixed(1)}%
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">Approved Policies</div>
-                  <div className="text-xl font-bold">{agentStats.approvedPolicies || 0}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Total Premium */}
-            <div className="card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{
-                  width: '3rem',
-                  height: '3rem',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '1.5rem'
-                }}>
-                  💰
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">Total Premium</div>
-                  <div className="text-xl font-bold">€{(agentStats.totalPremium || 0).toFixed(2)}</div>
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-lime-500 to-green-500 h-2 rounded-full" 
+                    style={{ width: `${agentStats.noClaimPolicyRate || 0}%` }}
+                  ></div>
                 </div>
               </div>
-            </div>
-
-            {/* Total Claim Paid */}
-            <div className="card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{
-                  width: '3rem',
-                  height: '3rem',
-                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '1.5rem'
-                }}>
-                  💸
+              
+              {/* Activity Summary */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="card bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-amber-100 p-2 rounded-lg">
+                      <span className="text-amber-500 text-lg">📝</span>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Total Offers</div>
+                      <div className="font-bold text-gray-800">{agentStats.totalOffers || 0}</div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">Total Claim Paid</div>
-                  <div className="text-xl font-bold">€{(agentStats.totalClaimPaid || 0).toFixed(2)}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Conversion Rate */}
-            <div className="card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{
-                  width: '3rem',
-                  height: '3rem',
-                  background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '1.5rem'
-                }}>
-                  📈
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">Conversion Rate</div>
-                  <div className="text-xl font-bold">{(agentStats.conversionRate || 0).toFixed(1)}%</div>
-                </div>
-              </div>
-            </div>
-
-            {/* No Claim Policy Rate */}
-            <div className="card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{
-                  width: '3rem',
-                  height: '3rem',
-                  background: 'linear-gradient(135deg, #84cc16 0%, #65a30d 100%)',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '1.5rem'
-                }}>
-                  🛡️
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">No Claim Rate</div>
-                  <div className="text-xl font-bold">{(agentStats.noClaimPolicyRate || 0).toFixed(1)}%</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Net Profitability */}
-            <div className="card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{
-                  width: '3rem',
-                  height: '3rem',
-                  background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '1.5rem'
-                }}>
-                  📊
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">Net Profitability</div>
-                  <div className="text-xl font-bold">{(agentStats.netProfitability || 0).toFixed(1)}%</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Performance Score */}
-            <div className="card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{
-                  width: '3rem',
-                  height: '3rem',
-                  background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '1.5rem'
-                }}>
-                  🏆
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">Performance Score</div>
-                  <div className="text-xl font-bold">{(agentStats.performanceScore || 0).toFixed(1)}%</div>
+                
+                <div className="card bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-emerald-100 p-2 rounded-lg">
+                      <span className="text-emerald-500 text-lg">🔑</span>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Total Claims</div>
+                      <div className="font-bold text-gray-800">{agentStats.totalClaims || 0}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1662,25 +1542,7 @@ export default function AgentPage() {
                             ❌ Reject
                           </button>
                         </div>
-                        <button
-                          onClick={() => handleReviseOffer(offer.id)}
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '0.875rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            transition: 'transform 0.2s'
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                        >
-                          📝 Revise Premium
-                        </button>
+                   
                       </div>
                     )}
                     
@@ -2440,69 +2302,7 @@ export default function AgentPage() {
         </div>
       )}
 
-      {/* Premium Revision Modal */}
-      {reviseModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3 className="modal-title">Revise Premium</h3>
-              <button 
-                onClick={() => setReviseModalOpen(false)}
-                className="modal-close"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="form-group">
-              <label className="form-label">New Premium Amount (€)</label>
-              <input
-                type="number"
-                value={newPremium}
-                onChange={(e) => setNewPremium(e.target.value)}
-                placeholder="Enter new premium amount"
-                className="form-input"
-                step="0.01"
-                min="0"
-              />
-            </div>
 
-            <div className="form-group">
-              <label className="form-label">Revision Note (Optional)</label>
-              <textarea
-                value={reviseNote}
-                onChange={(e) => setReviseNote(e.target.value)}
-                placeholder="Explain the reason for premium revision..."
-                rows={3}
-                className="form-input"
-                style={{ resize: 'vertical' }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-              <button
-                onClick={() => {
-                  setReviseModalOpen(false);
-                  setSelectedOfferId(null);
-                  setNewPremium('');
-                  setReviseNote('');
-                }}
-                className="btn btn-secondary"
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmitRevision}
-                className="btn btn-primary"
-                style={{ flex: 1 }}
-              >
-                Submit Revision
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Claim Approval Modal */}
       {showClaimApprovalModal && (

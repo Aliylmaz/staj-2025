@@ -3,14 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCustomer } from '../contexts/CustomerContext';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-
-// Declare html2pdf as global
-declare global {
-  interface Window {
-    html2pdf: any;
-  }
-}
-const html2pdf = (window as any).html2pdf;
+import html2pdf from 'html2pdf.js';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -494,7 +487,7 @@ export default function CustomerPage() {
             <div>
               <div style="font-size: 0.875rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem;">Accepted Date</div>
               <div style="font-size: 1rem; font-weight: 600; color: #059669; background: #f0fdf4; padding: 0.75rem; border-radius: 8px; border: 1px solid #bbf7d0;">
-                ${new Date(selectedOffer.acceptedAt).toLocaleDateString('tr-TR', {
+                ${new Date(selectedOffer.acceptedAt).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
@@ -508,7 +501,7 @@ export default function CustomerPage() {
             <div>
               <div style="font-size: 0.875rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem;">Converted to Policy</div>
               <div style="font-size: 1rem; font-weight: 600; color: #059669; background: #f0fdf4; padding: 0.75rem; border-radius: 8px; border: 1px solid #bbf7d0;">
-                ${new Date(selectedOffer.convertedAt).toLocaleDateString('tr-TR', {
+                ${new Date(selectedOffer.convertedAt).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
@@ -724,6 +717,7 @@ export default function CustomerPage() {
   const [note, setNote] = useState('');
   
   // Dynamic form data based on insurance type
+
   const [vehicleData, setVehicleData] = useState({
     make: '',
     model: '',
@@ -944,6 +938,86 @@ export default function CustomerPage() {
           requestData.homeDetailRequest = homeData;
           break;
       }
+
+      // Validate coverages
+      if (!selectedCoverages || selectedCoverages.length === 0) {
+        alert("Please select at least one coverage");
+        return;
+      }
+
+     // Validate vehicle data if insurance type is VEHICLE
+if (insuranceType === 'VEHICLE') {
+  
+  
+  // Sırayla kontrol et ve ilk hatada dur
+  if (!vehicleData.make?.trim()) {
+    alert("Make is required");
+    
+    document.getElementById('make')?.focus();
+    return;
+  }
+  
+  if (!vehicleData.model?.trim()) {
+    alert("Model is required");
+    
+    document.getElementById('model')?.focus();
+    return;
+  }
+  
+  if (!vehicleData.year) {
+    alert("Year is required");
+    
+    document.getElementById('year')?.focus();
+    return;
+  } else if (vehicleData.year < 1900 || vehicleData.year > 2030) {
+    alert("Year must be between 1900 and 2030");
+    
+    document.getElementById('year')?.focus();
+    return;
+  }
+  
+  if (!vehicleData.plateNumber?.trim()) {
+    alert("Plate number is required");
+    
+    document.getElementById('plateNumber')?.focus();
+    return;
+  } else {
+    const plateRegex = /^[0-9]{2}[A-ZÇĞİÖŞÜ]{1,3}[0-9]{2,4}$/;
+    if (!plateRegex.test(vehicleData.plateNumber.replace(/\s/g, ''))) {
+      alert("Invalid plate number format (e.g., 34ABC123)");
+      
+      document.getElementById('plateNumber')?.focus();
+      return;
+    }
+  }
+  
+  if (!vehicleData.vin?.trim()) {
+    alert("VIN is required");
+   
+    document.getElementById('vin')?.focus();
+    return;
+  } else {
+    const vinRegex = /^[A-HJ-NPR-Z0-9]{17}$/;
+    if (!vinRegex.test(vehicleData.vin)) {
+      alert("VIN must be 17 chars (no I, O, Q)");
+      
+      document.getElementById('vin')?.focus();
+      return;
+    }
+  }
+  
+  if (!vehicleData.engineNumber?.trim()) {
+    alert("Engine number is required");
+    
+    document.getElementById('engineNumber')?.focus();
+    return;
+  } else if (vehicleData.engineNumber.length < 6 || vehicleData.engineNumber.length > 17) {
+    alert("Engine number must be between 6 and 17 characters");
+    
+    document.getElementById('engineNumber')?.focus();
+    return;
+  }
+}
       
       const response = await requestOffer(requestData);
       console.log('✅ Offer created successfully:', response);
@@ -1648,7 +1722,7 @@ export default function CustomerPage() {
             }}
             onClick={() => setCurrentModule('payments')}
           >
-            + New Payment
+            + Your Payments
           </button>
           <button
             style={{
@@ -1706,7 +1780,7 @@ export default function CustomerPage() {
             <div style={{height: '300px', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
               {(() => {
                 const approvedClaims = claims.filter(c => c.status === 'APPROVED').length;
-                const pendingClaims = claims.filter(c => c.status === 'PENDING').length;
+                const submittedClaims = claims.filter(c => c.status === 'SUBMITTED').length;
                 const rejectedClaims = claims.filter(c => c.status === 'REJECTED').length;
                 const totalClaims = claims.length;
 
@@ -1764,12 +1838,12 @@ export default function CustomerPage() {
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <span style={{ fontSize: '1.5rem' }}>⏳</span>
-                        <span style={{ fontWeight: 600 }}>Pending</span>
+                        <span style={{ fontWeight: 600 }}>Submitted</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '1.5rem', fontWeight: 700 }}>{pendingClaims}</span>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 700 }}>{submittedClaims}</span>
                         <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>
-                          ({totalClaims > 0 ? Math.round((pendingClaims / totalClaims) * 100) : 0}%)
+                          ({totalClaims > 0 ? Math.round((submittedClaims / totalClaims) * 100) : 0}%)
                         </span>
                       </div>
                     </div>
@@ -1826,87 +1900,83 @@ export default function CustomerPage() {
         return renderDashboard();
              case 'offers':
          return (
-           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh', overflowY: 'auto' }}>
+           <div style={{ 
+             padding: '1.5rem', 
+             background: 'linear-gradient(135deg, #fafbfc 0%, #f1f5f9 100%)', 
+             minHeight: '100vh', 
+             overflowY: 'auto' 
+           }}>
              {/* Header Section */}
-             <div style={{ 
-               marginBottom: '3rem',
-               background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+             <div style={{
+               background: 'rgba(255, 255, 255, 0.8)',
+               backdropFilter: 'blur(10px)',
+               borderRadius: '24px',
                padding: '2rem',
-               borderRadius: '20px',
-               boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
-               border: '1px solid rgba(255, 255, 255, 0.1)'
+               marginBottom: '2rem',
+               border: '1px solid rgba(226, 232, 240, 0.6)',
+               boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)'
              }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                 <div style={{
-                   width: '60px',
-                   height: '60px',
-                   background: 'rgba(255, 255, 255, 0.2)',
-                   borderRadius: '16px',
-                   display: 'flex',
-                   alignItems: 'center',
-                   justifyContent: 'center',
-                   color: 'white',
-                   boxShadow: '0 4px 16px rgba(255, 255, 255, 0.2)'
-                 }}>
-                   <span style={{ fontSize: '2rem' }}>📋</span>
-                 </div>
+               <div style={{ 
+                 display: 'flex', 
+                 justifyContent: 'space-between', 
+                 alignItems: 'flex-start'
+               }}>
                  <div>
                    <h1 style={{
-                     fontSize: '2.5rem',
-                     fontWeight: 700,
-                     color: '#ffffff',
-                     marginBottom: '0.5rem'
+                     fontSize: '2.25rem',
+                     fontWeight: 800,
+                     background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                     backgroundClip: 'text',
+                     WebkitBackgroundClip: 'text',
+                     WebkitTextFillColor: 'transparent',
+                     marginBottom: '0.5rem',
+                     letterSpacing: '-0.025em'
                    }}>
-                     My Insurance Offers
+                     Insurance Offers
                    </h1>
                    <p style={{
-                     fontSize: '1.1rem',
-                     color: 'rgba(255, 255, 255, 0.9)',
-                     margin: 0
+                     fontSize: '1rem',
+                     color: '#64748b',
+                     margin: 0,
+                     fontWeight: 400
                    }}>
                      View, manage, and track your insurance offers
                    </p>
                  </div>
+                 
+                 {/* Action Button */}
+                 <button
+                   onClick={() => setShowOfferForm(true)}
+                   style={{
+                     background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                     color: 'white',
+                     border: 'none',
+                     borderRadius: '16px',
+                     padding: '0.75rem 1.5rem',
+                     fontSize: '0.875rem',
+                     fontWeight: 600,
+                     cursor: 'pointer',
+                     transition: 'all 0.3s ease',
+                     display: 'flex',
+                     alignItems: 'center',
+                     gap: '0.5rem',
+                     boxShadow: '0 4px 16px rgba(59, 130, 246, 0.2)'
+                   }}
+                   onMouseEnter={(e) => {
+                     e.currentTarget.style.transform = 'translateY(-2px)';
+                     e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3)';
+                     e.currentTarget.style.background = 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)';
+                   }}
+                   onMouseLeave={(e) => {
+                     e.currentTarget.style.transform = 'translateY(0)';
+                     e.currentTarget.style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.2)';
+                     e.currentTarget.style.background = 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
+                   }}
+                 >
+                   <span style={{ fontSize: '1rem' }}>📋</span>
+                   Request New Offer
+                 </button>
                </div>
-             </div>
-
-             <div style={{ 
-               marginBottom: '2rem',
-               background: 'white',
-               padding: '1.5rem',
-               borderRadius: '16px',
-               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-               border: '1px solid #e2e8f0'
-             }}>
-               <button
-                 onClick={() => setShowOfferForm(true)}
-                 style={{
-                   background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                   color: 'white',
-                   border: 'none',
-                   borderRadius: '16px',
-                   padding: '1rem 2rem',
-                   fontSize: '1rem',
-                   fontWeight: 600,
-                   cursor: 'pointer',
-                   transition: 'all 0.3s ease',
-                   display: 'flex',
-                   alignItems: 'center',
-                   gap: '0.75rem',
-                   boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3)'
-                 }}
-                 onMouseEnter={(e) => {
-                   e.currentTarget.style.transform = 'translateY(-2px)';
-                   e.currentTarget.style.boxShadow = '0 8px 30px rgba(59, 130, 246, 0.4)';
-                 }}
-                 onMouseLeave={(e) => {
-                   e.currentTarget.style.transform = 'translateY(0)';
-                   e.currentTarget.style.boxShadow = '0 4px 20px rgba(59, 130, 246, 0.3)';
-                 }}
-               >
-                 <span style={{ fontSize: '1.25rem' }}>📋</span>
-                 Request New Offer
-               </button>
              </div>
 
                           {/* Status Filter */}
@@ -2466,7 +2536,7 @@ export default function CustomerPage() {
                    <h1 style={{
                      fontSize: '2.25rem',
                      fontWeight: 800,
-                     background: 'linear-gradient(135deg, #0f172a 0%, #475569 100%)',
+                     background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
                      backgroundClip: 'text',
                      WebkitBackgroundClip: 'text',
                      WebkitTextFillColor: 'transparent',
@@ -2867,48 +2937,83 @@ export default function CustomerPage() {
          );
              case 'claims':
          return (
-           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh', overflowY: 'auto' }}>
-             <div style={{ marginBottom: '2rem' }}>
-               <h1 style={{
-                 fontSize: '2.5rem',
-                 fontWeight: 700,
-                 color: '#1e293b',
-                 marginBottom: '0.5rem'
+           <div style={{ 
+             padding: '1.5rem', 
+             background: 'linear-gradient(135deg, #fafbfc 0%, #f1f5f9 100%)', 
+             minHeight: '100vh', 
+             overflowY: 'auto' 
+           }}>
+             {/* Header Section */}
+             <div style={{
+               background: 'rgba(255, 255, 255, 0.8)',
+               backdropFilter: 'blur(10px)',
+               borderRadius: '24px',
+               padding: '2rem',
+               marginBottom: '2rem',
+               border: '1px solid rgba(226, 232, 240, 0.6)',
+               boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)'
+             }}>
+               <div style={{ 
+                 display: 'flex', 
+                 justifyContent: 'space-between', 
+                 alignItems: 'flex-start'
                }}>
-                 My Claims
-               </h1>
-               <p style={{
-                 fontSize: '1.1rem',
-                 color: '#64748b',
-                 margin: 0
-               }}>
-                 Track and manage your insurance claims
-               </p>
-             </div>
-
-             <div style={{ marginBottom: '2rem' }}>
-               <button
-                 onClick={() => setShowClaimForm(true)}
-                 style={{
-                   background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                   color: 'white',
-                   border: 'none',
-                   borderRadius: '12px',
-                   padding: '1rem 2rem',
-                   fontSize: '1rem',
-                   fontWeight: 600,
-                   cursor: 'pointer',
-                   transition: 'transform 0.2s',
-                   display: 'flex',
-                   alignItems: 'center',
-                   gap: '0.5rem'
-                 }}
-                 onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                 onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-               >
-                 <span>🔑</span>
-                 File New Claim
-               </button>
+                 <div>
+                   <h1 style={{
+                     fontSize: '2.25rem',
+                     fontWeight: 800,
+                     background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                     backgroundClip: 'text',
+                     WebkitBackgroundClip: 'text',
+                     WebkitTextFillColor: 'transparent',
+                     marginBottom: '0.5rem',
+                     letterSpacing: '-0.025em'
+                   }}>
+                     My Claims
+                   </h1>
+                   <p style={{
+                     fontSize: '1rem',
+                     color: '#64748b',
+                     margin: 0,
+                     fontWeight: 400
+                   }}>
+                     Track and manage your insurance claims
+                   </p>
+                 </div>
+                 
+                 {/* Action Button */}
+                 <button
+                   onClick={() => setShowClaimForm(true)}
+                   style={{
+                     background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                     color: 'white',
+                     border: 'none',
+                     borderRadius: '16px',
+                     padding: '0.75rem 1.5rem',
+                     fontSize: '0.875rem',
+                     fontWeight: 600,
+                     cursor: 'pointer',
+                     transition: 'all 0.3s ease',
+                     display: 'flex',
+                     alignItems: 'center',
+                     gap: '0.5rem',
+                     boxShadow: '0 4px 16px rgba(59, 130, 246, 0.2)'
+                   }}
+                   onMouseEnter={(e) => {
+                     e.currentTarget.style.transform = 'translateY(-2px)';
+                     e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3)';
+                     e.currentTarget.style.background = 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)';
+                   }}
+                   onMouseLeave={(e) => {
+                     e.currentTarget.style.transform = 'translateY(0)';
+                     e.currentTarget.style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.2)';
+                     e.currentTarget.style.background = 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
+                   }}
+                 >
+                   <span style={{ fontSize: '1rem' }}>🔑</span>
+                   File New Claim
+                 </button>
+               </div>
              </div>
 
              {loading ? (
@@ -3066,9 +3171,37 @@ export default function CustomerPage() {
                          <div style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '0.5rem' }}>Description:</div>
                          <div style={{ color: '#1e293b', fontSize: '0.875rem' }}>{claim.description}</div>
                        </div>
+                       {/* Rejection Reason Display for Rejected Claims */}
+                      {claim.status === "REJECTED" && claim.rejectionReason && (
+                        <div style={{ 
+                          marginTop: '1rem', 
+                          padding: '1rem', 
+                          background: '#fef2f2', 
+                          borderRadius: '8px',
+                          border: '1px solid #fecaca'
+                        }}>
+                          <div style={{ 
+                            color: '#dc2626', 
+                            fontSize: '0.875rem', 
+                            marginBottom: '0.5rem',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
+                          }}>
+                            <span>⚠️</span>
+                            Rejection Reason:
+                          </div>
+                          <div style={{ 
+                            color: '#991b1b', 
+                            fontSize: '0.875rem',
+                            lineHeight: '1.4'
+                          }}>
+                            {claim.rejectionReason}
+                          </div>
+                        </div>
+                      )}
                      </div>
-                     
-
                    </div>
                  ))}
                </div>
@@ -3077,23 +3210,50 @@ export default function CustomerPage() {
          );
              case 'payments':
          return (
-           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh', overflowY: 'auto' }}>
-             <div style={{ marginBottom: '2rem' }}>
-               <h1 style={{
-                 fontSize: '2.5rem',
-                 fontWeight: 700,
-                 color: '#1e293b',
-                 marginBottom: '0.5rem'
+           <div style={{ 
+             padding: '1.5rem', 
+             background: 'linear-gradient(135deg, #fafbfc 0%, #f1f5f9 100%)', 
+             minHeight: '100vh', 
+             overflowY: 'auto' 
+           }}>
+             {/* Header Section */}
+             <div style={{
+               background: 'rgba(255, 255, 255, 0.8)',
+               backdropFilter: 'blur(10px)',
+               borderRadius: '24px',
+               padding: '2rem',
+               marginBottom: '2rem',
+               border: '1px solid rgba(226, 232, 240, 0.6)',
+               boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)'
+             }}>
+               <div style={{ 
+                 display: 'flex', 
+                 justifyContent: 'space-between', 
+                 alignItems: 'flex-start'
                }}>
-                 My Payments
-               </h1>
-               <p style={{
-                 fontSize: '1.1rem',
-                 color: '#64748b',
-                 margin: 0
-               }}>
-                 View your payment history and manage transactions
-               </p>
+                 <div>
+                   <h1 style={{
+                     fontSize: '2.25rem',
+                     fontWeight: 800,
+                     background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                     backgroundClip: 'text',
+                     WebkitBackgroundClip: 'text',
+                     WebkitTextFillColor: 'transparent',
+                     marginBottom: '0.5rem',
+                     letterSpacing: '-0.025em'
+                   }}>
+                     My Payments
+                   </h1>
+                   <p style={{
+                     fontSize: '1rem',
+                     color: '#64748b',
+                     margin: 0,
+                     fontWeight: 400
+                   }}>
+                     View your payment history and manage transactions
+                   </p>
+                 </div>
+               </div>
              </div>
 
              {loading ? (
@@ -3127,7 +3287,7 @@ export default function CustomerPage() {
                    color: '#1e293b',
                    marginBottom: '1rem'
                  }}>
-                   No Payments Yet
+                   Your Payments Yet
                  </h3>
                  <p style={{
                    color: '#64748b',
@@ -3179,8 +3339,8 @@ export default function CustomerPage() {
                          borderRadius: '9999px',
                          fontSize: '0.75rem',
                          fontWeight: 500,
-                         background: payment.status === "COMPLETED" ? '#dcfce7' : payment.status === "PENDING" ? '#fef3c7' : '#fee2e2',
-                         color: payment.status === "COMPLETED" ? '#166534' : payment.status === "PENDING" ? '#92400e' : '#991b1b'
+                         background: payment.status === "COMPLETED" ? '#dcfce7' : payment.status === "SUCCESS" ? '#dcfce7' : payment.status === "PENDING" ? '#fef3c7' : '#fee2e2',
+                         color: payment.status === "COMPLETED" ? '#166534' : payment.status === "SUCCESS" ? '#166534' : payment.status === "PENDING" ? '#92400e' : '#991b1b'
                        }}>
                          {payment.status}
                        </span>
@@ -3217,26 +3377,94 @@ export default function CustomerPage() {
          );
        case 'documents':
          return (
-           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh', overflowY: 'auto' }}>
-             <div style={{ marginBottom: '2rem' }}>
-               <h1 style={{
-                 fontSize: '2.5rem',
-                 fontWeight: 700,
-                 color: '#1e293b',
-                 marginBottom: '0.5rem'
+           <div style={{ 
+             padding: '1.5rem', 
+             background: 'linear-gradient(135deg, #fafbfc 0%, #f1f5f9 100%)', 
+             minHeight: '100vh', 
+             overflowY: 'auto' 
+           }}>
+             {/* Header Section */}
+             <div style={{
+               background: 'rgba(255, 255, 255, 0.8)',
+               backdropFilter: 'blur(10px)',
+               borderRadius: '24px',
+               padding: '2rem',
+               marginBottom: '2rem',
+               border: '1px solid rgba(226, 232, 240, 0.6)',
+               boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)'
+             }}>
+               <div style={{ 
+                 display: 'flex', 
+                 justifyContent: 'space-between', 
+                 alignItems: 'flex-start'
                }}>
-                 My Documents
-               </h1>
-               <p style={{
-                 fontSize: '1.1rem',
-                 color: '#64748b',
-                 margin: 0
-               }}>
-                 Manage and upload your insurance documents
-               </p>
+                 <div>
+                   <h1 style={{
+                     fontSize: '2.25rem',
+                     fontWeight: 800,
+                     background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                     backgroundClip: 'text',
+                     WebkitBackgroundClip: 'text',
+                     WebkitTextFillColor: 'transparent',
+                     marginBottom: '0.5rem',
+                     letterSpacing: '-0.025em'
+                   }}>
+                     My Documents
+                   </h1>
+                   <p style={{
+                     fontSize: '1rem',
+                     color: '#64748b',
+                     margin: 0,
+                     fontWeight: 400
+                   }}>
+                     Manage and upload your insurance documents
+                   </p>
+                 </div>
+                 
+                 {/* Action Button */}
+                 <button
+                   onClick={() => setShowDocumentUpload(true)}
+                   style={{
+                     background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                     color: 'white',
+                     border: 'none',
+                     borderRadius: '16px',
+                     padding: '0.75rem 1.5rem',
+                     fontSize: '0.875rem',
+                     fontWeight: 600,
+                     cursor: 'pointer',
+                     transition: 'all 0.3s ease',
+                     display: 'flex',
+                     alignItems: 'center',
+                     gap: '0.5rem',
+                     boxShadow: '0 4px 16px rgba(59, 130, 246, 0.2)'
+                   }}
+                   onMouseEnter={(e) => {
+                     e.currentTarget.style.transform = 'translateY(-2px)';
+                     e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3)';
+                     e.currentTarget.style.background = 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)';
+                   }}
+                   onMouseLeave={(e) => {
+                     e.currentTarget.style.transform = 'translateY(0)';
+                     e.currentTarget.style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.2)';
+                     e.currentTarget.style.background = 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
+                   }}
+                 >
+                   <span style={{ fontSize: '1rem' }}>📁</span>
+                   Upload Document
+                 </button>
+               </div>
              </div>
 
-             <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+             {/* Filter Section */}
+             <div style={{
+               background: 'white',
+               padding: '1.5rem',
+               borderRadius: '16px',
+               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+               border: '1px solid #e2e8f0',
+               marginBottom: '2rem'
+             }}>
                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                  <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>Filter by Type:</span>
                  <select
@@ -3254,35 +3482,14 @@ export default function CustomerPage() {
                    <option value="ALL">All Documents</option>
                    <option value="POLICY_DOCUMENT">Policy Documents</option>
                    <option value="CLAIM_DOCUMENT">Claim Documents</option>
+                   <option value="CLAIM_PHOTO">Claim Photos</option>
+                   <option value="CLAIM_INVOICE">Claim Invoices</option>
                    <option value="IDENTITY_DOCUMENT">Identity Documents</option>
                    <option value="MEDICAL_DOCUMENT">Medical Documents</option>
                    <option value="VEHICLE_DOCUMENT">Vehicle Documents</option>
                    <option value="OTHER">Other Documents</option>
                  </select>
                </div>
-               
-               <button
-                 onClick={() => setShowDocumentUpload(true)}
-                 style={{
-                   background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                   color: 'white',
-                   border: 'none',
-                   borderRadius: '12px',
-                   padding: '1rem 2rem',
-                   fontSize: '1rem',
-                   fontWeight: 600,
-                   cursor: 'pointer',
-                   transition: 'transform 0.2s',
-                   display: 'flex',
-                   alignItems: 'center',
-                   gap: '0.5rem'
-                 }}
-                 onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                 onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-               >
-                 <span>📁</span>
-                 Upload Document
-               </button>
              </div>
 
              {loading ? (
@@ -6743,7 +6950,7 @@ export default function CustomerPage() {
                          color: '#059669',
                          fontWeight: 600
                        }}>
-                         {new Date(selectedOffer.convertedAt).toLocaleDateString('tr-TR', {
+                         {new Date(selectedOffer.convertedAt).toLocaleDateString('en-US', {
                            year: 'numeric',
                            month: 'long',
                            day: 'numeric',
