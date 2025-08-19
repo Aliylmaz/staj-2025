@@ -13,6 +13,7 @@ public interface DocumentMapper {
     @Mapping(target = "customerId", source = "customer.id")
     @Mapping(target = "policyId", source = "policy.id")
     @Mapping(target = "claimId", source = "claim.id")
+
     DocumentDto toDto(Document document);
 
     @Mapping(target = "customer", ignore = true)

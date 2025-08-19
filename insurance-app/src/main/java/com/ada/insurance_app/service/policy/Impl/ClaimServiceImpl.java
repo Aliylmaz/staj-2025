@@ -322,6 +322,7 @@ public class ClaimServiceImpl implements IClaimService {
         claim.setStatus(ClaimStatus.APPROVED);
         claim.setApprovedAmount(approvedAmount);
         claim.setUpdatedAt(LocalDateTime.now());
+
         
         Claim savedClaim = claimRepository.save(claim);
         log.info("Claim approved by agent: {} for claim: {} with approved amount: {}", agentId, claimId, approvedAmount);

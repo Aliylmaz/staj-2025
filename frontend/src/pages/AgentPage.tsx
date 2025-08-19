@@ -24,9 +24,47 @@ import {
   updateAgentUserProfile,
   getClaimsByAgent
 } from '../services/agentApi';
+import { documentApi } from '../services/documentApi';
+import type { DocumentDto } from '../services/documentApi';
+import axios from '../services/axiosConfig';
 
 export default function AgentPage() {
-  const [currentModule, setCurrentModule] = useState<'dashboard' | 'customers' | 'policies' | 'offers' | 'claims' | 'payments' | 'profile'>('dashboard');
+  // Document handling functions
+  const loadClaimDocuments = async (claimId: string) => {
+    try {
+      setDocumentsLoading(true);
+      const docs = await documentApi.getDocumentsByClaim(claimId);
+      setDocuments(docs);
+      setSelectedClaimForDocs(claimId);
+    } catch (error) {
+      console.error('Error loading documents:', error);
+    } finally {
+      setDocumentsLoading(false);
+    }
+  };
+
+  const handleDownloadDocument = async (documentId: number, fileName: string) => {
+    try {
+      const response = await axios.get(`/api/v1/documents/${documentId}/download`, {
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([response.data], { type: response.headers['content-type'] });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+    }
+  };
+
+  const [selectedClaimStatus, setSelectedClaimStatus] = useState<string>('ALL');
+  const [currentModule, setCurrentModule] = useState<'dashboard' | 'customers' | 'policies' | 'offers' | 'claims' | 'payments' | 'profile' | 'documents'>('dashboard');
   const [agentStats, setAgentStats] = useState<AgentStatsDto | null>(null);
   const [offers, setOffers] = useState<OfferDto[]>([]);
   const [offersLoading, setOffersLoading] = useState(false);
@@ -48,6 +86,11 @@ export default function AgentPage() {
   const [policyCoverages, setPolicyCoverages] = useState<any[]>([]);
   const [policyActionSuccess, setPolicyActionSuccess] = useState<string | null>(null);
   const [policyActionError, setPolicyActionError] = useState<string | null>(null);
+
+  // Document states
+  const [documents, setDocuments] = useState<DocumentDto[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [selectedClaimForDocs, setSelectedClaimForDocs] = useState<string | null>(null);
   
   // Claim approval states
   const [showClaimApprovalModal, setShowClaimApprovalModal] = useState(false);
@@ -87,6 +130,13 @@ export default function AgentPage() {
       fetchPolicies();
     }
   }, [currentAgent]);
+
+  // Documents sekmesine geçildiğinde claim'leri yükle
+  useEffect(() => {
+    if (currentModule === 'documents' && currentAgent?.id) {
+      fetchClaims();
+    }
+  }, [currentModule]);
 
   const fetchCurrentAgent = async () => {
     try {
@@ -749,6 +799,119 @@ export default function AgentPage() {
     </div>
   );
 
+  const renderDocuments = () => {
+    return (
+      <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{
+            fontSize: '2.5rem',
+            fontWeight: 700,
+            color: '#1e293b',
+            marginBottom: '0.5rem'
+          }}>
+            Claim Documents
+          </h1>
+          <p style={{
+            fontSize: '1.1rem',
+            color: '#64748b',
+            margin: 0
+          }}>
+            View and manage documents attached to claims
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6">
+          {claims.map((claim) => (
+            <div key={claim.id} className="card">
+              <div className="card-header flex justify-between items-center">
+                <div>
+                  <h3 className="card-title">
+                    Claim #{claim.claimNumber}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Status: {claim.status} | Amount: €{claim.estimatedAmount}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Customer: {claim.customer?.firstName} {claim.customer?.lastName}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Policy: {claim.policy?.policyNumber}
+                  </p>
+                </div>
+                <button
+                  onClick={() => loadClaimDocuments(claim.id)}
+                  className="btn btn-primary"
+                >
+                  View Documents
+                </button>
+              </div>
+              
+              {selectedClaimForDocs === claim.id && (
+                <div className="p-4">
+                  {documentsLoading ? (
+                    <div className="flex justify-center p-4">
+                      <div className="loader"></div>
+                    </div>
+                  ) : documents.length === 0 ? (
+                    <div className="text-center text-gray-500 p-4">
+                      No documents found for this claim
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                      {documents.map((doc) => (
+                        <div key={doc.id} className="bg-white rounded-lg shadow p-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-semibold text-lg mb-2">
+                                {doc.documentType === 'CLAIM_PHOTO' && '📷 '}
+                                {doc.documentType === 'CLAIM_DOCUMENT' && '📄 '}
+                                {doc.documentType === 'CLAIM_INVOICE' && '🧾 '}
+                                {doc.fileName}
+                              </h4>
+                              <div className="space-y-1">
+                                <p className="text-sm text-gray-600">
+                                  <span className="font-medium">Type:</span> {doc.documentType.replace('_', ' ')}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  <span className="font-medium">Size:</span> {(doc.fileSize / 1024).toFixed(2)} KB
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  <span className="font-medium">Uploaded:</span> {new Date(doc.uploadDate).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              {doc.contentType?.startsWith('image/') ? (
+                                <button
+                                  onClick={() => window.open(`http://localhost:8080/api/v1/documents/${doc.id}/download`, '_blank')}
+                                  className="btn btn-sm btn-secondary"
+                                  title="Preview Image"
+                                >
+                                  👁️ Preview
+                                </button>
+                              ) : null}
+                              <button
+                                onClick={() => handleDownloadDocument(doc.id, doc.fileName)}
+                                className="btn btn-sm btn-primary"
+                                title="Download File"
+                              >
+                                ⬇️ Download
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const renderModuleContent = () => {
     switch (currentModule) {
       case 'dashboard':
@@ -1317,27 +1480,6 @@ export default function AgentPage() {
                       </button>
                     )}
                     
-                    {selectedPolicy.status !== 'EXPIRED' && (
-                      <button
-                        onClick={() => handleUpdatePolicyStatus(selectedPolicy.id, 'EXPIRED')}
-                        style={{
-                          padding: '0.75rem 1.5rem',
-                          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          transition: 'transform 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                      >
-                        ⏰ Mark as Expired
-                      </button>
-                    )}
-                    
                     <button
                       onClick={() => setShowPolicyDetails(false)}
                       style={{
@@ -1602,6 +1744,129 @@ export default function AgentPage() {
               </p>
             </div>
 
+            {/* Filter Section */}
+            <div style={{ 
+              background: 'white', 
+              borderRadius: '12px',
+              padding: '1.5rem',
+              marginBottom: '2rem',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+            }}>
+              <h3 style={{
+                fontSize: '1.25rem',
+                fontWeight: 600,
+                color: '#1e293b',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <span style={{ color: '#3b82f6' }}>🔍</span> Filter Claims
+              </h3>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <p style={{ 
+                  fontSize: '0.875rem', 
+                  color: '#64748b',
+                  marginBottom: '0.5rem'
+                }}>
+                  Filter by Status:
+                </p>
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '0.5rem', 
+                  flexWrap: 'wrap'
+                }}>
+                  <button
+                    onClick={() => setSelectedClaimStatus('ALL')}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '20px',
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: selectedClaimStatus === 'ALL' ? '#3b82f6' : 'white',
+                      color: selectedClaimStatus === 'ALL' ? 'white' : '#1e293b',
+                      fontSize: '0.875rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    All <span style={{ marginLeft: '0.25rem' }}>({claims.length})</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedClaimStatus('SUBMITTED')}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '20px',
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: selectedClaimStatus === 'SUBMITTED' ? '#3b82f6' : 'white',
+                      color: selectedClaimStatus === 'SUBMITTED' ? 'white' : '#1e293b',
+                      fontSize: '0.875rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Submitted <span style={{ marginLeft: '0.25rem' }}>({claims.filter(c => c.status === 'SUBMITTED').length})</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedClaimStatus('IN_REVIEW')}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '20px',
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: selectedClaimStatus === 'IN_REVIEW' ? '#3b82f6' : 'white',
+                      color: selectedClaimStatus === 'IN_REVIEW' ? 'white' : '#1e293b',
+                      fontSize: '0.875rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    In Review <span style={{ marginLeft: '0.25rem' }}>({claims.filter(c => c.status === 'IN_REVIEW').length})</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedClaimStatus('APPROVED')}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '20px',
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: selectedClaimStatus === 'APPROVED' ? '#3b82f6' : 'white',
+                      color: selectedClaimStatus === 'APPROVED' ? 'white' : '#1e293b',
+                      fontSize: '0.875rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Approved <span style={{ marginLeft: '0.25rem' }}>({claims.filter(c => c.status === 'APPROVED').length})</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedClaimStatus('REJECTED')}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '20px',
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: selectedClaimStatus === 'REJECTED' ? '#3b82f6' : 'white',
+                      color: selectedClaimStatus === 'REJECTED' ? 'white' : '#1e293b',
+                      fontSize: '0.875rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Rejected <span style={{ marginLeft: '0.25rem' }}>({claims.filter(c => c.status === 'REJECTED').length})</span>
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ 
+                fontSize: '0.875rem', 
+                color: '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <span>📊</span>
+                <span>{claims.filter(claim => selectedClaimStatus === 'ALL' || claim.status === selectedClaimStatus).length} claim(s) found</span>
+              </div>
+            </div>
+
             {claimsLoading ? (
               <div style={{
                 display: 'flex',
@@ -1618,7 +1883,7 @@ export default function AgentPage() {
                   animation: 'spin 1s linear infinite'
                 }}></div>
               </div>
-            ) : claims.length === 0 ? (
+            ) : claims.filter(claim => selectedClaimStatus === 'ALL' || claim.status === selectedClaimStatus).length === 0 ? (
               <div style={{
                 textAlign: 'center',
                 padding: '3rem',
@@ -1648,7 +1913,9 @@ export default function AgentPage() {
                 gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
                 gap: '1.5rem'
               }}>
-                {claims.map((claim) => (
+                {claims
+                  .filter(claim => selectedClaimStatus === 'ALL' || claim.status === selectedClaimStatus)
+                  .map((claim) => (
                   <div key={claim.id} style={{
                     background: 'white',
                     borderRadius: '16px',
@@ -2010,6 +2277,8 @@ export default function AgentPage() {
             )}
           </div>
         );
+      case 'documents':
+        return renderDocuments();
       case 'profile':
         return (
           <div style={{ padding: '2rem', background: '#f8fafc', minHeight: '100vh' }}>
@@ -2183,6 +2452,7 @@ export default function AgentPage() {
             { id: 'offers', label: 'Pending Offers', icon: '📄' },
             { id: 'claims', label: 'Claims Review', icon: '🔧' },
             { id: 'payments', label: 'Payments', icon: '💰' },
+            { id: 'documents', label: 'Documents', icon: '📄' },
             { id: 'profile', label: 'My Profile', icon: '👤' }
           ].map((module) => (
             <button

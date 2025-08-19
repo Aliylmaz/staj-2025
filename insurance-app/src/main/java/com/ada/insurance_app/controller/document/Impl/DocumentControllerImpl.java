@@ -81,15 +81,50 @@ public class DocumentControllerImpl {
         }
     }
 
+    @GetMapping("/claim/{claimId}")
+    public ResponseEntity<GeneralResponse<List<DocumentDto>>> getClaimDocuments(
+            @PathVariable UUID claimId) {
+
+        log.info("Getting documents for claim: {}", claimId);
+
+        try {
+            List<DocumentDto> documents = documentService.getDocumentsByClaim(claimId);
+            return ResponseEntity.ok(GeneralResponse.success("Documents retrieved successfully", documents));
+        } catch (Exception e) {
+            log.error("Error getting claim documents", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get claim documents: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @GetMapping("/policy/{policyId}")
+    public ResponseEntity<GeneralResponse<List<DocumentDto>>> getPolicyDocuments(
+            @PathVariable Long policyId) {
+
+        log.info("Getting documents for policy: {}", policyId);
+
+        try {
+            List<DocumentDto> documents = documentService.getDocumentsByPolicy(policyId);
+            return ResponseEntity.ok(GeneralResponse.success("Documents retrieved successfully", documents));
+        } catch (Exception e) {
+            log.error("Error getting policy documents", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GeneralResponse.error("Failed to get policy documents: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
     @GetMapping("/{documentId}/download")
     public ResponseEntity<byte[]> downloadDocument(@PathVariable Long documentId) {
 
         log.info("Downloading document: {}", documentId);
 
         try {
+            DocumentDto document = documentService.getDocumentById(documentId);
             byte[] fileContent = documentService.downloadDocument(documentId);
+            
             return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=\"document.pdf\"")
+                    .header("Content-Type", document.getContentType())
+                    .header("Content-Disposition", "attachment; filename=\"" + document.getFileName() + "\"")
                     .body(fileContent);
         } catch (Exception e) {
             log.error("Error downloading document", e);
@@ -99,9 +134,6 @@ public class DocumentControllerImpl {
 
     @DeleteMapping("/{documentId}")
     public ResponseEntity<GeneralResponse<Void>> deleteDocument(@PathVariable Long documentId) {
-
-        log.info("Deleting document: {}", documentId);
-
         try {
             documentService.deleteDocument(documentId);
             return ResponseEntity.ok(GeneralResponse.success("Document deleted successfully", null));

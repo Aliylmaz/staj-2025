@@ -5,6 +5,7 @@ import AdminPage from './pages/AdminPage';
 import AgentPage from './pages/AgentPage';
 import CustomerPage from './pages/CustomerPage';
 import ForgotPasswordPage from './ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { CustomerProvider } from './contexts/CustomerContext';
 import './App.css';
@@ -17,6 +18,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegistrationPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           
           {/* Admin Routes */}
           <Route

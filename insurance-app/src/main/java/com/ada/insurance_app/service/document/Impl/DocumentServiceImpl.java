@@ -72,6 +72,19 @@ public class DocumentServiceImpl implements IDocumentService {
     }
 
     @Override
+    public List<DocumentDto> getDocumentsByType(DocumentType type) {
+        List<Document> documents = documentRepository.findByDocumentType(type);
+        return documents.stream().map(documentMapper::toDto).toList();
+    }
+
+    @Override
+    public DocumentDto getDocument(Long documentId) {
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + documentId));
+        return documentMapper.toDto(document);
+    }
+
+    @Override
     public byte[] downloadDocument(Long documentId) {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + documentId));
@@ -107,9 +120,11 @@ public class DocumentServiceImpl implements IDocumentService {
                 throw new IllegalArgumentException("Unsupported file type.");
             }
 
-            String uniqueFileName = "DCM- "+UUID.randomUUID().toString().substring(0,8) + "_" + file.getOriginalFilename();
+            String uniqueFileName = "DCM-" + UUID.randomUUID().toString().substring(0,8) + "_" + file.getOriginalFilename();
             String uploadDir = "uploads/" + documentDto.getDocumentType().toString().toLowerCase();
             String filePath = uploadDir + "/" + uniqueFileName;
+
+            log.info("Saving file to path: {}", filePath);
 
             Path uploadPath = Paths.get(uploadDir);
             if (!Files.exists(uploadPath)) {
@@ -125,9 +140,12 @@ public class DocumentServiceImpl implements IDocumentService {
             document.setOriginalFileName(file.getOriginalFilename());
             document.setContentType(contentType);
             document.setFileSize(file.getSize());
-            document.setFilePath(filePath);
+            document.setFilePath(filePath);  // Dosya yolunu ayarlıyoruz
             document.setDescription(documentDto.getDescription());
             document.setDocumentType(documentDto.getDocumentType());
+
+            log.info("Created document entity: fileName={}, filePath={}, type={}", 
+                uniqueFileName, filePath, documentDto.getDocumentType());
             
             // Set relationships based on DTO
             if (documentDto.getCustomerId() != null) {
@@ -173,16 +191,16 @@ public class DocumentServiceImpl implements IDocumentService {
 
 
     private boolean isValidContentType(String contentType) {
-    if (contentType == null) return false;
+        if (contentType == null) return false;
 
-    List<String> validTypes = Arrays.asList(
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "image/jpeg",
-        "image/png",
-        "image/gif"
-    );
+        List<String> validTypes = Arrays.asList(
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "image/jpeg",
+            "image/png",
+            "image/gif"
+        );
 
     return validTypes.contains(contentType.toLowerCase());
 }
@@ -222,25 +240,7 @@ public class DocumentServiceImpl implements IDocumentService {
        }
    }
 
-    @Override
-    public DocumentDto getDocument(Long documentId) {
-        Document document = documentRepository.findById(documentId)
-                .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + documentId));
-        return documentMapper.toDto(document);
-    }
-
-
-
-
-    @Override
-    public List<DocumentDto> getDocumentsByType(DocumentType type) {
-        if (type == null) {
-            throw new IllegalArgumentException("Document type cannot be null");
-        }
-
-        List<Document> documents = documentRepository.findByDocumentType(type);
-        return documents.stream().map(documentMapper::toDto).toList();
-    }
+ 
 
 
     private void validateDocument(Document document) {

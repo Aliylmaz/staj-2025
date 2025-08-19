@@ -53,6 +53,7 @@ import {
 import type { AgentDto, CoverageDto } from '../services/customerApi';
 
 export default function CustomerPage() {
+  const [selectedClaimStatus, setSelectedClaimStatus] = useState<string>('ALL');
   const [currentModule, setCurrentModule] = useState<'dashboard' | 'offers' | 'policies' | 'claims' | 'payments' | 'documents' | 'profile'>('dashboard');
   const navigate = useNavigate();
   const { customer, customerId, loading: contextLoading, error: contextError, isReady, refreshCustomer } = useCustomer();
@@ -1017,8 +1018,44 @@ if (insuranceType === 'VEHICLE') {
     document.getElementById('engineNumber')?.focus();
     return;
   }
+}if(insuranceType === 'HEALTH'){
+ 
+  // Health insurance form validation
+  if (!healthData.dateOfBirth?.trim()) {
+    alert("Date of birth is required");
+    document.getElementById('dateOfBirth')?.focus();
+    return;
+  } else {
+    // Check if date is valid and not in the future
+    const dob = new Date(healthData.dateOfBirth);
+    const today = new Date();
+    if (isNaN(dob.getTime()) || dob > today) {
+      alert("Please enter a valid date of birth");
+      document.getElementById('dateOfBirth')?.focus();
+      return;
+    }
+  }
+
+  if (!healthData.gender?.trim()) {
+    alert("Gender is required");
+    document.getElementById('gender')?.focus();
+    return;
+  }
+
+  if (healthData.height <= 0) {
+    alert("Height must be a positive number");
+    document.getElementById('height')?.focus();
+    return;
+  }
+
+  if (healthData.weight <= 0) {
+    alert("Weight must be a positive number");
+    document.getElementById('weight')?.focus();
+    return;
+  }
+
+ 
 }
-      
       const response = await requestOffer(requestData);
       console.log('✅ Offer created successfully:', response);
       
@@ -2977,44 +3014,229 @@ if (insuranceType === 'VEHICLE') {
                      margin: 0,
                      fontWeight: 400
                    }}>
-                     Track and manage your insurance claims
-                   </p>
-                 </div>
-                 
-                 {/* Action Button */}
-                 <button
-                   onClick={() => setShowClaimForm(true)}
-                   style={{
-                     background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                     color: 'white',
-                     border: 'none',
-                     borderRadius: '16px',
-                     padding: '0.75rem 1.5rem',
-                     fontSize: '0.875rem',
-                     fontWeight: 600,
-                     cursor: 'pointer',
-                     transition: 'all 0.3s ease',
-                     display: 'flex',
-                     alignItems: 'center',
-                     gap: '0.5rem',
-                     boxShadow: '0 4px 16px rgba(59, 130, 246, 0.2)'
-                   }}
-                   onMouseEnter={(e) => {
-                     e.currentTarget.style.transform = 'translateY(-2px)';
-                     e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3)';
-                     e.currentTarget.style.background = 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)';
-                   }}
-                   onMouseLeave={(e) => {
-                     e.currentTarget.style.transform = 'translateY(0)';
-                     e.currentTarget.style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.2)';
-                     e.currentTarget.style.background = 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
-                   }}
-                 >
-                   <span style={{ fontSize: '1rem' }}>🔑</span>
-                   File New Claim
-                 </button>
-               </div>
-             </div>
+                                         Track and manage your insurance claims
+                  </p>
+                </div>
+
+                {/* File New Claim Button */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <button
+                    onClick={() => setShowClaimForm(true)}
+                    style={{
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '16px',
+                      padding: '0.75rem 1.5rem',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      boxShadow: '0 4px 16px rgba(59, 130, 246, 0.2)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3)';
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.2)';
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
+                    }}
+                  >
+                    <span style={{ fontSize: '1rem' }}>🔑</span>
+                  File New Claim
+                </button>
+              </div>
+            </div>
+           </div>
+
+            {/* Filter Section */}
+            <div style={{
+              background: 'white',
+              borderRadius: '20px',
+              padding: '2rem',
+              margin: '0 0 2rem 0',
+              width: '100%',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'stretch'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white'
+                }}>
+                  <span style={{ fontSize: '1.25rem' }}>🔍</span>
+                </div>
+                <h3 style={{
+                  fontSize: '1.25rem',
+                  fontWeight: 600,
+                  color: '#3b82f6',
+                  margin: 0
+                }}>
+                  Filter Claims
+                </h3>
+              </div>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}>
+                <label style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: '#374151',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <span>📊</span>
+                  Filter by Status:
+                </label>
+                <div style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '1rem',
+                  alignItems: 'center'
+                }}>
+                  <select
+                    value={selectedClaimStatus}
+                    onChange={(e) => setSelectedClaimStatus(e.target.value)}
+                    style={{
+                      padding: '0.75rem 1rem',
+                      border: '2px solid #e2e8f0',
+                      borderRadius: '12px',
+                      fontSize: '0.875rem',
+                      backgroundColor: 'white',
+                      color: '#374151',
+                      cursor: 'pointer',
+                      minWidth: '180px',
+                      transition: 'all 0.3s ease',
+                      fontWeight: 500,
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#3b82f6';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.15)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
+                    }}
+                  >
+                    <option value="ALL">📋 All Statuses</option>
+                    <option value="SUBMITTED">📨 Submitted</option>
+                    <option value="IN_REVIEW">🕵️ In Review</option>
+                    <option value="APPROVED">✅ Approved</option>
+                    <option value="REJECTED">❌ Rejected</option>
+                  </select>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    color: '#6b7280',
+                    padding: '0.5rem 1rem',
+                    background: '#f3f4f6',
+                    borderRadius: '6px',
+                    border: '1px solid #e5e7eb',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.25rem',
+                    minWidth: '120px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontWeight: 600 }}>
+                      {claims.filter(claim => selectedClaimStatus === 'ALL' || claim.status === selectedClaimStatus).length} claim(s) found
+                    </div>
+                    {selectedClaimStatus !== 'ALL' && (
+                      <div style={{ fontSize: '0.625rem', opacity: 0.8, fontStyle: 'italic' }}>
+                        {selectedClaimStatus === 'SUBMITTED' && '📨 Waiting for review'}
+                        {selectedClaimStatus === 'IN_REVIEW' && '🕵️ Under review'}
+                        {selectedClaimStatus === 'APPROVED' && '✅ Approved claims'}
+                        {selectedClaimStatus === 'REJECTED' && '❌ Rejected claims'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {/* Quick Status Buttons */}
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '0.5rem',
+                paddingTop: '0.5rem',
+                borderTop: '1px solid #e5e7eb'
+              }}>
+                {['ALL', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'].map((status) => {
+                  const count = status === 'ALL'
+                    ? claims.length
+                    : claims.filter(claim => claim.status === status).length;
+                  return (
+                    <button
+                      key={status}
+                      onClick={() => setSelectedClaimStatus(status)}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        background: selectedClaimStatus === status 
+                          ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                          : '#f3f4f6',
+                        color: selectedClaimStatus === status ? 'white' : '#374151',
+                        border: selectedClaimStatus === status ? 'none' : '1px solid #e5e7eb',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (selectedClaimStatus !== status) {
+                          e.currentTarget.style.background = '#e5e7eb';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (selectedClaimStatus !== status) {
+                          e.currentTarget.style.background = '#f3f4f6';
+                        }
+                      }}
+                    >
+                      <span>{status === 'ALL' ? '📋 All' : status === 'SUBMITTED' ? '📨 Submitted' : status === 'IN_REVIEW' ? '🕵️ In Review' : status === 'APPROVED' ? '✅ Approved' : '❌ Rejected'}</span>
+                      <span style={{
+                        background: selectedClaimStatus === status ? 'rgba(255,255,255,0.2)' : '#e5e7eb',
+                        padding: '0.125rem 0.375rem',
+                        borderRadius: '4px',
+                        fontSize: '0.625rem',
+                        fontWeight: 600,
+                        minWidth: '1.5rem',
+                        textAlign: 'center',
+                        display: 'inline-block',
+                        lineHeight: '1',
+                        userSelect: 'none',
+                        flexShrink: 0,
+                        boxSizing: 'border-box',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden'
+                      }}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
              {loading ? (
                <div style={{
@@ -3081,7 +3303,9 @@ if (insuranceType === 'VEHICLE') {
                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
                  gap: '1.5rem'
                }}>
-                 {claims.map((claim) => (
+                 {claims
+                  .filter(claim => selectedClaimStatus === 'ALL' || claim.status === selectedClaimStatus)
+                  .map((claim) => (
                    <div key={claim.id} style={{
                      background: 'white',
                      borderRadius: '16px',
@@ -4885,7 +5109,6 @@ if (insuranceType === 'VEHICLE') {
            </div>
          </div>
        )}
-
        {/* Claim Form Modal */}
        {showClaimForm && (
          <div style={{

@@ -17,11 +17,11 @@ public interface IDocumentRepository extends JpaRepository<Document, Long> {
 
     List<Document> findByDocumentType(DocumentType documentType);
 
-    List<Document> findByPolicy_Id(Long policyİd);
+    List<Document> findByPolicy_Id(Long policyId);
 
     List<Document> findByClaim_Id(UUID claimId);
 
-    List<Document> findByCustomer_Id(UUID customerİd);
+    List<Document> findByCustomer_Id(UUID customerId);
 
     Optional<Document> findByFileName(String fileName);
 
