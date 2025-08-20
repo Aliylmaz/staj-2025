@@ -2463,7 +2463,7 @@ if (insuranceType === 'VEHICLE') {
                            <span style={{ fontSize: '1.25rem' }}>✅</span>
                            <div>
                              <strong>Policy Created Successfully!</strong><br />
-                             Your offer has been converted to a policy. You can now view policy details and make payments.
+                             Your offer has been converted to a policy. You can now view policy details.
                            </div>
                          </div>
                          <div style={{
@@ -7312,7 +7312,7 @@ if (insuranceType === 'VEHICLE') {
                          <span style={{ fontSize: '1.25rem' }}>✅</span>
                          <div>
                            <strong>Policy Created Successfully!</strong><br/>
-                           Your offer has been converted to a policy. You can now view policy details and make payments.
+                           Your offer has been converted to a policy. You can now view policy details.
                          </div>
                        </div>
                        
