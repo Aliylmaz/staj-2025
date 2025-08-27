@@ -110,7 +110,7 @@ public class AdminServiceImpl implements IAdminService {
 
         agent = agentRepository.save(agent);
 
-        log.info("New agent created: {}", user.getEmail());
+
 
         return AgentMapper.INSTANCE.toDto(agent);
     }
@@ -151,7 +151,7 @@ public class AdminServiceImpl implements IAdminService {
         userRepository.delete(agent.getUser());
 
 
-        log.info("Agent deleted: {}", agent.getUser().getEmail());
+
 
     }
 

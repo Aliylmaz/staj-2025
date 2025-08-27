@@ -91,8 +91,6 @@ export default function AgentManagement() {
 
     try {
       const token = localStorage.getItem('token');
-      console.log('Token:', token); // Debug: Check if token exists
-      console.log('Form data being sent:', createForm); // Debug: Check form data
       
       const response = await fetch('http://localhost:8080/api/v1/admin/create-agent', {
         method: 'POST',

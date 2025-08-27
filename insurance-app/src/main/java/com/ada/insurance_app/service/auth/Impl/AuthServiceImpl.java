@@ -85,7 +85,7 @@ public class AuthServiceImpl implements IAuthService {
 
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, refreshTokenValue);
 
-            log.info("User logged in successfully: {}", user.getEmail());
+
 
             return AuthResponse.builder()
                     .accessToken(accessToken)
@@ -97,10 +97,10 @@ public class AuthServiceImpl implements IAuthService {
                     .build();
 
         } catch (BadCredentialsException ex) {
-            log.warn("Login failed due to invalid credentials for email: {}", request.getEmail());
+            log.warn("Login failed due to invalid credentials");
             throw new InvalidRequestException("Invalid email or password"); // kendi custom exception'ını fırlat
         } catch (Exception e) {
-            log.error("Login failed for email: {}", request.getEmail(), e);
+            log.error("Login failed", e);
             throw e; // diğer exceptionlar yine yukarı fırlasın
         }
     }
@@ -152,7 +152,7 @@ public class AuthServiceImpl implements IAuthService {
 
         customerRepository.save(customer);
 
-        log.info("New customer registered: {}", user.getEmail());
+
 
         return userInfoMapper.fromUserInfo(user);
 
@@ -205,7 +205,7 @@ public class AuthServiceImpl implements IAuthService {
 
         customerRepository.save(customer);
 
-        log.info("New customer registered via register-customer endpoint: {}", user.getEmail());
+
 
         return userInfoMapper.fromUserInfo(user);
     }
@@ -236,7 +236,7 @@ public class AuthServiceImpl implements IAuthService {
         refreshTokenService.revokeToken(refreshTokenValue);
         RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user, newRefreshTokenValue);
 
-        log.info("Token refreshed successfully for user: {}", user.getEmail());
+
 
         // Build and return response
         return AuthResponse.builder()
@@ -252,7 +252,7 @@ public class AuthServiceImpl implements IAuthService {
     @Transactional
     public void logout(String token) {
         refreshTokenService.revokeToken(token);
-        log.info("User logged out, refresh token revoked");
+
     }
 
     @Override
@@ -285,7 +285,7 @@ public class AuthServiceImpl implements IAuthService {
 
         refreshTokenService.revokeAllTokensByUser(user);
 
-        log.info("Password changed successfully for user: {}", user.getEmail());
+
 
         return PasswordResponse.builder()
                 .success(true)
@@ -316,7 +316,7 @@ public class AuthServiceImpl implements IAuthService {
         String resetToken = UUID.randomUUID().toString();
         passwordResetTokenService.createPasswordResetToken(user, resetToken);
 
-        log.info("Password reset token generated for user: {}", user.getEmail());
+
 
 
         emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
@@ -358,8 +358,6 @@ public class AuthServiceImpl implements IAuthService {
         userRepository.save(user);
 
         refreshTokenService.revokeAllTokensByUser(user);
-
-        log.info("Password reset successfully for user: {}", user.getEmail());
 
         return PasswordResponse.builder()
                 .success(true)

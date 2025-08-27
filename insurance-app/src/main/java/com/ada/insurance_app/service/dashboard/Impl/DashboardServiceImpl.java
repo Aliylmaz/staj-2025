@@ -88,8 +88,7 @@ public class DashboardServiceImpl implements IDashboardService {
                 .orElseThrow(() -> new IllegalArgumentException("Agent not found with ID: " + agentId));
 
         String agentNumber = agent.getAgentNumber();
-        log.info("=== getAgentStatisticsById Debug ===");
-        log.info("Agent ID: {}, Agent Number: {}, Agent Name: {}", agentId, agentNumber, agent.getName());
+
 
         long policyCount = policyRepository.countPoliciesByAgent_AgentNumber(agentNumber);
         long claimCount = claimRepository.countByPolicy_Agent_AgentNumber(agentNumber);
@@ -101,10 +100,7 @@ public class DashboardServiceImpl implements IDashboardService {
         long approvedPolicies = policyRepository.countApprovedPoliciesByAgent_AgentNumber(agentNumber);
         double totalClaimPaid = claimRepository.sumApprovedClaimAmountsByAgent_AgentNumber(agentNumber);
 
-        log.info("Policy Count: {}, Claim Count: {}, Payment Count: {}, Total Premium: {}", 
-                policyCount, claimCount, paymentCount, totalPremium);
-        log.info("Total Offers: {}, Approved Policies: {}, Total Claim Paid: {}", 
-                totalOffers, approvedPolicies, totalClaimPaid);
+
 
         // Calculate performance metrics
         double conversionRate = totalOffers > 0 ? ((double) policyCount / totalOffers) * 100 : 0.0;

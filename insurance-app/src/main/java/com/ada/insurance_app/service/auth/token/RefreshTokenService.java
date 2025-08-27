@@ -69,7 +69,7 @@ public class RefreshTokenService {
     @Transactional
     public void deleteExpiredTokens() {
         refreshTokenRepository.deleteByExpiresAtBefore(LocalDateTime.now());
-        log.info("Expired refresh tokens cleaned up");
+
     }
 
     public Optional<User> getUserByToken(String token) {

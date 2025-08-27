@@ -148,9 +148,7 @@ export default function AgentPage() {
         return;
       }
       
-      console.log('🔑 Token found, fetching current agent...');
       const agent = await getCurrentAgent();
-      console.log('👤 Current agent loaded:', agent);
       setCurrentAgent(agent);
       
       // Initialize profile form with current agent data
@@ -266,19 +264,10 @@ export default function AgentPage() {
 
   const handleAcceptOffer = async (offerId: number) => {
     try {
-      // Debug authentication state
-      const token = localStorage.getItem('token');
-      const userRole = localStorage.getItem('userRole');
-      console.log('🔍 handleAcceptOffer - Token exists:', !!token);
-      console.log('🔍 handleAcceptOffer - User role:', userRole);
-      console.log('🔍 handleAcceptOffer - Token value:', token);
-      
       const updateRequest = {
         offerId: offerId,
         status: 'APPROVED' as const
       };
-      
-      console.log('🔍 handleAcceptOffer - Sending request:', updateRequest);
       const updatedOffer = await updateOfferStatus(updateRequest);
       
       // Update the offers state with the updated offer
@@ -301,19 +290,10 @@ export default function AgentPage() {
 
   const handleRejectOffer = async (offerId: number) => {
     try {
-      // Debug authentication state
-      const token = localStorage.getItem('token');
-      const userRole = localStorage.getItem('userRole');
-      console.log('🔍 handleRejectOffer - Token exists:', !!token);
-      console.log('🔍 handleRejectOffer - User role:', userRole);
-      console.log('🔍 handleRejectOffer - Token value:', token);
-      
       const updateRequest = {
         offerId: offerId,
         status: 'REJECTED' as const
       };
-      
-      console.log('🔍 handleRejectOffer - Sending request:', updateRequest);
       await updateOfferStatus(updateRequest);
       
       // Remove from offers list since it's no longer pending

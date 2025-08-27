@@ -90,8 +90,8 @@ public class AgentServiceImpl implements IAgentService {
                 .collect(Collectors.toList());
         
         for (CustomerDto dto : customerDtos) {
-            log.info("Customer DTO ID: {}, Name: {}, Email: {}", 
-                    dto.getId(), dto.getFirstName() + " " + dto.getLastName(), dto.getEmail());
+            log.info("Customer DTO ID: {}, Name: {}", 
+                    dto.getId(), dto.getFirstName() + " " + dto.getLastName());
         }
         
         log.info("=== End getMyCustomers Debug ===");

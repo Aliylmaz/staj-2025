@@ -61,7 +61,7 @@ public class PasswordResetTokenService {
         resetToken.markAsUsed();
         passwordResetTokenRepository.save(resetToken);
 
-        log.info("Password reset token used successfully for user: {}", resetToken.getUser().getEmail());
+
         return true;
     }
 
@@ -83,14 +83,14 @@ public class PasswordResetTokenService {
                     passwordResetTokenRepository.save(token);
                 });
 
-        log.info("Expired password reset tokens marked");
+
     }
 
     @Transactional
     public void cleanupOldTokens(int daysOld) {
         LocalDateTime cutoffDate = LocalDateTime.now().minusDays(daysOld);
         int deletedCount = passwordResetTokenRepository.deleteByCreatedAtBefore(cutoffDate);
-        log.info("Cleaned up {} old password reset tokens", deletedCount);
+
     }
 
     public Optional<User> getUserByToken(String token) {

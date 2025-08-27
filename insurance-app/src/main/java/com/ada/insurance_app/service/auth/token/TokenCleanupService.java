@@ -20,7 +20,7 @@ public class TokenCleanupService {
     public void cleanupExpiredRefreshTokens() {
         try {
             refreshTokenService.deleteExpiredTokens();
-            log.debug("Scheduled cleanup of expired refresh tokens completed");
+
         } catch (Exception e) {
             log.error("Error during scheduled refresh token cleanup", e);
         }
@@ -33,7 +33,7 @@ public class TokenCleanupService {
     public void markExpiredPasswordResetTokens() {
         try {
             passwordResetTokenService.markExpiredTokens();
-            log.debug("Scheduled marking of expired password reset tokens completed");
+
         } catch (Exception e) {
             log.error("Error during scheduled password reset token expiry marking", e);
         }
@@ -47,7 +47,7 @@ public class TokenCleanupService {
         try {
             // Clean up tokens older than 30 days
             passwordResetTokenService.cleanupOldTokens(30);
-            log.info("Scheduled cleanup of old password reset tokens completed");
+
         } catch (Exception e) {
             log.error("Error during scheduled password reset token cleanup", e);
         }

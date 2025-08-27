@@ -74,18 +74,12 @@ export const CustomerProvider: React.FC<CustomerProviderProps> = ({ children }) 
     const token = localStorage.getItem('token');
     const userRole = localStorage.getItem('userRole');
     
-    console.log('🔄 CustomerContext - fetchCustomer called');
-    console.log('🔄 CustomerContext - token exists:', !!token);
-    console.log('🔄 CustomerContext - userRole:', userRole);
-    
     if (!token || userRole !== 'CUSTOMER') {
-      console.log('❌ CustomerContext - No token or wrong role, clearing state');
       clearCustomer();
       return;
     }
 
     // Always fetch customer data from API, don't skip
-    console.log('🔄 CustomerContext - Always fetching customer data from API...');
     setLoading(true);
     setError(null);
 
@@ -136,18 +130,13 @@ export const CustomerProvider: React.FC<CustomerProviderProps> = ({ children }) 
 
   // Refresh customer data (for profile updates)
   const refreshCustomer = useCallback(async () => {
-    console.log('🔄 CustomerContext - refreshCustomer called');
     setLoading(true);
     setError(null);
 
     try {
-      console.log('🌐 CustomerContext - Making API call to /customer/current');
       const response = await axiosInstance.get('/customer/current');
 
-      console.log('✅ CustomerContext - API call successful');
       const customerData = response.data.data;
-      
-      console.log('📊 CustomerContext - Customer data received:', customerData);
       
       // Validate customer data
       if (!customerData || !customerData.id) {
@@ -165,7 +154,6 @@ export const CustomerProvider: React.FC<CustomerProviderProps> = ({ children }) 
       }
       
       setIsReady(true);
-      console.log('✅ CustomerContext - Customer data refreshed:', customerData.id);
       
     } catch (err: any) {
       console.error('❌ CustomerContext - Error refreshing customer:', err);
@@ -187,28 +175,17 @@ export const CustomerProvider: React.FC<CustomerProviderProps> = ({ children }) 
 
   // Initialize customer data on mount
   useEffect(() => {
-    console.log('🚀 CustomerContext - useEffect triggered - HELLO WORLD!');
-    console.log('🚀 CustomerContext - useEffect is working!');
-    
     const token = localStorage.getItem('token');
     const userRole = localStorage.getItem('userRole');
-    const storedCustomerId = localStorage.getItem('customerId');
-    
-    console.log('🚀 CustomerContext - token exists:', !!token);
-    console.log('🚀 CustomerContext - userRole:', userRole);
-    console.log('🚀 CustomerContext - stored customerId:', storedCustomerId);
     
     if (token && userRole === 'CUSTOMER') {
       // Always fetch customer data if we don't have it
       if (!customer) {
-        console.log('🔄 CustomerContext - No customer data, fetching from API');
         fetchCustomer();
       } else {
-        console.log('✅ CustomerContext - Customer data already exists, setting ready');
         setIsReady(true);
       }
     } else {
-      console.log('❌ CustomerContext - No token or wrong role, clearing state');
       clearCustomer();
     }
   }, []); // Empty dependency array to run only once on mount
@@ -224,13 +201,7 @@ export const CustomerProvider: React.FC<CustomerProviderProps> = ({ children }) 
     refreshCustomer,
   };
 
-  console.log('🔍 CustomerContext - Current state:', {
-    customer: customer,
-    customerId: customerId,
-    loading: loading,
-    error: error,
-    isReady: isReady
-  });
+
 
   return (
     <CustomerContext.Provider value={value}>

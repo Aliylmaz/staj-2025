@@ -665,13 +665,13 @@ public class CustomerServiceImpl implements ICustomerService {
             
             try {
                 currentUserId = SecurityUtils.getCurrentUserId();
-                log.info("getCurrentCustomer: Current user ID from SecurityUtils: {}", currentUserId);
+    
             } catch (IllegalStateException e) {
                 log.warn("getCurrentCustomer: Could not get user ID from SecurityUtils: {}", e.getMessage());
                 
                 // Try to get user ID from username
                 String username = SecurityUtils.getCurrentUsername();
-                log.info("getCurrentCustomer: Getting user ID from username: {}", username);
+
                 
                 // Find user by username/email
                 User user = userRepository.findByEmail(username)
@@ -679,7 +679,7 @@ public class CustomerServiceImpl implements ICustomerService {
                         .orElseThrow(() -> new IllegalStateException("User not found for username: " + username));
                 
                 currentUserId = user.getId();
-                log.info("getCurrentCustomer: User ID found from username lookup: {}", currentUserId);
+
             }
             
             Customer customer = customerRepository.findByUserId(currentUserId)

@@ -19,14 +19,11 @@ public class SecurityUtils {
 
     public static String extractToken(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
-        log.info("SecurityUtils - Authorization header: {}", header);
         
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
-            log.info("SecurityUtils - Token extracted successfully, length: {}", token.length());
             return token;
         } else {
-            log.warn("SecurityUtils - Authorization header is null or doesn't start with 'Bearer '");
             return null;
         }
     }
@@ -51,22 +48,16 @@ public class SecurityUtils {
 
     public static UUID getCurrentUserId() {
         try {
-            log.info("SecurityUtils.getCurrentUserId: Starting to get current user ID");
             Authentication authentication = getCurrentAuthentication();
-            log.info("SecurityUtils.getCurrentUserId: Authentication object: {}", authentication);
             
             if (authentication == null || !authentication.isAuthenticated()) {
-                log.error("SecurityUtils.getCurrentUserId: No authenticated user found");
                 throw new IllegalStateException("No authenticated user found");
             }
 
             Object principal = authentication.getPrincipal();
-            log.info("SecurityUtils.getCurrentUserId: Principal type: {}", principal.getClass().getName());
-            log.info("SecurityUtils.getCurrentUserId: Principal: {}", principal);
             
             if (principal instanceof CustomUserDetailsInterface) {
                 UUID userId = ((CustomUserDetailsInterface) principal).getId();
-                log.info("SecurityUtils.getCurrentUserId: User ID extracted from CustomUserDetails: {}", userId);
                 return userId;
             }
 
@@ -81,7 +72,6 @@ public class SecurityUtils {
                         // we'll need to get it from the application context
                         // For now, let's try to get the user ID from the username
                         String username = getCurrentUsername();
-                        log.info("SecurityUtils.getCurrentUserId: Trying to get user ID from username: {}", username);
                         
                         // This would require a UserService to get user by username
                         // For now, we'll throw an exception and handle it in the service layer
@@ -89,13 +79,11 @@ public class SecurityUtils {
                     }
                 }
             } catch (Exception e) {
-                log.warn("SecurityUtils.getCurrentUserId: Could not extract user ID from JWT token: {}", e.getMessage());
+                // Silent fail for security reasons
             }
 
-            log.error("SecurityUtils.getCurrentUserId: Unable to extract user ID from authentication context");
             throw new IllegalStateException("Unable to extract user ID from authentication context");
         } catch (Exception e) {
-            log.error("SecurityUtils.getCurrentUserId: Error getting current user ID: {}", e.getMessage(), e);
             throw e;
         }
     }

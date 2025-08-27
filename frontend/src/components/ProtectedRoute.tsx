@@ -14,16 +14,13 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
 
   // Check if user is authenticated
   if (!token) {
-    console.log('🚫 ProtectedRoute - No token found, redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Check if user has the required role
   if (!userRole || !allowedRoles.includes(userRole)) {
-    console.log('🚫 ProtectedRoute - User role not allowed, redirecting to unauthorized');
     return <Navigate to="/unauthorized" replace />;
   }
 
-  console.log('✅ ProtectedRoute - Authentication successful, rendering children');
   return <>{children}</>;
 } 

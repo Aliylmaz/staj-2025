@@ -9,25 +9,19 @@ export default function DashboardPage() {
     // Role kontrolü ve yönlendirme
     const userRole = localStorage.getItem('userRole');
     
-    console.log('DashboardPage - Current userRole from localStorage:', userRole);
-    
     if (userRole === "ADMIN") {
-      console.log('Redirecting to /admin');
       navigate('/admin');
       return;
     } else if (userRole === "AGENT") {
-      console.log('Redirecting to /agent');
       navigate('/agent');
       return;
     } else if (userRole === "CUSTOMER") {
-      console.log('Redirecting to /customer');
       navigate('/customer');
       return;
     }
 
     // Eğer role yoksa login'e yönlendir
     if (!userRole) {
-      console.log('No userRole found, redirecting to /login');
       navigate('/login');
       return;
     }

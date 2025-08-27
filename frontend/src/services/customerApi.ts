@@ -13,10 +13,6 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    console.log('🔐 Axios interceptor - Request URL:', config.url);
-    console.log('🔐 Axios interceptor - Request method:', config.method);
-    console.log('🔐 Axios interceptor - Token from localStorage:', token ? 'EXISTS' : 'NOT FOUND');
-    console.log('🔐 Axios interceptor - Token value:', token);
     
     if (token) {
       // Check for common token issues
@@ -26,14 +22,8 @@ axiosInstance.interceptors.request.use(
         console.error('🔐 Axios interceptor - Token contains undefined/null values');
       } else {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log('🔐 Axios interceptor - Authorization header set:', `Bearer ${token.substring(0, 20)}...`);
-        console.log('🔐 Axios interceptor - Full Authorization header:', config.headers.Authorization);
       }
-    } else {
-      console.warn('🔐 Axios interceptor - No token found, skipping Authorization header');
     }
-    
-    console.log('🔐 Axios interceptor - All request headers:', config.headers);
     
     return config;
   },
@@ -353,11 +343,7 @@ export const requestOffer = async (requestData: CreateOfferRequest): Promise<Off
   
   const url = `/customer/${customerId}/create-offer`;
   
-  console.log('🔍 requestOffer - customerId from localStorage:', customerId);
-  console.log('🔍 requestOffer - requestData:', requestData);
-  console.log('🔍 requestOffer - token from localStorage:', localStorage.getItem('token'));
-  console.log('🔍 requestOffer - URL being called:', url);
-  console.log('🔍 requestOffer - Request method: POST');
+
   
   const response = await axiosInstance.post(url, requestData);
   return response.data.data;

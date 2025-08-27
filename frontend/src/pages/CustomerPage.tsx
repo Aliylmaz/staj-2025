@@ -785,21 +785,12 @@ export default function CustomerPage() {
     postalCode: ''
   });
 
-  // Debug localStorage values on mount
-  useEffect(() => {
-    console.log('🔍 CustomerPage - localStorage debug:');
-    console.log('🔍 Token:', localStorage.getItem('token'));
-    console.log('🔍 UserRole:', localStorage.getItem('userRole'));
-    console.log('🔍 CustomerId:', localStorage.getItem('customerId'));
-  }, []);
+
 
   // Customer ID guard for data fetching
   useEffect(() => {
     if (isReady && customerId) {
-      console.log('✅ CustomerPage - Context is ready and customerId exists, fetching data:', customerId);
       fetchAllData();
-    } else {
-      console.log('⏳ CustomerPage - Context not ready or customerId missing:', { isReady, customerId });
     }
   }, [isReady, customerId]);
 
@@ -889,7 +880,6 @@ export default function CustomerPage() {
       
       // Handle 401 error specifically
       if (error.response?.status === 401) {
-        console.log('❌ CustomerPage - 401 error, token might be expired');
         // Don't redirect here, let axios interceptor handle it
       }
     } finally {
@@ -911,15 +901,7 @@ export default function CustomerPage() {
 
     try {
       // Debug token status
-      const token = localStorage.getItem('token');
-      const userRole = localStorage.getItem('userRole');
-      const currentCustomerId = localStorage.getItem('customerId');
-      
-      console.log('🔍 handleCreateOffer - Token exists:', !!token);
-      console.log('🔍 handleCreateOffer - User role:', userRole);
-      console.log('🔍 handleCreateOffer - Customer ID:', currentCustomerId);
-      console.log('🔍 handleCreateOffer - Token value:', token);
-      
+     
       const requestData: any = {
         insuranceType,
         note,

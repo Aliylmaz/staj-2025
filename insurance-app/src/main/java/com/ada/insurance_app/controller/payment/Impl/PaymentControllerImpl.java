@@ -147,7 +147,6 @@ public class PaymentControllerImpl implements IPaymentController {
     @GetMapping("/search")
     public ResponseEntity<GeneralResponse<List<Payment>>> searchPayments(@RequestParam String keyword) {
         try {
-            log.info("Searching payments with keyword: {}", keyword);
             List<Payment> results = paymentService.searchPayments(keyword);
             return ResponseEntity.ok(GeneralResponse.success("Search results retrieved", results));
         } catch (Exception e) {
